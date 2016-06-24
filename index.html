@@ -13,6 +13,11 @@
     font-family: sans-serif;
     font-size: 11px;
 }
+.tooltip{
+    background: bisque;
+    border-radius:2px;
+    padding:4 4 4 4 ;
+}
 </style>
 
     <body> 
@@ -256,7 +261,7 @@
             var viz = d3.select("body")
                                 .append("svg")
                                 .attr("height",400)
-                                .attr("width", 600);
+                                .attr("width", 800);
             viz._height=400;
             viz._width = 600;
             viz._left = 40;
@@ -330,7 +335,7 @@
               if(data.lenth < 1) return ;
               if (!svg._xScale){
                   svg._xScale = d3.scale.linear()
-                                        .range([svg._left , svg._width-svg._right])
+                                        .range([svg._left , svg._width])
                                         .domain([1999, 2016]);
               }
               if(!svg._yScale){
@@ -376,15 +381,30 @@
                                     .on("mouseover", function(){return tooltip.style("visibility", "visible");})
 	                                .on("mousemove", function(d){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px").text(d.y);})
 	                                .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
+          var nameList = svg.selectAll("nameList")
+                                        .data(data)
+                                        .enter()
+                                        .append("circle")
+                                        .attr("cx",function(d ,i){
+                                            return svg._width +5;
+                                        })
+                                        .attr("cy",function(d,i){
+                                            return  i*30 + svg._top +8;
+                                        })
+                                        .attr("r",8)
+                                        .attr("fill",color)
           }
           AddLine(viz,data,"green");
           AddLine(viz,data2,"red");
+        
           var tooltip = d3.select("body")
             .append("div")
+            .attr("class","tooltip")
             .style("position", "absolute")
             .style("z-index", "10")
             .style("visibility", "hidden")
             .text("a simple tooltip");
+
         </script>
     </body> 
 </html>
