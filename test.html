@@ -18,14 +18,44 @@
     border-radius:2px;
     padding:4 4 4 4 ;
 }
+.selectCircle circle{
+    stroke: black;
+    stroke-width: 2px;
+}
+.titleBar{
+    font-size: 30px;
+    font-family:  sans-serif;
+    margin-bottom: 40;
+}
+.infoBar{
+    background-color: gray;
+}
+.noselect {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+.notSelected{
+ opacity: 0.2;
+}
 </style>
 
     <body id="mybody"> 
-        <button onclick="addHeight">AddHeight</button>
+        <button onclick="addData()">AddData</button>
         <script src="./lib/d3.js" charset="utf-8"></script> 
         <script src="./SmartTrafficChart.js" charset="utf-8"></script> 
         <script>
-            var _c = new SmartTrafficLineChart(1600,400);
+            function addData(){
+                var _data =[];
+                for(var i =0; i <10 ;++i){
+                    _data.push({x:2000+i+Math.floor(10*Math.random()),y:100+100*Math.random()});
+                }
+                  _c.addData({"name":Math.floor(10*Math.random()),"data":_data});
+            };
+            var _c = new SmartTrafficLineChart({"width":1000,"height":600,title:"D3测试",yTitle:"Y轴标题",xTitle:"x轴标题",secondTitle:"二级标题测试"});
                   var data2 = [{
                         "y": "152",
                         "x": "2000"
@@ -64,9 +94,32 @@
                 "y": "176",
                 "x": "2008"
             }];
-            _c.addData({"_d":data2,"option":{"color":"red"}});
+              var data1 = [{
+                "y": "202",
+                "x": "1999"
+            }, {
+                "y": "215",
+                "x": "2001"
+            }, {
+                "y": "179",
+                "x": "2002"
+            }, {
+                "y": "199",
+                "x": "2004"
+            }, {
+                "y": "134",
+                "x": "2005"
+            }, {
+                "y": "176",
+                "x": "2007"
+            }];
+            _c.addData({"name":"bule", id:"no.1" ,"data":data2,"option":{"color":"red"}});
             _c.appendTo("mybody");
-           _c.addData({"_d":data,"option":{"color":"blue"}});
+           _c.addData({"name":"blue","data":data,"option":{"color":"steelblue"}});
+            _c.addData({"data":data1,"option":{"color":"green"}});
+            _c.addEventHandler("select",function(data){console.log(data)});
+            _c.addEventHandler("deSelect",function(data){console.log("remove id = "+ data.id)});
+        
             // var ws = new WebSocket("ws://127.0.0.1:8123");
             // ws.onopen = function(){ws.send("Test!"); };
 
