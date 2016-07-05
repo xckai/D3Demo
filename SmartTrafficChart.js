@@ -45,7 +45,7 @@ var colorManager = {
         return this._colors[this._colorIndex++] ;
     },
     init:function(){
-        this._colors =["#FF6666","#0099CC","#336633","#CC0033","#FFCC00"];
+        this._colors =["#52BACC","#5CBAE6","#B6D957","#8CD3FF","#93B9C6","#98AAFB","#CCC5A8","#D998CB","#DBDB46","#F2D249","#FAC364"];
         this._colorIndex =0;
     }
 }
@@ -61,12 +61,14 @@ var SmartTrafficLineChart = function(option) {
     this.yTitle = option.yTitle;
     this.secondTitle = option.secondTitle;
     this._calculateMargin();
+    this.xType = "time";
 
 };
 SmartTrafficLineChart.prototype.constructor = SmartTrafficLineChart;
 SmartTrafficLineChart.prototype = {
     addData: function(data) {
         data = this._parseData(data);
+       
         var _i = -1;
         for (var i in this.datas) {
             if (this.datas[i].id === data.id) {
@@ -79,10 +81,41 @@ SmartTrafficLineChart.prototype = {
         } else {
             this.datas.push(data);
         }
+        this._xSet(true);
         if (this.svg) this._reDraw();
+    } ,
+    _xSet:function(isUpdata){
+        if(!isUpdata) return this.xSet;
+        var self = this , datas =this.datas;    
+        this.xSet = [];
+        datas.forEach(function(data){
+            data._d.forEach(function(v){
+                        if(!self.xSet.find(function(x){
+                          return x - v.x === 0;
+            })){
+                self.xSet.push(v.x);
+            }
+            })
+        });
+        this.xSet = this.xSet.sort(function(v1,v2){
+            return v1 -v2;
+        });
+        return this.xSet;
     },
+    _getXSetIndex:function (obj){
+        if(! this._xSet()) return -1;
+        var _index = -1 ,set = this._xSet();
+        for( var i = 0; i < set.length; ++i){
+            if(set[i] -obj === 0) {
+                _index = i;
+                break;
+            }
+        }    
+        return _index;
+     },
     _parseData: function(data) {
         var _d = {};
+        var self = this;
         _d.name = data.name;
         if(data.id === undefined) {
             if(data.name === undefined){
@@ -97,7 +130,7 @@ SmartTrafficLineChart.prototype = {
         if (data.option) {
             _d._d = data.data;
             if (data.option.x) _d._d = _d._d.map(function(v) {
-                v.x = v[data.option.x];
+                 v.x = v[data.option.x];
                 delete v[data.option.x];
                 return v;
             });
@@ -108,6 +141,7 @@ SmartTrafficLineChart.prototype = {
                     return v;
                 });
             }
+        
             _d.color =data.option.color || this._getColor();
             _d.baseWidth = data.option.width || 2;
         } else {
@@ -115,8 +149,13 @@ SmartTrafficLineChart.prototype = {
             _d.color = this._getColor();
             _d.baseWidth = 2;
         }
+        if(self.xType === "time") {
+            _d._d.forEach(function(v){
+                v.x = new Date(v.x);
+            })
+        }
         _d._d = _d._d.sort(function(v1,v2){
-            return v1.x>v2.x;
+            return v1.x - v2.x;
         })
         return _d;
     },
@@ -161,25 +200,31 @@ SmartTrafficLineChart.prototype = {
             this._xAxisHeight = Math.floor(this.height * 0.025);
             this._xTitleHeight = Math.max(1, Math.floor(this.height * 0.075));
         }
-
-
-
         return this;
     },
     _drawAxisXLine: function() {
 
     },
+    _drawGuideLine:function(x,y,x1,y1){
+        guideLine.addGuideLine.call(this,this.svg.drawArea.chart,x,y,x1,y1);
+    },
+    _removeGuideLine:function(){
+       guideLine.removeGuideLine.call(this);
+    },
     _drawAxis: function() {
         var self = this;
+        if(this._xAxis) this._xAxis.remove();
         this._xAxis = this.svg.drawArea.x.append("svg:g")
             .attr("transform", "translate(0," + (this._chartHeight) + ")")
             .attr("class","xaxis")
-            .call(d3.svg.axis().scale(self._xScale).orient("bottom").tickFormat(function(d) {
-                return d;
+            .call(d3.svg.axis().scale(this._getXScale()).orient("bottom").tickFormat(function(d){
+                if(self.xType === "time"){
+                    return d.getHours() +":"+ d.getMinutes();
+                }
             }))
             .classed("axis", true);
          //x.selectAll("g").append("line").attr("x2",0).attr("x1",0).attr("y1",0).attr("y2", - self._chartHeight).attr("stroke-width",1).attr("stroke","black").attr("opacity","0.2");
-
+        if(this._yAxis) this._yAxis.remove();
         this._yAxis = this.svg.drawArea.y.append("svg:g")
             .attr("class","yaxis")
             .call(d3.svg.axis().scale(this._getYScale()).orient("left"))
@@ -200,34 +245,28 @@ SmartTrafficLineChart.prototype = {
             .attr("class","line")
             .attr('stroke', data.color)
             .attr('stroke-width', data.baseWidth)
-            .attr('fill', 'none');
+            .attr('fill', 'none')
+             .attr("pointer-events","none");
         return _line;
     },
     _drawCircles: function(data) {
         var self = this;
-        var g = this.svg.drawArea.chart.append("g");
+        var g = this.svg.drawArea.chart.append("g")
+                        .attr("pointer-events","none");
         var _circle = g.selectAll("linepoint")
             .data(data._d)
             .enter()
             .append("circle")
             .attr("cx", function(d) {
-                return self._xScale(d.x);
+                return self._getXScale()(d.x);
             })
             .attr("cy", function(d) {
                 return self._getYScale()(d.y);
             })
             .attr("r", function(d) {
-                return 2 * data.baseWidth;
+                return 2* data.baseWidth;
             }).attr("fill", data.color)
-            .on("mouseover", function() {
-                return self.svg.toolTip.style("visibility", "visible");
-            })
-            .on("mousemove", function(d) {
-                return self.svg.toolTip.style("top", (event.pageY -10) + "px").style("left", (event.pageX +10) + "px").text("X :"+d.x +"   Y: "+d.y);
-            })
-            .on("mouseout", function() {
-                return self.svg.toolTip.style("visibility", "hidden");
-            });
+            .attr("class",function(d,i){return "event-sharp-"+self._getXSetIndex(d.x)});
             // .append("svg:title").text( function(d){return "X :"+d.x +"   Y: "+d.y});
         g.on("click", function() {
             if (data.isSelected) {
@@ -302,6 +341,68 @@ SmartTrafficLineChart.prototype = {
         this.svg.titleBar.append("text").text(this.title).attr("dominant-baseline", "text-before-edge").classed("titleBar", true);
         this.svg.titleBar.append("text").text(this.secondTitle).attr("dominant-baseline", "text-before-edge").attr("dy", this._titleHeight / 2);
     },
+    _drawEventRect:function(){
+        if(this.svg.drawArea.eventRects) this.svg.drawArea.eventRects.remove();
+        var self =this, set = this._xSet(),chart=this.svg.drawArea.chart ,_width = Math.floor(this._chartWidth/(set.length +1));
+        this.svg.drawArea.eventRects = chart.append("g").attr("class","eventRect");
+        this.svg.drawArea.eventRects.selectAll("rect").data(set)
+                                                .enter()
+                                                .append("rect")
+                                                .attr("x",function(d,i){ return self._getXScale()(d) - _width/2})
+                                                .attr("y", 0)
+                                                .attr("width",_width)
+                                                .attr("height",self._chartHeight)
+                                                .attr("class",function(d,i){ return "event-rect-"+i})
+                                                .attr("rect-index",function(d,i ){return i})
+                                                .attr("fill-opacity","0")
+                                                .on("mouseout",function(d,i){
+                                                        self.svg.toolTip.style("visibility", "hidden");
+                                                       self._removeGuideLine();
+                                                    })
+                                                .on("mousemove",function(d,i){
+                                                     var sharps=d3.selectAll(".event-sharp-"+i),mouse=d3.mouse(chart.node()),content="";
+                                                     self.svg.toolTip.style("visibility", "hidden");
+                                                     self._removeGuideLine();
+                                                     sharps.filter(function(d){
+                                                         return self._isInSharp(this);
+                                                     }).each(function(d){
+                                                        
+                                                          content+="X:"+d.x+"<br/>"+"Y:"+d.y+"<br/>";
+                                                          self._drawGuideLine(self._getXScale()(d.x),self._getYScale()(d.y),0,self._chartHeight);
+                                                     });
+                                                     if(content !==""){
+                                                         self.svg.toolTip.style("visibility", "visible");
+                                                         self.svg.toolTip.style("top", (event.pageY -5) + "px").style("left", (event.pageX +10) + "px").html(content);
+                                                     }
+                                                 
+                                                                                    
+
+
+                                                    //  sharps.each(function(d){
+                                                    //      var _sharp = d3.select(this);
+                                                    //      if(_sharp.node().nodeName = == "circle"){
+                                                    //             var x=Number(_sharp.attr("cx")),y=Number(_sharp.attr("cy")),r=Number(_sharp.attr("r"));
+                                                    //             if(self._isInCircle(mouse[0],mouse[1],x,y,2*r)){
+                                                    //                 self.svg.toolTip.style("visibility", "visible");
+                                                    //                 self.svg.toolTip.style("top", (event.pageY -5) + "px").style("left", (event.pageX +10) + "px").text("X :"+d.x +"   Y: "+d.y);
+                                                    //             }else{
+                                                    //                 self.svg.toolTip.style("visibility", "hidden");
+                                                    //             }
+                                                                
+                                                    //      }
+                                                       
+                                                    //  })
+                                                                                                            });
+                                                
+
+} , 
+_isInSharp:function(_sharp){
+    _sharp = d3.select(_sharp);
+ if(_sharp.node().nodeName ==="circle"){
+       var mouse=d3.mouse(this.svg.drawArea.chart.node()); x2=Number(_sharp.attr("cx")),y2=Number(_sharp.attr("cy")),r=Number(_sharp.attr("r"));
+         return Math.sqrt(Math.pow(mouse[0]-x2,2)+Math.pow(mouse[1]-y2,2)) < 3*r;
+ }
+},
     _initDraw:function(){
         var self = this;
       
@@ -329,19 +430,20 @@ SmartTrafficLineChart.prototype = {
             .style("z-index", "10")
             .style("visibility", "hidden");
         this.svg.drawArea = this.svg.append("g")
-            .attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth) + "," + this._titleHeight + ")");
-        this.svg.drawArea.chartArea = this.svg.drawArea.append("rect")
-                                                                            .attr("width",this._chartWidth)
-                                                                            .attr("height", this._chartHeight)
-                                                                            .attr("fill","white") 
-                                                                            .on("click",function(){ 
+            .attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth) + "," + this._titleHeight + ")")
+            .attr("class","drawArea")
+            .on("click",function(){ 
                                                                                 if (d3.event.defaultPrevented) {
                                                                                        return;
                                                                                 }       
                                                                                 self._deselectAll.call(self);
-                                                                            });
-                                                                            
-                                                         
+                                                                            });         
+        this.svg.drawArea.chartArea = this.svg.drawArea.append("rect")
+                                                                            .attr("width",this._chartWidth)
+                                                                            .attr("height", this._chartHeight)
+                                                                            .attr("fill-opacity",0);
+                                                                        
+                                                                                                         
         this.svg.drawArea.x = this.svg.drawArea.append("g");
         this.svg.drawArea.y = this.svg.drawArea.append("g");
         this.svg.drawArea.chart=this.svg.drawArea.append("g")
@@ -351,14 +453,11 @@ SmartTrafficLineChart.prototype = {
         this.svg.titleBar = this.svg.append("g").attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth / 2 + this._chartWidth / 2) + ",1)").attr("text-anchor", "middle");
         this.svg.infoBar = this.svg.append("g").attr("transform", "translate(" + (this._chartWidth + this._yAxisWidth + this._yTitleWidth + this._infoBarMargin) + "," + this._titleHeight + ")").classed("infoBar", true);
         this.svg.xTitleBar = this.svg.append("g").attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth / 2 + this._chartWidth / 2) + "," + (this.height) + ")").classed("titleBar", true).attr("text-anchor", "middle");
-        this._xScale =d3.scale.linear()
-            .range([0, this._chartWidth])
-            .domain([this._getMinXData(), this._getMaxXData()]);
         var zoom = d3.behavior.zoom()
                                                 .x(self._getXScale())
                                                 .scaleExtent([1,4])
                                                 .on("zoom",self._zoomed.bind(self));
-        this.svg.drawArea.chartArea.call(zoom);
+        this.svg.drawArea.call(zoom);
         
          },
        _drawChart:function(datas){
@@ -384,7 +483,7 @@ SmartTrafficLineChart.prototype = {
 
         this._drawAxis();
         this._drawTitles();
-        
+        this._drawEventRect();
         this._drawChart(this.datas);
         this._drawInfoBars(this.datas);
          this._setSelectStyle();
@@ -400,20 +499,22 @@ SmartTrafficLineChart.prototype = {
         if(this.svgContainer) this.svgContainer.remove();
         if (this._xScale) this._xScale = null;
         if (this._yScale) this._yScale = null;
+        this._removeGuideLine();
         this._calculateMargin();
         this._initDraw();
         this._draw();
     },
     _getXScale: function() {
-        this._xScale = this._xScale || d3.scale.linear()
+        this._xScale = this._xScale || d3.time.scale()
             .range([0, this._chartWidth])
-            .domain([this._getMinXData(), this._getMaxXData()]);
+            .domain([this._getMinXData(),this._getMaxXData()]).nice();
+
         return this._xScale;
     },
     _getYScale: function() {
         this._yScale = this._yScale || d3.scale.linear()
             .range([0, this._chartHeight])
-            .domain([this._getMaxYData(), this._getMinYData()]).nice(5);
+            .domain([this._getMaxYData(), this._getMinYData()]).nice();
         return this._yScale;
     },
     _getMaxXData: function() {
@@ -486,12 +587,14 @@ SmartTrafficLineChart.prototype = {
     },
     _zoomed:function(){
         var self = this;
-        this.svg.drawArea.select("g.xaxis").call(d3.svg.axis().scale(this._xScale).orient("bottom").tickFormat(function(d) {
-                return d;
-        }));
+        this._drawAxis();
+        this._drawEventRect();
+       // this.svg.drawArea.select("g.xaxis").call(d3.svg.axis().scale(this._getXScale()).orient("bottom"));
          self.svg.toolTip.style("visibility", "hidden");
+        self._removeGuideLine();
         this._drawChart(this.datas,this._figures);
         this._setSelectStyle();
+        
     //    this.svg.drawArea.selectAll("path.line").attr("transform", "translate(" + d3.event.translate[0] + ",0)scale(" + d3.event.scale + ", 1)");
       //  this.svg.drawArea.selectAll("circle").attr("transform", "translate(" + d3.event.translate[0] + ",0)scale(" + d3.event.scale + ", 1)");
     },
@@ -502,3 +605,77 @@ SmartTrafficLineChart.prototype = {
         eventManager.removeEventHandler.call(this, type, callback);
     }
 };
+var guideLine={
+    addGuideLine:function(svg,x,y,x2,y2){
+            var self=this;
+            if(!self._guideLineGroup) self._guideLineGroup=svg.append("g").attr("class","guide-lines");
+            if(!self._guideLines) self._guideLines =[];
+            if(!self._yGuideLine){
+                   self._yGuideLine = self._guideLineGroup.append("line")
+                            .attr("x1",x)
+                            .attr("y1",y)
+                            .attr("x2",x)
+                            .attr("y2",y2)
+                            .attr("stroke","black")
+                            .attr("stroke-width",1)
+                            .attr("stroke-dasharray","1,1");
+            }else{
+                if(y<  Number(self._yGuideLine.attr("y1"))){
+                    self._yGuideLine.remove();
+                    self._yGuideLine = self._guideLineGroup.append("line")
+                            .attr("x1",x)
+                            .attr("y1",y)
+                            .attr("x2",x)
+                            .attr("y2",y2)
+                            .attr("stroke","black")
+                            .attr("stroke-width",1)
+                            .attr("stroke-dasharray","1,1");
+                }
+            }
+            self._guideLineGroup.append("line")
+                            .attr("x1",x)
+                            .attr("y1",y)
+                            .attr("x2",x2)
+                            .attr("y2",y)
+                            .attr("stroke","black")
+                            .attr("stroke-width",1)
+                            .attr("stroke-dasharray","1,1");
+            // if(!self._guideLines.find(function(l){
+            //     return   Number(l.attr("x1")) ===x && Number(l.attr("y1")) ===y && Number(l.attr("x2")) ===x && Number(l.attr("y2")) === y2;
+            // })){
+            //         var yline = self._guideLineGroup.append("line")
+            //                 .attr("x1",x)
+            //                 .attr("y1",y)
+            //                 .attr("x2",x)
+            //                 .attr("y2",y2)
+            //                 .attr("stroke","black")
+            //                 .attr("stroke-width",1)
+            //                 .attr("stroke-dasharray","1,1");
+            //           self._guideLines.push(yline);
+            // }
+            //  if(!self._guideLines.find(function(l){
+            //     return   Number(l.attr("x1")) ===x && Number(l.attr("y1")) ===y && Number(l.attr("x2")) ===x2 && Number(l.attr("y2")) === y;
+            // })){
+            //     var xline = 
+            //     self._guideLines.push(xline);
+            // }
+    },
+    removeGuideLine:function(){
+        var self=this;
+        if(self._guideLineGroup) {
+            self._guideLineGroup.remove();
+            delete self._guideLineGroup;
+        }
+        if(self._yGuideLine){
+            self._yGuideLine.remove();
+            delete self._yGuideLine;
+        }
+        // if(self._guideLines){
+        //     self._guideLines.forEach(function(v){
+        //         v.remove()
+        //         v = null;
+        //     })
+        // }
+       // self._guideLines = null;
+    }
+}
