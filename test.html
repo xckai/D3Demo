@@ -3,45 +3,7 @@
         <meta charset="utf-8"> 
         <title>D3 Test</title> 
   </head> 
-<style>
-.axis path,
-.axis line{
-    fill: none;
-  stroke: black;
-}
-.axis text {
-    font-family: sans-serif;
-    font-size: 11px;
-}
-.tooltip{
-    background: bisque;
-    border-radius:2px;
-    padding:4 4 4 4 ;
-}
-.selectCircle circle{
-    stroke: black;
-    stroke-width: 2px;
-}
-.titleBar{
-    font-size: 30px;
-    font-family:  sans-serif;
-    margin-bottom: 40;
-}
-.infoBar{
-    background-color: gray;
-}
-.noselect {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-}
-.notSelected{
- opacity: 0.2;
-}
-</style>
+<link  rel="stylesheet" type="text/css" href="./SmartTrafficChart.css"/>
 
     <body id="mybody"> 
         <button onclick="addData()">AddData</button>
@@ -53,9 +15,10 @@
                 for(var i =0; i <20 ;++i){
                     _data.push({x:"2016-2-3 1:"+5*Math.floor(60*Math.random())%60,y:100+100*Math.random()});
                 }
-                  _c.addData({"name":Math.floor(10*Math.random()),"data":_data});
+                var name =Math.floor(10*Math.random());
+                  _c.addData({id:name,"name":"name"+name,"data":_data,option:{type:"line",y2:"y"}});
             };
-            var _c = new SmartTrafficLineChart({"width":1000,"height":600,title:"D3测试",yTitle:"Y轴标题",xTitle:"x轴标题",secondTitle:"二级标题测试"});
+            var _c = new SmartTrafficLineChart({"width":1000,"height":600,title:"D3测试",yTitle:"Y轴标题",xTitle:"x轴标题",secondTitle:"二级标题测试",y2Title:"y2轴标题"});
                   var data = [{
                         "y": "152",
                         "x": "2016-2-3 1:00"
@@ -75,7 +38,7 @@
                         "y": "176",
                         "x": "2016-2-3 1:40"
                     }];
-            _c.addData({"name":"bule", id:"no.1" ,"data":data});
+            _c.addData({"name":"bule", id:"no.1" ,"data":data,option:{type:"line"}});
             _c.appendTo("mybody");
             _c.addEventHandler("select",function(data){console.log(data)});
             _c.addEventHandler("deSelect",function(data){console.log("remove id = "+ data.id)});

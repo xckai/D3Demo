@@ -45,7 +45,7 @@ var colorManager = {
         return this._colors[this._colorIndex++] ;
     },
     init:function(){
-        this._colors =["#52BACC","#5CBAE6","#B6D957","#8CD3FF","#93B9C6","#98AAFB","#CCC5A8","#D998CB","#DBDB46","#F2D249","#FAC364"];
+        this._colors =["#FFCC66","#5CBAE6","#FF6666","#8CD3FF","#993366","#669966","#CCC5A8","#D998CB","#DBDB46","#660066","#FAC364"];
         this._colorIndex =0;
     }
 }
@@ -59,6 +59,7 @@ var SmartTrafficLineChart = function(option) {
     this.title = option.title;
     this.xTitle = option.xTitle;
     this.yTitle = option.yTitle;
+    this.y2Title = option.y2Title;
     this.secondTitle = option.secondTitle;
     this._calculateMargin();
     this.xType = "time";
@@ -68,7 +69,6 @@ SmartTrafficLineChart.prototype.constructor = SmartTrafficLineChart;
 SmartTrafficLineChart.prototype = {
     addData: function(data) {
         data = this._parseData(data);
-       
         var _i = -1;
         for (var i in this.datas) {
             if (this.datas[i].id === data.id) {
@@ -77,7 +77,8 @@ SmartTrafficLineChart.prototype = {
             }
         }
         if (_i !== -1) {
-            this.datas.splice(_i , 1, data);
+            this.datas[i].line = data.line || this.datas[i].line;
+            this.datas[i].line._parent =this.datas[i];
         } else {
             this.datas.push(data);
         }
@@ -89,13 +90,15 @@ SmartTrafficLineChart.prototype = {
         var self = this , datas =this.datas;    
         this.xSet = [];
         datas.forEach(function(data){
-            data._d.forEach(function(v){
-                        if(!self.xSet.find(function(x){
-                          return x - v.x === 0;
-            })){
-                self.xSet.push(v.x);
-            }
-            })
+            if (data.line) {
+                 data.line._d.forEach(function(v){
+                            if(!self.xSet.find(function(x){
+                            return x - v.x === 0;
+                })){
+                    self.xSet.push(v.x);
+                }
+                })
+         }
         });
         this.xSet = this.xSet.sort(function(v1,v2){
             return v1 -v2;
@@ -113,51 +116,68 @@ SmartTrafficLineChart.prototype = {
         }    
         return _index;
      },
-    _parseData: function(data) {
-        var _d = {};
-        var self = this;
-        _d.name = data.name;
-        if(data.id === undefined) {
-            if(data.name === undefined){
-                _d.id =  "smartTraffic" + this.datas.length;
-            }else{
-                _d.id = data.name;
-            }   
-        }else{
-            _d.id = data.id;
+    _parseData: function(originData) {
+        var data = {},self = this;
+        data.name = originData.name;
+        data.id = originData.id;
+        if(originData.id === undefined){
+            data.id = "smartTraffic" +this.datas.length;
         }
-       // _d.id = data.id || data.name || "smartTraffic" + this.datas.length;
-        if (data.option) {
-            _d._d = data.data;
-            if (data.option.x) _d._d = _d._d.map(function(v) {
-                 v.x = v[data.option.x];
-                delete v[data.option.x];
-                return v;
-            });
-            if (data.option.y) {
-                _d._d = _d._d.map(function(v) {
-                    v.y = v[data.option.y];
-                    delete v[data.option.y];
-                    return v;
-                });
+        if(originData.option)
+        {   
+            var option = originData.option;
+            data.type = option.type || "line";
+            data[data.type]={};
+            data.color = option.color || this._getColor();
+            data[data.type].baseWidth = option.width || 2;
+            data[data.type]._d = originData.data;
+            if(option.x){
+                  data[data.type]._d.forEach(function(d){
+                     d.x = d[option.x];
+                     delete d[option.x];
+                 })
             }
-        
-            _d.color =data.option.color || this._getColor();
-            _d.baseWidth = data.option.width || 2;
-        } else {
-            _d._d = data.data;
-            _d.color = this._getColor();
-            _d.baseWidth = 2;
+            if(option.y){
+                  data[data.type]._d.forEach(function(d){
+                     d.y = d[option.y];
+                     delete d[option.y];
+                 })
+            }
+             if(option.y2){
+                  data[data.type].y2 = true;
+                  data[data.type]._d.forEach(function(d){
+                     d.y2 = d[option.y2];
+                     delete d[option.y2];
+                 })
+            }
+            if(self.xType === "time"){
+                data[data.type]._d.forEach(function(d){
+                        if(typeof d.x !== "time") d.x = new Date(d.x);
+                })
+            }
+              data[data.type]._d.forEach(function(d){
+                  d._parent = data[data.type];
+              })
+            
+            data[data.type]._d.sort(function(v1,v2){
+                return v1.x -v2.x;
+            });
+            data[data.type]._parent = data;
+            delete data.type;
         }
-        if(self.xType === "time") {
-            _d._d.forEach(function(v){
-                v.x = new Date(v.x);
-            })
+        else{
+            throw new Error("no data option ");
         }
-        _d._d = _d._d.sort(function(v1,v2){
-            return v1.x - v2.x;
+        return data;
+    },
+    _hasY2:function(){
+         var find =false;
+         this.datas.forEach(function(d){
+            if(d.line) {
+                find = d.line.y2 || false;
+            }
         })
-        return _d;
+        return find;
     },
     _getColor:function(){
        return  colorManager.getColor.call(this);
@@ -183,22 +203,27 @@ SmartTrafficLineChart.prototype = {
         if (this.svg) this._reDraw();
     },
     _calculateMargin: function() {
-        this._yTitleWidth =50;
-        this._yAxisWidth = 30;
+        this._yTitleWidth =20;
+        this._yAxisWidth = 40;
         this._chartWidth = Math.floor((this.width - this._yTitleWidth - this._yAxisWidth)*0.8);
         this._infoBarMargin = 20;
         this._infoBarWidth = Math.floor((this.width - this._yTitleWidth - this._yAxisWidth)*0.2) -20;
-
+        if(this._hasY2()) {
+            this._y2AxisWidth = 40;
+            this._y2TitleWidth =20;
+            this._chartWidth = Math.floor((this.width - this._yTitleWidth - this._yAxisWidth - this._y2TitleWidth- this._y2AxisWidth)*0.8);
+            this._infoBarWidth = Math.floor((this.width - this._yTitleWidth - this._yAxisWidth- this._y2AxisWidth- this._y2TitleWidth)*0.2) -20;
+        }
         if (this.secondTitle) {
-            this._titleHeight = Math.max(1, Math.floor(this.height * 0.12));
-            this._chartHeight = Math.floor(this.height * 0.78);
-            this._xAxisHeight = Math.floor(this.height * 0.025);
-            this._xTitleHeight = Math.max(1, Math.floor(this.height * 0.075));
+            this._titleHeight = 50;
+            this._xAxisHeight = 20;
+            this._xTitleHeight =20;
+            this._chartHeight =this.height - this._titleHeight - this._xAxisHeight -this._xTitleHeight;
         } else {
-            this._titleHeight = Math.max(1, Math.floor(this.height * 0.075));
-            this._chartHeight = Math.floor(this.height * 0.825);
-            this._xAxisHeight = Math.floor(this.height * 0.025);
-            this._xTitleHeight = Math.max(1, Math.floor(this.height * 0.075));
+            this._titleHeight = 30;
+            this._xAxisHeight = 20;
+            this._xTitleHeight =20;
+            this._chartHeight =this.height - this._titleHeight - this._xAxisHeight -this._xTitleHeight;
         }
         return this;
     },
@@ -229,11 +254,26 @@ SmartTrafficLineChart.prototype = {
             .attr("class","yaxis")
             .call(d3.svg.axis().scale(this._getYScale()).orient("left"))
             .classed("axis", true);
-          this._yAxis.selectAll("g").append("line").attr("x2",self._chartWidth ).attr("x1",0).attr("y1",0).attr("y2",0).attr("stroke-width",1).attr("stroke","black").attr("opacity","0.2");
-    },
+          this._yAxis.selectAll("g").append("line").attr("x2",self._chartWidth ).attr("x1",0).attr("y1",0).attr("y2",0).attr("stroke-width",1).attr("stroke","black").attr("opacity","0.2") .attr("stroke-dasharray","5,3");
+        if(this._hasY2()){
+            if(this._y2Axis) this._y2Axis.remove();
+            this._y2Axis = this.svg.drawArea.y.append("svg:g")
+                                        .attr("class","y2axis")
+                                        .attr("transform","translate("+this._chartWidth+",0)")
+                                        .call(d3.svg.axis().scale(this._getY2Scale()).orient("right"))
+                                        .classed("axis", true);
+        } 
+   },
     _drawLine: function(data) {
         var self = this;
-        var lineGen = d3.svg.line()
+        
+        var lineGen = data.line.y2?  d3.svg.line()
+            .x(function(d) {
+                return self._xScale(d.x);
+            })
+            .y(function(d) {
+                return self._getY2Scale()(d.y2);
+            }) :  d3.svg.line()
             .x(function(d) {
                 return self._xScale(d.x);
             })
@@ -241,10 +281,10 @@ SmartTrafficLineChart.prototype = {
                 return self._getYScale()(d.y);
             });
         var _line = this.svg.drawArea.chart.append("path")
-            .attr('d', lineGen(data._d))
+            .attr('d', lineGen(data.line._d))
             .attr("class","line")
             .attr('stroke', data.color)
-            .attr('stroke-width', data.baseWidth)
+            .attr('stroke-width', data.line.baseWidth)
             .attr('fill', 'none')
              .attr("pointer-events","none");
         return _line;
@@ -253,20 +293,36 @@ SmartTrafficLineChart.prototype = {
         var self = this;
         var g = this.svg.drawArea.chart.append("g")
                         .attr("pointer-events","none");
-        var _circle = g.selectAll("linepoint")
-            .data(data._d)
-            .enter()
-            .append("circle")
-            .attr("cx", function(d) {
-                return self._getXScale()(d.x);
-            })
-            .attr("cy", function(d) {
-                return self._getYScale()(d.y);
-            })
-            .attr("r", function(d) {
-                return 2* data.baseWidth;
-            }).attr("fill", data.color)
-            .attr("class",function(d,i){return "event-sharp-"+self._getXSetIndex(d.x)});
+        var _circle =data.line.y2? 
+            g.selectAll("linepoint")
+                .data(data.line._d)
+                .enter()
+                .append("circle")
+                .attr("cx", function(d) {
+                    return self._getXScale()(d.x);
+                })
+                .attr("cy", function(d) {
+                    return self._getY2Scale()(d.y2);
+                })
+                .attr("r", function(d) {
+                    return 2* data.line.baseWidth;
+                }).attr("fill", data.color)
+                .attr("class",function(d,i){return "event-sharp-"+self._getXSetIndex(d.x)})
+            :
+             g.selectAll("linepoint")
+                    .data(data.line._d)
+                    .enter()
+                    .append("circle")
+                    .attr("cx", function(d) {
+                        return self._getXScale()(d.x);
+                    })
+                    .attr("cy", function(d) {
+                        return self._getYScale()(d.y);
+                    })
+                    .attr("r", function(d) {
+                        return 2* data.line.baseWidth;
+                    }).attr("fill", data.color)
+                    .attr("class",function(d,i){return "event-sharp-"+self._getXSetIndex(d.x)});
             // .append("svg:title").text( function(d){return "X :"+d.x +"   Y: "+d.y});
         g.on("click", function() {
             if (data.isSelected) {
@@ -287,20 +343,19 @@ SmartTrafficLineChart.prototype = {
         var rects = g.append("rect")
             .attr("height", 21)
             .attr("width", this._infoBarWidth)
-            .attr("y", i * 16 * data.baseWidth - 4 * data.baseWidth)
-            .attr("x", -5 * data.baseWidth)
+            .attr("y", i * 32 - 6)
+            .attr("x", -10)
             .attr("fill", "transparent");
-
         var circleList = g
             .append("circle")
             .attr("cx", function(d) {
                 return 0;
             })
             .attr("cy", function() {
-                return i * 16 * data.baseWidth;
+                return i * 32;
             })
             .attr("r", function(d) {
-                return 4 * data.baseWidth;
+                return 8;
             })
             .attr("fill", function(d, i) {
                 return data.color;
@@ -308,11 +363,11 @@ SmartTrafficLineChart.prototype = {
            .append("svg:title").text("haha");
         var nameList = g
             .append("text")
-            .attr("x", 6 * data.baseWidth)
-            .attr("y", i * 16 * data.baseWidth + 3 * data.baseWidth)
+            .attr("x", 12)
+            .attr("y", (i *32) + 4)
             .text(data.name);
 
-        g.on("mouseover", function(d) {
+           g.on("mouseover", function(d) {
                 d3.select(this).select("rect").attr("fill", "rgb(240,240,240)");
                 eventManager.callEventHandler.call(self, "mouseover", data);
             })
@@ -338,6 +393,7 @@ SmartTrafficLineChart.prototype = {
     _drawTitles: function() {
         this.svg.xTitleBar.append("text").text(this.xTitle).attr("dominant-baseline", "text-after-edge");
         this.svg.yTitleBar.append("text").text(this.yTitle).attr("transform", "rotate(-90)").attr("dominant-baseline", "text-before-edge");
+        if(this._hasY2()) this.svg.y2TitleBar.append("text").text(this.y2Title).attr("transform", "rotate(-90)").attr("dominant-baseline", "text-before-edge");
         this.svg.titleBar.append("text").text(this.title).attr("dominant-baseline", "text-before-edge").classed("titleBar", true);
         this.svg.titleBar.append("text").text(this.secondTitle).attr("dominant-baseline", "text-before-edge").attr("dy", this._titleHeight / 2);
     },
@@ -356,43 +412,53 @@ SmartTrafficLineChart.prototype = {
                                                 .attr("rect-index",function(d,i ){return i})
                                                 .attr("fill-opacity","0")
                                                 .on("mouseout",function(d,i){
-                                                        self.svg.toolTip.style("visibility", "hidden");
+                                                       self.toolTip.setVisiable(false);
                                                        self._removeGuideLine();
                                                     })
                                                 .on("mousemove",function(d,i){
-                                                     var sharps=d3.selectAll(".event-sharp-"+i),mouse=d3.mouse(chart.node()),content="";
-                                                     self.svg.toolTip.style("visibility", "hidden");
+                                                     var sharps=d3.selectAll(".event-sharp-"+i),mouse=d3.mouse(chart.node()),content=[];
+                                                     self.toolTip.setVisiable(false);
                                                      self._removeGuideLine();
                                                      sharps.filter(function(d){
                                                          return self._isInSharp(this);
                                                      }).each(function(d){
                                                         
-                                                          content+="X:"+d.x+"<br/>"+"Y:"+d.y+"<br/>";
-                                                          self._drawGuideLine(self._getXScale()(d.x),self._getYScale()(d.y),0,self._chartHeight);
+                                                          
+                                                          if(d._parent.y2){
+                                                              content.push({x:d.x,y:d.y2,color:d._parent._parent.color,name:d._parent._parent.name});
+                                                              self._drawGuideLine(self._getXScale()(d.x),self._getY2Scale()(d.y2),self._chartWidth,self._chartHeight);
+                                                          }else{
+                                                              content.push({x:d.x,y:d.y,color:d._parent._parent.color,name:d._parent._parent.name});
+                                                              self._drawGuideLine(self._getXScale()(d.x),self._getYScale()(d.y),0,self._chartHeight);
+                                                          }
                                                      });
-                                                     if(content !==""){
-                                                         self.svg.toolTip.style("visibility", "visible");
-                                                         self.svg.toolTip.style("top", (event.pageY -5) + "px").style("left", (event.pageX +10) + "px").html(content);
+                                                     if(content.length>0){
+                                                         self.toolTip.setPosition(event.pageX +10,event.pageY+20);
+                                                         self.toolTip.setContent(content);
+                                                         self.toolTip.setVisiable(true);
+                                                        // .style("top", (event.pageY -5) + "px").style("left", (event.pageX +10) + "px").html(content);
                                                      }
                                                  
-                                                                                    
-
-
-                                                    //  sharps.each(function(d){
-                                                    //      var _sharp = d3.select(this);
-                                                    //      if(_sharp.node().nodeName = == "circle"){
-                                                    //             var x=Number(_sharp.attr("cx")),y=Number(_sharp.attr("cy")),r=Number(_sharp.attr("r"));
-                                                    //             if(self._isInCircle(mouse[0],mouse[1],x,y,2*r)){
-                                                    //                 self.svg.toolTip.style("visibility", "visible");
-                                                    //                 self.svg.toolTip.style("top", (event.pageY -5) + "px").style("left", (event.pageX +10) + "px").text("X :"+d.x +"   Y: "+d.y);
-                                                    //             }else{
-                                                    //                 self.svg.toolTip.style("visibility", "hidden");
-                                                    //             }
-                                                                
-                                                    //      }
-                                                       
-                                                    //  })
-                                                                                                            });
+                                                })
+                                                .on("click",function(d,i){
+                                                     var sharps=d3.selectAll(".event-sharp-"+i),mouse=d3.mouse(chart.node());
+                                                     self.toolTip.setVisiable(false);
+                                                     self._removeGuideLine();
+                                                     sharps.filter(function(d){
+                                                         return self._isInSharp(this);
+                                                     }).each(function(d){
+                                                        var data = d._parent._parent;
+                                                        if (data.isSelected) {
+                                                            eventManager.callEventHandler.call(self, "deSelect", data);
+                                                            data.isSelected = false;
+                                                        } else {
+                                                            data.isSelected = true;
+                                                            eventManager.callEventHandler.call(self, "select", data);
+                                                        }
+                                                        event.stopPropagation();
+                                                        self._setSelectStyle();
+                                                     });    
+                                                });
                                                 
 
 } , 
@@ -410,6 +476,7 @@ _isInSharp:function(_sharp){
             .append("div")
             .attr("width", this.width)
             .attr("height", this.height)
+            .attr("class","smartTraffic-chart")
         this.svg = this.svgContainer
             .append("svg")
             .attr("width", "100%")
@@ -421,14 +488,7 @@ _isInSharp:function(_sharp){
                 .append("rect")
                 .attr("width", this._chartWidth)
                 .attr("height", this._chartHeight);
-        d3.select("body")
-            .select("#tooltip").remove();
-        this.svg.toolTip = d3.select("body") .append("div")  
-            .attr("class", "tooltip")
-            .attr("id","tooltip")
-            .style("position", "absolute")
-            .style("z-index", "10")
-            .style("visibility", "hidden");
+        this.toolTip = new toolTip(this.svgContainer);
         this.svg.drawArea = this.svg.append("g")
             .attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth) + "," + this._titleHeight + ")")
             .attr("class","drawArea")
@@ -448,26 +508,37 @@ _isInSharp:function(_sharp){
         this.svg.drawArea.y = this.svg.drawArea.append("g");
         this.svg.drawArea.chart=this.svg.drawArea.append("g")
                                                              .attr("clip-path", "url(#clip)");
-  
+        if(this._hasY2())
+        {
+             this.svg.y2TitleBar = this.svg.append("g").attr("transform", "translate("+(this._yTitleWidth+this._y2AxisWidth+this._chartWidth+this._yAxisWidth)+"," + (this._titleHeight + this._chartHeight / 2) + ")").classed("titleBar", true).attr("text-anchor", "middle");
+        }
         this.svg.yTitleBar = this.svg.append("g").attr("transform", "translate(1," + (this._titleHeight + this._chartHeight / 2) + ")").classed("titleBar", true).attr("text-anchor", "middle");
         this.svg.titleBar = this.svg.append("g").attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth / 2 + this._chartWidth / 2) + ",1)").attr("text-anchor", "middle");
-        this.svg.infoBar = this.svg.append("g").attr("transform", "translate(" + (this._chartWidth + this._yAxisWidth + this._yTitleWidth + this._infoBarMargin) + "," + this._titleHeight + ")").classed("infoBar", true);
+        if(this._hasY2()){
+             this.svg.infoBar = this.svg.append("g").attr("transform", "translate(" + (this._chartWidth + this._yAxisWidth + this._yTitleWidth + this._infoBarMargin+this._y2TitleWidth+this._y2AxisWidth) + "," + this._titleHeight + ")").classed("infoBar", true);
+        }else{
+             this.svg.infoBar = this.svg.append("g").attr("transform", "translate(" + (this._chartWidth + this._yAxisWidth + this._yTitleWidth + this._infoBarMargin) + "," + this._titleHeight + ")").classed("infoBar", true);
+        }
+       
         this.svg.xTitleBar = this.svg.append("g").attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth / 2 + this._chartWidth / 2) + "," + (this.height) + ")").classed("titleBar", true).attr("text-anchor", "middle");
         var zoom = d3.behavior.zoom()
                                                 .x(self._getXScale())
                                                 .scaleExtent([1,4])
                                                 .on("zoom",self._zoomed.bind(self));
-        this.svg.drawArea.call(zoom);
+                                        
+        this.svg.drawArea.call(zoom).on("dblclick.zoom", null);
         
          },
-       _drawChart:function(datas){
+    _drawChart:function(datas){
            var self  = this;
            datas.forEach(function(v){
-                v.figure = v.figure ||{};
-               if( v.figure .circles)  v.figure .circles.remove();
-                v.figure .circles = self._drawCircles(v);
-               if( v.figure .line)  v.figure .line.remove();
-                v.figure .line = self._drawLine(v);
+               if(v.line ){
+                    v.figure = v.figure ||{};
+                if( v.figure.circles)  v.figure .circles.remove();
+                    v.figure.circles = self._drawCircles(v);
+                if( v.figure.line)  v.figure .line.remove();
+                    v.figure.line = self._drawLine(v);
+               }
            });
        },
      _drawInfoBars:function(datas){
@@ -480,25 +551,25 @@ _isInSharp:function(_sharp){
        },
     _draw: function() {
         var self = this;
-
         this._drawAxis();
         this._drawTitles();
         this._drawEventRect();
         this._drawChart(this.datas);
         this._drawInfoBars(this.datas);
-         this._setSelectStyle();
+        this._setSelectStyle();
     },
     appendTo: function(id) {
        
         this.appendId = id;
-         this._initDraw();
+        this._initDraw();
         this._draw();
     },
     _reDraw: function() {
        // if (this.svg) this.svg.remove();
         if(this.svgContainer) this.svgContainer.remove();
-        if (this._xScale) this._xScale = null;
-        if (this._yScale) this._yScale = null;
+        if (this._xScale) delete  this._xScale;
+        if (this._yScale) delete  this._yScale;
+        if(this._y2Scale) delete this._y2Scale;
         this._removeGuideLine();
         this._calculateMargin();
         this._initDraw();
@@ -517,42 +588,78 @@ _isInSharp:function(_sharp){
             .domain([this._getMaxYData(), this._getMinYData()]).nice();
         return this._yScale;
     },
+    _getY2Scale:function(){
+        this._y2Scale = this._y2Scale || d3.scale.linear()
+            .range([0, this._chartHeight])
+            .domain([this._getMaxY2Data(), this._getMinY2Data()]).nice();
+        return this._y2Scale;
+    },
     _getMaxXData: function() {
         var _num = Number.MIN_VALUE;
         this.datas.forEach(function(d) {
-            d._d.forEach(function(v) {
-                _num = Math.max(v.x, _num);
-            });
+            if(d.line){
+                d.line ._d.forEach(function(v) {
+                    _num = Math.max(v.x, _num);
+                });
+            }
         });
         return _num;
     },
     _getMinXData: function() {
         var _num = Number.MAX_VALUE;
         this.datas.forEach(function(d) {
-            d._d.forEach(function(v) {
-                _num = Math.min(v.x, _num);
-            });
+              if(d.line){
+                d.line ._d.forEach(function(v) {
+                    _num = Math.min(v.x, _num);
+                });
+            }
         });
         return _num;
     },
     _getMaxYData: function() {
         var _num = Number.MIN_VALUE;
         this.datas.forEach(function(d) {
-            d._d.forEach(function(v) {
-                _num = Math.max(v.y, _num);
-            });
+         if(d.line && !d.line.y2){
+                d.line ._d.forEach(function(v) {
+                    _num = Math.max(v.y, _num);
+                });
+            }
         });
         return _num;
     },
-    _getMinYData: function() {
+     _getMinYData: function() {
         var _num = Number.MAX_VALUE;
         this.datas.forEach(function(d) {
-            d._d.forEach(function(v) {
-                _num = Math.min(v.y, _num);
-            });
+          if(d.line&& !d.line.y2){
+                d.line ._d.forEach(function(v) {
+                    _num = Math.min(v.y, _num);
+                });
+            }
         });
         return _num;
     },
+    _getMaxY2Data: function() {
+        var _num = Number.MIN_VALUE;
+        this.datas.forEach(function(d) {
+         if(d.line && d.line.y2){
+                d.line ._d.forEach(function(v) {
+                    _num = Math.max(v.y2, _num);
+                });
+            }
+        });
+        return _num;
+    },
+_getMinY2Data: function() {
+        var _num = Number.MAX_VALUE;
+        this.datas.forEach(function(d) {
+          if(d.line && d.line.y2){
+                d.line ._d.forEach(function(v) {
+                    _num = Math.min(v.y2, _num);
+                });
+            }
+        });
+        return _num;
+    },  
     setHeight: function(height) {
         this.height = height;
         this._reDraw();
@@ -590,7 +697,7 @@ _isInSharp:function(_sharp){
         this._drawAxis();
         this._drawEventRect();
        // this.svg.drawArea.select("g.xaxis").call(d3.svg.axis().scale(this._getXScale()).orient("bottom"));
-         self.svg.toolTip.style("visibility", "hidden");
+         self.toolTip.setVisiable(false);
         self._removeGuideLine();
         this._drawChart(this.datas,this._figures);
         this._setSelectStyle();
@@ -679,3 +786,43 @@ var guideLine={
        // self._guideLines = null;
     }
 }
+var toolTip=function(container, option){
+    this.init(container);
+};
+toolTip.prototype=
+{
+    getContent:function(datas){
+        var text ="";
+        var title = datas[0].x;
+        text = "<table class='tool-tip-table' ><tbody><tr><th class = 'tooltip-title' colspan='2'>" +title + "</th></tr>";
+        datas.forEach(function(data){
+                text += "<tr>";
+                text += "<td class='tooltip-name'><span style=' background-color:" + data.color + "'></span>" + data.name + "</td>";
+                text += "<td class='tooltip-value'>" + data.y + "</td>";
+                text += "</tr>";
+        });
+        return text+="</tbody><table>";
+    },
+    setVisiable:function(isVisiable){
+        if(isVisiable)  this.toolTip.style("visibility", "visible");
+        else   this.toolTip.style("visibility", "hidden");
+    },
+    init:function(container){
+ ;
+        if(container.select(".smartTraffic-tootip")) container.select(".smartTraffic-tootip").remove();
+        this.toolTip=  container .append("div") 
+            .style("pointer-events","none") 
+            .attr("class", "tooltip smartTraffic-tootip")
+            .style("position", "absolute")
+            .style("z-index", "10")
+            .style("visibility", "hidden");
+        if(!this.toolTip) this.toolTip = this.append("g").attr("class","tool-tip");
+    },
+    setContent:function(content){
+        if (this.toolTip)  this.toolTip.html(this.getContent(content)); 
+    },
+    setPosition:function(x,y){
+        this.toolTip.style("top", y+ "px").style("left", x + "px");
+    }
+}
+toolTip.prototype.constructor = toolTip;
