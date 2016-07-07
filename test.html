@@ -11,9 +11,19 @@
     <script src="./lib/d3.js" charset="utf-8"></script>
     <script src="./SmartTrafficChart.js" charset="utf-8"></script>
     <script>
+        Array.prototype.unique = function(){
+            this.sort(function(v1,v2){return new Date(v1.x)- new Date(v2.x)});	//先排序
+            var res = [this[0]];
+            for(var i = 1; i < this.length; i++){
+                if(this[i].x !== res[res.length - 1].x){
+                    res.push(this[i]);
+                }
+            }
+            return res;
+        }
         function addData() {
             var _data = [],_d1=[];
-            for (var i = 0; i < 20; ++i) {
+            for (var i = 0; i < 30; ++i) {
                 _data.push({
                     x: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
                     y: 100 + 100 * Math.random()+i
@@ -23,29 +33,20 @@
                     y: 100 + 100 * Math.random()+i
                 });
             }
+          _data =_data.unique();
             var name = Math.floor(10 * Math.random());
             _c.addData({
                 id: name,
                 "name": "name" + name,
-                "data": _data,
+                "data": _data.unique(),
                 option: {
-                    type: "area",
+                    type: "bar",
                     y: "y",
                     ref: "y2",
                     yHint:"数量"
                 }
             });
-        _c.addData({
-                id: name,
-                "name": "name" + name,
-                "data": _d1,
-                option: {
-                    type: "line",
-                    y: "y",
-                    ref: "y2",
-                    yHint:"数量"
-                }
-            });
+
         };
         var _c = new SmartTrafficLineChart({
             "width": 1000,

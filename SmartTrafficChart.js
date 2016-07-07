@@ -168,6 +168,9 @@ SmartTrafficLineChart.prototype = {
                 if (data.type === "area") {
                     data.area = Area.create(originData, data, self);
                 }
+                if (data.type === "bar") {
+                    data.bar = Bar.create(originData, data, self);
+                }
                 data.color = originData.option.color || this._getColor();
 
                 // var option = originData.option;
@@ -634,12 +637,12 @@ SmartTrafficLineChart.prototype = {
         }
 
         this.svg.xTitleBar = this.svg.append("g").attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth / 2 + this._chartWidth / 2) + "," + (this.height) + ")").classed("titleBar", true).attr("text-anchor", "middle");
-        var zoom = d3.behavior.zoom()
+        this. zoom = d3.behavior.zoom()
             .x(self._getXScale())
             .scaleExtent([1, 4])
             .on("zoom", self._zoomed.bind(self));
 
-        this.svg.drawArea.call(zoom).on("dblclick.zoom", null);
+        this.svg.drawArea.call(this.zoom).on("dblclick.zoom", null);
 
     },
     _drawChart: function(datas) {
@@ -664,7 +667,36 @@ SmartTrafficLineChart.prototype = {
                 if (v.figure.spline) v.figure.spline.remove();
                 v.figure.spline = self._drawArea(v.spline);
             }
+             if (v.bar) {
+                v.figure = v.figure || {};
+                if (v.figure.bar) v.figure.bar.remove();
+                v.figure.bar = self._drawBar(v.bar);
+            }
         });
+    },
+    _drawBar:function(data){
+        var parent = data._parent, self = this,yScale,barWidth,barAcc;
+        yScale = data.y2 ? self._getY2Scale() : self._getYScale(); 
+        barAcc =data.getBarAcc(self.datas);
+        var zoomScale = self._zoomScale? self._zoomScale:1;
+        barWidth = Math.min(30,self._chartWidth/12/barAcc * zoomScale);
+
+        var bar = self.svg.drawArea.chart.append("g")
+                                                .attr("class","chart-bar");
+        bar.selectAll("rect").data(data._d)
+                    .enter()
+                    .append("rect")
+                    .attr("x",function(d){
+                       return  self._getXScale()(d.x) - (barAcc)/2*barWidth+ data.getBarIndex(self.datas)*barWidth;
+                    })
+                    .attr("y",function(d){
+                        return yScale(d.y);
+                    })
+                    .attr("width",barWidth)
+                    .attr("height",self._chartHeight)
+                    .attr("fill",parent.color)
+                    .attr("opacity",0.7);
+        return bar;
     },
     _drawInfoBars: function(datas) {
         var self = this;
@@ -737,6 +769,11 @@ SmartTrafficLineChart.prototype = {
                     _num = Math.max(v.x, _num);
                 });
             }
+            if (d.bar) {
+                d.bar._d.forEach(function(v) {
+                    _num = Math.max(v.x, _num);
+                });
+            }
         });
         return _num;
     },
@@ -755,6 +792,11 @@ SmartTrafficLineChart.prototype = {
             }
             if (d.area) {
                 d.area._d.forEach(function(v) {
+                    _num = Math.min(v.x, _num);
+                });
+            }
+            if (d.bar) {
+                d.bar._d.forEach(function(v) {
                     _num = Math.min(v.x, _num);
                 });
             }
@@ -779,6 +821,11 @@ SmartTrafficLineChart.prototype = {
                     _num = Math.max(v.y, _num);
                 });
             }
+            if (d.bar && !d.bar.y2) {
+                d.bar._d.forEach(function(v) {
+                    _num = Math.max(v.y, _num);
+                });
+            }
         });
         return _num;
     },
@@ -800,7 +847,11 @@ SmartTrafficLineChart.prototype = {
                     _num = Math.min(v.y, _num);
                 });
             }
-            
+            if (d.bar && !d.bar.y2) {
+                d.bar._d.forEach(function(v) {
+                    _num = Math.min(v.y, _num);
+                });
+            }
         });
         return _num;
     },
@@ -822,6 +873,11 @@ SmartTrafficLineChart.prototype = {
                     _num = Math.max(v.y, _num);
                 });
             }
+             if (d.bar && d.bar.y2) {
+                d.bar._d.forEach(function(v) {
+                    _num = Math.max(v.y, _num);
+                });
+            }
         });
         return _num;
     },
@@ -840,6 +896,11 @@ SmartTrafficLineChart.prototype = {
             }
             if (d.area && d.area.y2) {
                 d.area._d.forEach(function(v) {
+                    _num = Math.min(v.y, _num);
+                });
+            }
+            if (d.bar && d.bar.y2) {
+                d.bar._d.forEach(function(v) {
                     _num = Math.min(v.y, _num);
                 });
             }
@@ -914,6 +975,8 @@ SmartTrafficLineChart.prototype = {
     },
     _zoomed: function() {
         var self = this;
+        this._zoomScale = d3.event.scale;
+        console.log(this._zoomScale);
         this._drawAxis();
         this._drawEventRect();
         // this.svg.drawArea.select("g.xaxis").call(d3.svg.axis().scale(this._getXScale()).orient("bottom"));
@@ -1100,4 +1163,28 @@ var SpLine = LineBaseClass.extend({
 });
 var Area = LineBaseClass.extend({
     type: "area"
+});
+var Bar = LineBaseClass.extend({
+    type: "bar",
+    getBarAcc:function(datas){
+        var i =0;
+        datas.forEach(function(v){
+            if(v.bar) ++i;
+        });
+        return i;
+    },
+    getBarIndex:function(datas){
+        var i =0;
+        var id = this._parent.id;
+        for (var j =0; j<datas.length;++j){
+            if(datas[j].bar){
+                if(datas[j].id === id ){
+                    break;
+                }else{
+                    ++i;
+                }
+            }
+        }
+        return i;
+    }
 });
