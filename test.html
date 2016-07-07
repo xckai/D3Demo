@@ -12,9 +12,13 @@
     <script src="./SmartTrafficChart.js" charset="utf-8"></script>
     <script>
         function addData() {
-            var _data = [];
+            var _data = [],_d1=[];
             for (var i = 0; i < 20; ++i) {
                 _data.push({
+                    x: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
+                    y: 100 + 100 * Math.random()+i
+                });
+                   _d1.push({
                     x: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
                     y: 100 + 100 * Math.random()+i
                 });
@@ -25,7 +29,18 @@
                 "name": "name" + name,
                 "data": _data,
                 option: {
-                    type: "spline",
+                    type: "area",
+                    y: "y",
+                    ref: "y2",
+                    yHint:"数量"
+                }
+            });
+        _c.addData({
+                id: name,
+                "name": "name" + name,
+                "data": _d1,
+                option: {
+                    type: "line",
                     y: "y",
                     ref: "y2",
                     yHint:"数量"
