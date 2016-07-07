@@ -124,46 +124,51 @@ SmartTrafficLineChart.prototype = {
             data.id = "smartTraffic" +this.datas.length;
         }
         if(originData.option)
-        {   
-            var option = originData.option;
-            data.type = option.type || "line";
-            data[data.type]={};
-            data.color = option.color || this._getColor();
-            data[data.type].baseWidth = option.width || 2;
-            data[data.type]._d = originData.data;
-            if(option.x){
-                  data[data.type]._d.forEach(function(d){
-                     d.x = d[option.x];
-                     delete d[option.x];
-                 })
+        {   data.type = originData.option.type || "line";
+            if(data.type ==="line"){
+                 data.line = new SmartTrafficChartLine(originData,data,self);
             }
-            if(option.y){
-                  data[data.type]._d.forEach(function(d){
-                     d.y = d[option.y];
-                     delete d[option.y];
-                 })
-            }
-             if(option.y2){
-                  data[data.type].y2 = true;
-                  data[data.type]._d.forEach(function(d){
-                     d.y2 = d[option.y2];
-                     delete d[option.y2];
-                 })
-            }
-            if(self.xType === "time"){
-                data[data.type]._d.forEach(function(d){
-                        if(typeof d.x !== "time") d.x = new Date(d.x);
-                })
-            }
-              data[data.type]._d.forEach(function(d){
-                  d._parent = data[data.type];
-              })
+            data.color = originData.option.color || this._getColor();
             
-            data[data.type]._d.sort(function(v1,v2){
-                return v1.x -v2.x;
-            });
-            data[data.type]._parent = data;
-            delete data.type;
+            // var option = originData.option;
+            // data.type = option.type || "line";
+            // data[data.type]={};
+            // data.color = option.color || this._getColor();
+            // data[data.type].baseWidth = option.width || 2;
+            // data[data.type]._d = originData.data;
+            // if(option.x){
+            //       data[data.type]._d.forEach(function(d){
+            //          d.x = d[option.x];
+            //          delete d[option.x];
+            //      })
+            // }
+            // if(option.y){
+            //       data[data.type]._d.forEach(function(d){
+            //          d.y = d[option.y];
+            //          delete d[option.y];
+            //      })
+            // }
+            //  if(option.y2){
+            //       data[data.type].y2 = true;
+            //       data[data.type]._d.forEach(function(d){
+            //          d.y2 = d[option.y2];
+            //          delete d[option.y2];
+            //      })
+            // }
+            // if(self.xType === "time"){
+            //     data[data.type]._d.forEach(function(d){
+            //             if(typeof d.x !== "time") d.x = new Date(d.x);
+            //     })
+            // }
+            // data[data.type]._d.forEach(function(d){
+            //       d._parent = data[data.type];
+            //   })
+            
+            // data[data.type]._d.sort(function(v1,v2){
+            //     return v1.x -v2.x;
+            // });
+            // data[data.type]._parent = data;
+            // delete data.type;
         }
         else{
             throw new Error("no data option ");
@@ -230,11 +235,46 @@ SmartTrafficLineChart.prototype = {
     _drawAxisXLine: function() {
 
     },
-    _drawGuideLine:function(x,y,x1,y1){
-        guideLine.addGuideLine.call(this,this.svg.drawArea.chart,x,y,x1,y1);
+    _drawGuideLine:function(point){
+        var self = this;
+        var xScale =self._getXScale(), yScale = point._parent.y2? self._getY2Scale() :self._getYScale();
+        if(! self._guideLineGroup)   self._guideLineGroup=this.svg.drawArea.chart.append("g").attr("class","guide-lines");
+        point._parent.getY(point).forEach(function(v){
+             self._guideLineGroup
+                                            .append("line")
+                                            .attr("x1",xScale(point._parent.getX(point)[0]))
+                                            .attr("y1", yScale(v))
+                                            .attr("x2",0)
+                                            .attr("y2", yScale(v))
+                                            .attr("stroke","black")
+                                            .attr("stroke-width",1)
+                                            .attr("stroke-dasharray","1,1");
+        });
+        var maxY=Number.MIN_VALUE;
+        point._parent.getY(point).forEach(function(v){
+            maxY = Math.max(maxY,yScale(v));
+        });
+        if(self._guideLineGroup.yLine) self._guideLineGroup.yLine.remove();
+        self._guideLineGroup.yLine=self._guideLineGroup
+                                                            .append("line")
+                                                            .attr("x1",xScale(point._parent.getX(point)[0]))
+                                                            .attr("y1",maxY)
+                                                            .attr("x2",xScale(point._parent.getX(point)[0]))
+                                                            .attr("y2",self._chartHeight)
+                                                            .attr("stroke","black")
+                                                            .attr("stroke-width",1)
+                                                            .attr("stroke-dasharray","1,1");
+                                            
+//  self._guideLineGroup.append("line")
+//                             .
+//         guideLine.addGuideLine.call(this,this.svg.drawArea.chart,x,y,x1,y1);
     },
     _removeGuideLine:function(){
-       guideLine.removeGuideLine.call(this);
+        var self = this;
+            if(self._guideLineGroup)  {
+                self._guideLineGroup.remove();
+                delete self._guideLineGroup;
+                }
     },
     _drawAxis: function() {
         var self = this;
@@ -422,14 +462,14 @@ SmartTrafficLineChart.prototype = {
                                                      sharps.filter(function(d){
                                                          return self._isInSharp(this);
                                                      }).each(function(d){
-                                                        
+                                                        self._drawGuideLine(d);
                                                           
                                                           if(d._parent.y2){
                                                               content.push({x:d.x,y:d.y2,color:d._parent._parent.color,name:d._parent._parent.name});
-                                                              self._drawGuideLine(self._getXScale()(d.x),self._getY2Scale()(d.y2),self._chartWidth,self._chartHeight);
+                                                            // self._drawGuideLine(self._getXScale()(d.x),self._getY2Scale()(d.y2),self._chartWidth,self._chartHeight);
                                                           }else{
                                                               content.push({x:d.x,y:d.y,color:d._parent._parent.color,name:d._parent._parent.name});
-                                                              self._drawGuideLine(self._getXScale()(d.x),self._getYScale()(d.y),0,self._chartHeight);
+                                                           //   self._drawGuideLine(self._getXScale()(d.x),self._getYScale()(d.y),0,self._chartHeight);
                                                           }
                                                      });
                                                      if(content.length>0){
@@ -826,3 +866,56 @@ toolTip.prototype=
     }
 }
 toolTip.prototype.constructor = toolTip;
+var SmartTrafficChartLine = function (originData ,parent,chart){
+            var option = originData.option , self = this;
+            this.type= "line";
+            this.baseWidth = option.width || 2;
+            this._d = originData.data;
+            if(option.ref === "y2"){
+                this.y2=true;
+            }
+            if(option.x){
+                  this._d.forEach(function(d){
+                     d.x = d[option.x];
+                     delete d[option.x];
+                 })
+            }
+            if(option.y){
+                  this._d.forEach(function(d){
+                     d.y = d[option.y];
+                     delete d[option.y];
+                 })
+            }
+             if(option.y2){
+                  this._d.forEach(function(d){
+                     d.y2 = d[option.y2];
+                     delete d[option.y2];
+                 })
+            }
+            if(chart.xType === "time"){
+                this._d.forEach(function(d){
+                        if(typeof d.x !== "time") d.x = new Date(d.x);
+                })
+            }
+            
+            this._d.forEach(function(d){
+                  d._parent = self;
+              })
+            
+            this._d.sort(function(v1,v2){
+                return v1.x -v2.x;
+            });
+            this._parent = parent;
+};
+SmartTrafficChartLine.prototype={
+     getX:function(point){
+         return [point.x];
+     },
+     getY:function(point){
+        if(this.y2){
+             return [point.y2];
+        }
+         return [point.y];
+     }
+}
+SmartTrafficChartLine.prototype.constructor = SmartTrafficChartLine;
