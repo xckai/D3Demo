@@ -40,14 +40,18 @@ var eventManager = {
 };
 var colorManager = {
     getColor: function(i) {
-        if (!this._colors) colorManager.init.call(this);
+        if (!this._colors) this.init();
 
         this._colorIndex %= this._colors.length;
         return this._colors[this._colorIndex++];
     },
     init: function() {
-        this._colors = ["#FFCC66", "#5CBAE6", "#8CD3FF", "#993366", "#669966", "#CCC5A8", "#D998CB", "#DBDB46", "#660066", "#FAC364"];
+        this._colors = ["#FFCC66", "#5CBAE6", "#993366", "#669966", "#CCC5A8", "#D998CB", "#660066", "#FAC364","#CC3300","#66CC00","#000066","#00FF00","#FF0066"];
         this._colorIndex = 0;
+        console.log(this);
+    },
+    reset:function(){
+         this._colorIndex = 0;
     }
 }
 var SmartTrafficLineChart = function(option) {
@@ -124,6 +128,24 @@ SmartTrafficLineChart.prototype = {
                 }
                 if (data.spline) {
                     data.spline._d.forEach(function(v) {
+                        if (!self.xSet.find(function(x) {
+                                return x - v.x === 0;
+                            })) {
+                            self.xSet.push(v.x);
+                        }
+                    })
+                }
+                 if (data.bar) {
+                    data.bar._d.forEach(function(v) {
+                        if (!self.xSet.find(function(x) {
+                                return x - v.x === 0;
+                            })) {
+                            self.xSet.push(v.x);
+                        }
+                    })
+                }
+                 if (data.area) {
+                    data.area._d.forEach(function(v) {
                         if (!self.xSet.find(function(x) {
                                 return x - v.x === 0;
                             })) {
@@ -223,11 +245,20 @@ SmartTrafficLineChart.prototype = {
                 if (d.line) {
                     find = d.line.y2 || false;
                 }
+                if (d.area) {
+                    find = d.area.y2 || false;
+                }
+                if (d.spline) {
+                    find = d.spline.y2 || false;
+                }
+                if (d.bar) {
+                    find = d.bar.y2 || false;
+                }
             })
             return find;
         },
         _getColor: function() {
-            return colorManager.getColor.call(this);
+            return colorManager.getColor();
         },
         addFlowData: function(name, _d, option) {
             var _t = this.datas.find(function(v) {
@@ -513,7 +544,8 @@ SmartTrafficLineChart.prototype = {
         var self = this,
             set = this._xSet(),
             chart = this.svg.drawArea.chart,
-            _width = Math.floor(this._chartWidth / (set.length + 1));
+            zoomScale = self._zoomScale ? self._zoomScale :1;
+            _width = Math.floor(this._chartWidth / (set.length + 1)*zoomScale);
         this.svg.drawArea.eventRects = chart.append("g").attr("class", "eventRect");
         this.svg.drawArea.eventRects.selectAll("rect").data(set)
             .enter()
@@ -542,7 +574,7 @@ SmartTrafficLineChart.prototype = {
                 self.toolTip.setVisiable(false);
                 self._removeGuideLine();
                 sharps.filter(function(d) {
-                    return self._isInSharp(this);
+                    return d._parent.isInSharp(this);
                 }).each(function(d) {
                     self._drawGuideLine(d);
                     content.push(d);
@@ -561,7 +593,7 @@ SmartTrafficLineChart.prototype = {
                 self.toolTip.setVisiable(false);
                 self._removeGuideLine();
                 sharps.filter(function(d) {
-                    return self._isInSharp(this);
+                    return d._parent.isInSharp(this);
                 }).each(function(d) {
                     var data = d._parent._parent;
                     if (data.isSelected) {
@@ -653,6 +685,11 @@ SmartTrafficLineChart.prototype = {
                 if (v.figure.area) v.figure.area.remove();
                 v.figure.area = self._drawArea(v.area);
             }
+             if (v.bar) {
+                v.figure = v.figure || {};
+                if (v.figure.bar) v.figure.bar.remove();
+                v.figure.bar = self._drawBar(v.bar);
+            }
             if (v.line) {
                 v.figure = v.figure || {};
                 if (v.figure.circles) v.figure.circles.remove();
@@ -663,14 +700,9 @@ SmartTrafficLineChart.prototype = {
             if (v.spline) {
                 v.figure = v.figure || {};
                 if (v.figure.splineCircles) v.figure.splineCircles.remove();
-                v.figure.splineCircles = self._drawLine(v.spline);
+                v.figure.splineCircles = self._drawCircles(v.spline);
                 if (v.figure.spline) v.figure.spline.remove();
-                v.figure.spline = self._drawArea(v.spline);
-            }
-             if (v.bar) {
-                v.figure = v.figure || {};
-                if (v.figure.bar) v.figure.bar.remove();
-                v.figure.bar = self._drawBar(v.bar);
+                v.figure.spline = self._drawLine(v.spline);
             }
         });
     },
@@ -682,7 +714,8 @@ SmartTrafficLineChart.prototype = {
         barWidth = Math.min(30,self._chartWidth/12/barAcc * zoomScale);
 
         var bar = self.svg.drawArea.chart.append("g")
-                                                .attr("class","chart-bar");
+                                                .attr("class","chart-bar")
+                                                .attr("pointer-events", "none");
         bar.selectAll("rect").data(data._d)
                     .enter()
                     .append("rect")
@@ -695,7 +728,10 @@ SmartTrafficLineChart.prototype = {
                     .attr("width",barWidth)
                     .attr("height",self._chartHeight)
                     .attr("fill",parent.color)
-                    .attr("opacity",0.7);
+                    .attr("opacity",0.7)
+                    .attr("class", function(d, i) {
+                        return "event-sharp-" + self._getXSetIndex(d.x)
+                    });
         return bar;
     },
     _drawInfoBars: function(datas) {
@@ -727,19 +763,23 @@ SmartTrafficLineChart.prototype = {
         if (this._xScale) delete this._xScale;
         if (this._yScale) delete this._yScale;
         if (this._y2Scale) delete this._y2Scale;
+        delete this._zoomScale;
         this._removeGuideLine();
         this._calculateMargin();
         this._initDraw();
         this._draw();
     },
     _getXScale: function() {
+        var span=0;
+                // var span =(this._getMaxXData() -this._getMinXData())/24;
         this._xScale = this._xScale || d3.time.scale()
             .range([0, this._chartWidth])
-            .domain([this._getMinXData(), this._getMaxXData()]).nice();
+            .domain([this._getMinXData() -span, this._getMaxXData()+span]).nice();
 
         return this._xScale;
     },
     _getYScale: function() {
+
         this._yScale = this._yScale || d3.scale.linear()
             .range([0, this._chartHeight])
             .domain([this._getMaxYData(), this._getMinYData()]).nice();
@@ -937,6 +977,9 @@ SmartTrafficLineChart.prototype = {
                 if (v.figure.splineCircles) {
                     v.figure.splineCircles.classed("notSelected", !v.isSelected);
                 }
+                 if (v.figure.bar) {
+                    v.figure.bar.classed("notSelected", !v.isSelected);
+                }
                  if (v.figure.area) {
                      var _result = v.isSelected?"visible":"hidden";
                     v.figure.area.style("visibility",_result);
@@ -946,6 +989,9 @@ SmartTrafficLineChart.prototype = {
             this.datas.forEach(function(v) {
                 if (v.figure.circles) {
                     v.figure.circles.classed("notSelected", false);
+                }
+                if (v.figure.bar) {
+                    v.figure.bar.classed("notSelected", false);
                 }
                 if (v.figure.line) {
                     v.figure.line.classed("notSelected", false);
@@ -976,17 +1022,12 @@ SmartTrafficLineChart.prototype = {
     _zoomed: function() {
         var self = this;
         this._zoomScale = d3.event.scale;
-        console.log(this._zoomScale);
         this._drawAxis();
         this._drawEventRect();
-        // this.svg.drawArea.select("g.xaxis").call(d3.svg.axis().scale(this._getXScale()).orient("bottom"));
         self.toolTip.setVisiable(false);
         self._removeGuideLine();
         this._drawChart(this.datas, this._figures);
         this._setSelectStyle();
-
-        //    this.svg.drawArea.selectAll("path.line").attr("transform", "translate(" + d3.event.translate[0] + ",0)scale(" + d3.event.scale + ", 1)");
-        //  this.svg.drawArea.selectAll("circle").attr("transform", "translate(" + d3.event.translate[0] + ",0)scale(" + d3.event.scale + ", 1)");
     },
     addEventHandler: function(type, callback) {
         eventManager.addEventHandler.call(this, type, callback);
@@ -1054,7 +1095,7 @@ var SmartTrafficChartToolTip = SmartTrafficChartClass.extend({
         var data = point._parent,
             dataParent = data._parent,
             text = "";
-        if (data.type === "line" || data.type === "spline") {
+        if (data.type === "line" || data.type === "spline" || data.type ==="bar") {
             text += "<tr>";
             text += "<td class='tooltip-name'><span style=' background-color:" + dataParent.color + "'></span>" + dataParent.name + "</td>";
             if (data.yHint) text += "<td class='tooltip-value'>" + data.yHint + "</td>";
@@ -1068,51 +1109,12 @@ var SmartTrafficChartToolTip = SmartTrafficChartClass.extend({
         return text;
     }
 });
-// var toolTip = function(container, option) {
-//     this.init(container);
-// };
-// toolTip.prototype = {
-//     getContent: function(datas) {
-//         var text = "";
-//         var title = datas[0].x;
-//         text = "<table class='tool-tip-table' ><tbody><tr><th class = 'tooltip-title' colspan='2'>" + title + "</th></tr>";
-//         datas.forEach(function(data) {
-//             text += "<tr>";
-//             text += "<td class='tooltip-name'><span style=' background-color:" + data.color + "'></span>" + data.name + "</td>";
-//             text += "<td class='tooltip-value'>" + data.y + "</td>";
-//             text += "</tr>";
-//         });
-//         return text += "</tbody><table>";
-//     },
-//     setVisiable: function(isVisiable) {
-//         if (isVisiable) this.toolTip.style("visibility", "visible");
-//         else this.toolTip.style("visibility", "hidden");
-//     },
-//     init: function(container) {;
-//         if (container.select(".smartTraffic-tootip")) container.select(".smartTraffic-tootip").remove();
-//         this.toolTip = container.append("div")
-//             .style("pointer-events", "none")
-//             .attr("class", "tooltip smartTraffic-tootip")
-//             .style("position", "absolute")
-//             .style("z-index", "10")
-//             .style("visibility", "hidden");
-//         if (!this.toolTip) this.toolTip = this.append("g").attr("class", "tool-tip");
-//     },
-//     setContent: function(content) {
-//         if (this.toolTip) this.toolTip.html(this.getContent(content));
-//     },
-//     setPosition: function(x, y) {
-//         this.toolTip.style("top", y + "px").style("left", x + "px");
-//     }
-// }
-// toolTip.prototype.constructor = toolTip;
-
 var LineBaseClass = SmartTrafficChartClass.extend({
     type: "line",
     init: function(originData, parent, chart) {
         var option = originData.option,
             self = this;
-
+        this.chart = chart;
         this.baseWidth = option.width || 2;
         this._d = originData.data;
         if (option.ref === "y2") {
@@ -1156,6 +1158,14 @@ var LineBaseClass = SmartTrafficChartClass.extend({
     },
     getY: function(point) {
         return [point.y];
+    },
+    isInSharp:function(_sharp){
+        _sharp = d3.select(_sharp);
+        if (_sharp.node().nodeName === "circle") {
+            var mouse = d3.mouse(this.chart.svg.drawArea.chart.node());
+            x2 = Number(_sharp.attr("cx")), y2 = Number(_sharp.attr("cy")), r = Number(_sharp.attr("r"));
+            return Math.sqrt(Math.pow(mouse[0] - x2, 2) + Math.pow(mouse[1] - y2, 2)) < 3 * r;
+        }
     }
 });
 var SpLine = LineBaseClass.extend({
@@ -1186,5 +1196,13 @@ var Bar = LineBaseClass.extend({
             }
         }
         return i;
+    },
+    isInSharp:function(_sharp){
+        _sharp = d3.select(_sharp);
+        if (_sharp.node().nodeName === "rect") {
+            var mouse = d3.mouse(this.chart.svg.drawArea.chart.node());
+            x= Number(_sharp.attr("x")), y = Number(_sharp.attr("y")), width = Number(_sharp.attr("width"));
+            return mouse[0]>x && mouse[1] >y && mouse[0] < x+width;
+        }
     }
 });
