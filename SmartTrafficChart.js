@@ -1,4 +1,5 @@
 "user direct"
+
 function inherit(base, derived) {
 
     if (Object.create) {
@@ -38,15 +39,15 @@ var eventManager = {
     }
 };
 var colorManager = {
-    getColor:function(i){
-        if(! this._colors) colorManager.init.call(this);
-     
+    getColor: function(i) {
+        if (!this._colors) colorManager.init.call(this);
+
         this._colorIndex %= this._colors.length;
-        return this._colors[this._colorIndex++] ;
+        return this._colors[this._colorIndex++];
     },
-    init:function(){
-        this._colors =["#FFCC66","#5CBAE6","#FF6666","#8CD3FF","#993366","#669966","#CCC5A8","#D998CB","#DBDB46","#660066","#FAC364"];
-        this._colorIndex =0;
+    init: function() {
+        this._colors = ["#FFCC66", "#5CBAE6", "#FF6666", "#8CD3FF", "#993366", "#669966", "#CCC5A8", "#D998CB", "#DBDB46", "#660066", "#FAC364"];
+        this._colorIndex = 0;
     }
 }
 var SmartTrafficLineChart = function(option) {
@@ -77,59 +78,75 @@ SmartTrafficLineChart.prototype = {
             }
         }
         if (_i !== -1) {
-            this.datas[i].line = data.line || this.datas[i].line;
-            this.datas[i].line._parent =this.datas[i];
+         this.datas[i][data.type] = data[data.type];
+         data[data.type]._parent = this.data[i];
         } else {
             this.datas.push(data);
         }
         this._xSet(true);
         if (this.svg) this._reDraw();
-    } ,
-    _xSet:function(isUpdata){
-        if(!isUpdata) return this.xSet;
-        var self = this , datas =this.datas;    
+    },
+    _xSet: function(isUpdata) {
+        if (!isUpdata) return this.xSet;
+        var self = this,
+            datas = this.datas;
         this.xSet = [];
-        datas.forEach(function(data){
+        datas.forEach(function(data) {
             if (data.line) {
-                 data.line._d.forEach(function(v){
-                            if(!self.xSet.find(function(x){
+                data.line._d.forEach(function(v) {
+                    if (!self.xSet.find(function(x) {
                             return x - v.x === 0;
-                })){
-                    self.xSet.push(v.x);
-                }
+                        })) {
+                        self.xSet.push(v.x);
+                    }
                 })
-         }
+            }
+            if (data.spline) {
+                data.spline._d.forEach(function(v) {
+                    if (!self.xSet.find(function(x) {
+                            return x - v.x === 0;
+                        })) {
+                        self.xSet.push(v.x);
+                    }
+                })
+            }
         });
-        this.xSet = this.xSet.sort(function(v1,v2){
-            return v1 -v2;
+        this.xSet = this.xSet.sort(function(v1, v2) {
+            return v1 - v2;
         });
         return this.xSet;
     },
-    _getXSetIndex:function (obj){
-        if(! this._xSet()) return -1;
-        var _index = -1 ,set = this._xSet();
-        for( var i = 0; i < set.length; ++i){
-            if(set[i] -obj === 0) {
+    _getXSetIndex: function(obj) {
+        if (!this._xSet()) return -1;
+        var _index = -1,
+            set = this._xSet();
+        for (var i = 0; i < set.length; ++i) {
+            if (set[i] - obj === 0) {
                 _index = i;
                 break;
             }
-        }    
+        }
         return _index;
-     },
+    },
     _parseData: function(originData) {
-        var data = {},self = this;
+        var data = {},
+            self = this;
         data.name = originData.name;
         data.id = originData.id;
-        if(originData.id === undefined){
-            data.id = "smartTraffic" +this.datas.length;
+        if (originData.id === undefined) {
+            data.id = "smartTraffic" + this.datas.length;
         }
-        if(originData.option)
-        {   data.type = originData.option.type || "line";
-            if(data.type ==="line"){
-                 data.line = new SmartTrafficChartLine(originData,data,self);
+        if (originData.option) {
+            data.type = originData.option.type || "line";
+            if (data.type === "line") {
+                data.line =  LineBaseClass.create(originData, data, self);
+            }
+            if(data.type ==="spline")
+            {
+                data.spline = SpLine.create(originData, data, self);
             }
             data.color = originData.option.color || this._getColor();
-            
+
             // var option = originData.option;
             // data.type = option.type || "line";
             // data[data.type]={};
@@ -163,29 +180,28 @@ SmartTrafficLineChart.prototype = {
             // data[data.type]._d.forEach(function(d){
             //       d._parent = data[data.type];
             //   })
-            
+
             // data[data.type]._d.sort(function(v1,v2){
             //     return v1.x -v2.x;
             // });
             // data[data.type]._parent = data;
             // delete data.type;
-        }
-        else{
+        } else {
             throw new Error("no data option ");
         }
         return data;
     },
-    _hasY2:function(){
-         var find =false;
-         this.datas.forEach(function(d){
-            if(d.line) {
+    _hasY2: function() {
+        var find = false;
+        this.datas.forEach(function(d) {
+            if (d.line) {
                 find = d.line.y2 || false;
             }
         })
         return find;
     },
-    _getColor:function(){
-       return  colorManager.getColor.call(this);
+    _getColor: function() {
+        return colorManager.getColor.call(this);
     },
     addFlowData: function(name, _d, option) {
         var _t = this.datas.find(function(v) {
@@ -208,172 +224,185 @@ SmartTrafficLineChart.prototype = {
         if (this.svg) this._reDraw();
     },
     _calculateMargin: function() {
-        this._yTitleWidth =20;
+        this._yTitleWidth = 20;
         this._yAxisWidth = 40;
-        this._chartWidth = Math.floor((this.width - this._yTitleWidth - this._yAxisWidth)*0.8);
+        this._chartWidth = Math.floor((this.width - this._yTitleWidth - this._yAxisWidth) * 0.8);
         this._infoBarMargin = 20;
-        this._infoBarWidth = Math.floor((this.width - this._yTitleWidth - this._yAxisWidth)*0.2) -20;
-        if(this._hasY2()) {
+        this._infoBarWidth = Math.floor((this.width - this._yTitleWidth - this._yAxisWidth) * 0.2) - 20;
+        if (this._hasY2()) {
             this._y2AxisWidth = 40;
-            this._y2TitleWidth =20;
-            this._chartWidth = Math.floor((this.width - this._yTitleWidth - this._yAxisWidth - this._y2TitleWidth- this._y2AxisWidth)*0.8);
-            this._infoBarWidth = Math.floor((this.width - this._yTitleWidth - this._yAxisWidth- this._y2AxisWidth- this._y2TitleWidth)*0.2) -20;
+            this._y2TitleWidth = 20;
+            this._chartWidth = Math.floor((this.width - this._yTitleWidth - this._yAxisWidth - this._y2TitleWidth - this._y2AxisWidth) * 0.8);
+            this._infoBarWidth = Math.floor((this.width - this._yTitleWidth - this._yAxisWidth - this._y2AxisWidth - this._y2TitleWidth) * 0.2) - 20;
         }
         if (this.secondTitle) {
             this._titleHeight = 50;
             this._xAxisHeight = 20;
-            this._xTitleHeight =20;
-            this._chartHeight =this.height - this._titleHeight - this._xAxisHeight -this._xTitleHeight;
+            this._xTitleHeight = 20;
+            this._chartHeight = this.height - this._titleHeight - this._xAxisHeight - this._xTitleHeight;
         } else {
             this._titleHeight = 30;
             this._xAxisHeight = 20;
-            this._xTitleHeight =20;
-            this._chartHeight =this.height - this._titleHeight - this._xAxisHeight -this._xTitleHeight;
+            this._xTitleHeight = 20;
+            this._chartHeight = this.height - this._titleHeight - this._xAxisHeight - this._xTitleHeight;
         }
         return this;
     },
-    _drawAxisXLine: function() {
 
-    },
-    _drawGuideLine:function(point){
+    _drawGuideLine: function(point) {
         var self = this;
-        var xScale =self._getXScale(), yScale = point._parent.y2? self._getY2Scale() :self._getYScale();
-        if(! self._guideLineGroup)   self._guideLineGroup=this.svg.drawArea.chart.append("g").attr("class","guide-lines");
-        point._parent.getY(point).forEach(function(v){
-             self._guideLineGroup
-                                            .append("line")
-                                            .attr("x1",xScale(point._parent.getX(point)[0]))
-                                            .attr("y1", yScale(v))
-                                            .attr("x2",0)
-                                            .attr("y2", yScale(v))
-                                            .attr("stroke","black")
-                                            .attr("stroke-width",1)
-                                            .attr("stroke-dasharray","1,1");
+        var xScale = self._getXScale(),
+            yScale = point._parent.y2 ? self._getY2Scale() : self._getYScale();
+        if (!self._guideLineGroup) self._guideLineGroup = this.svg.drawArea.chart.append("g").attr("class", "guide-lines");
+        point._parent.getY(point).forEach(function(v) {
+            if(point._parent.y2){
+                  self._guideLineGroup
+                                .append("line")
+                                .attr("x1", xScale(point._parent.getX(point)[0]))
+                                .attr("y1", yScale(v))
+                                .attr("x2", self._chartWidth)
+                                .attr("y2", yScale(v))
+                                .attr("stroke", "black")
+                                .attr("stroke-width", 1)
+                                .attr("stroke-dasharray", "1,1");
+            }else{
+                  self._guideLineGroup
+                        .append("line")
+                        .attr("x1", xScale(point._parent.getX(point)[0]))
+                        .attr("y1", yScale(v))
+                        .attr("x2", 0)
+                        .attr("y2", yScale(v))
+                        .attr("stroke", "black")
+                        .attr("stroke-width", 1)
+                        .attr("stroke-dasharray", "1,1");
+            }
+          
         });
-        var maxY=Number.MIN_VALUE;
-        point._parent.getY(point).forEach(function(v){
-            maxY = Math.max(maxY,yScale(v));
+        var maxY = Number.MIN_VALUE;
+        point._parent.getY(point).forEach(function(v) {
+            maxY = Math.max(maxY, yScale(v));
         });
-        if(self._guideLineGroup.yLine) self._guideLineGroup.yLine.remove();
-        self._guideLineGroup.yLine=self._guideLineGroup
-                                                            .append("line")
-                                                            .attr("x1",xScale(point._parent.getX(point)[0]))
-                                                            .attr("y1",maxY)
-                                                            .attr("x2",xScale(point._parent.getX(point)[0]))
-                                                            .attr("y2",self._chartHeight)
-                                                            .attr("stroke","black")
-                                                            .attr("stroke-width",1)
-                                                            .attr("stroke-dasharray","1,1");
-                                            
-//  self._guideLineGroup.append("line")
-//                             .
-//         guideLine.addGuideLine.call(this,this.svg.drawArea.chart,x,y,x1,y1);
+        if (self._guideLineGroup.yLine) self._guideLineGroup.yLine.remove();
+        self._guideLineGroup.yLine = self._guideLineGroup
+            .append("line")
+            .attr("x1", xScale(point._parent.getX(point)[0]))
+            .attr("y1", maxY)
+            .attr("x2", xScale(point._parent.getX(point)[0]))
+            .attr("y2", self._chartHeight)
+            .attr("stroke", "black")
+            .attr("stroke-width", 1)
+            .attr("stroke-dasharray", "1,1");
+
+        //  self._guideLineGroup.append("line")
+        //                             .
+        //         guideLine.addGuideLine.call(this,this.svg.drawArea.chart,x,y,x1,y1);
     },
-    _removeGuideLine:function(){
+    _removeGuideLine: function() {
         var self = this;
-            if(self._guideLineGroup)  {
-                self._guideLineGroup.remove();
-                delete self._guideLineGroup;
-                }
+        if (self._guideLineGroup) {
+            self._guideLineGroup.remove();
+            delete self._guideLineGroup;
+        }
     },
     _drawAxis: function() {
         var self = this;
-        if(this._xAxis) this._xAxis.remove();
+        if (this._xAxis) this._xAxis.remove();
         this._xAxis = this.svg.drawArea.x.append("svg:g")
             .attr("transform", "translate(0," + (this._chartHeight) + ")")
-            .attr("class","xaxis")
-            .call(d3.svg.axis().scale(this._getXScale()).orient("bottom").tickFormat(function(d){
-                if(self.xType === "time"){
-                    return d.getHours() +":"+ d.getMinutes();
+            .attr("class", "xaxis")
+            .call(d3.svg.axis().scale(this._getXScale()).orient("bottom").tickFormat(function(d) {
+                if (self.xType === "time") {
+                    return d.getHours() + ":" + d.getMinutes();
                 }
             }))
             .classed("axis", true);
-         //x.selectAll("g").append("line").attr("x2",0).attr("x1",0).attr("y1",0).attr("y2", - self._chartHeight).attr("stroke-width",1).attr("stroke","black").attr("opacity","0.2");
-        if(this._yAxis) this._yAxis.remove();
+        //x.selectAll("g").append("line").attr("x2",0).attr("x1",0).attr("y1",0).attr("y2", - self._chartHeight).attr("stroke-width",1).attr("stroke","black").attr("opacity","0.2");
+        if (this._yAxis) this._yAxis.remove();
         this._yAxis = this.svg.drawArea.y.append("svg:g")
-            .attr("class","yaxis")
+            .attr("class", "yaxis")
             .call(d3.svg.axis().scale(this._getYScale()).orient("left"))
             .classed("axis", true);
-          this._yAxis.selectAll("g").append("line").attr("x2",self._chartWidth ).attr("x1",0).attr("y1",0).attr("y2",0).attr("stroke-width",1).attr("stroke","black").attr("opacity","0.2") .attr("stroke-dasharray","5,3");
-        if(this._hasY2()){
-            if(this._y2Axis) this._y2Axis.remove();
+        this._yAxis.selectAll("g").append("line").attr("x2", self._chartWidth).attr("x1", 0).attr("y1", 0).attr("y2", 0).attr("stroke-width", 1).attr("stroke", "black").attr("opacity", "0.2").attr("stroke-dasharray", "5,3");
+        if (this._hasY2()) {
+            if (this._y2Axis) this._y2Axis.remove();
             this._y2Axis = this.svg.drawArea.y.append("svg:g")
-                                        .attr("class","y2axis")
-                                        .attr("transform","translate("+this._chartWidth+",0)")
-                                        .call(d3.svg.axis().scale(this._getY2Scale()).orient("right"))
-                                        .classed("axis", true);
-        } 
-   },
+                .attr("class", "y2axis")
+                .attr("transform", "translate(" + this._chartWidth + ",0)")
+                .call(d3.svg.axis().scale(this._getY2Scale()).orient("right"))
+                .classed("axis", true);
+        }
+    },
     _drawLine: function(data) {
-        var self = this;
-        
-        var lineGen = data.line.y2?  d3.svg.line()
-            .x(function(d) {
-                return self._xScale(d.x);
-            })
-            .y(function(d) {
-                return self._getY2Scale()(d.y2);
-            }) :  d3.svg.line()
-            .x(function(d) {
-                return self._xScale(d.x);
-            })
-            .y(function(d) {
-                return self._getYScale()(d.y);
-            });
-        var _line = this.svg.drawArea.chart.append("path")
-            .attr('d', lineGen(data.line._d))
-            .attr("class","line")
-            .attr('stroke', data.color)
-            .attr('stroke-width', data.line.baseWidth)
-            .attr('fill', 'none')
-             .attr("pointer-events","none");
+        var self = this,parent = data._parent;
+        var yScale = data.y2? self._getY2Scale() : self._getYScale(),_line,lineGen;
+        if(data.type ==="line"){
+        lineGen =d3.svg.line()
+                .x(function(d) {
+                    return self._getXScale()(d.x);
+                })
+                .y(function(d) {
+                    return yScale(d.y);
+                });
+        _line = this.svg.drawArea.chart.append("path")
+                .attr('d', lineGen(data._d))
+                .attr("class", "line")
+                .attr('stroke', parent.color)
+                .attr('stroke-width', data.baseWidth)
+                .attr('fill', 'none')
+                .attr("pointer-events", "none");
+        }
+        if(data.type==="spline"){
+               lineGen =d3.svg.line()
+                .x(function(d) {
+                    return self._getXScale()(d.x);
+                })
+                .y(function(d) {
+                    return yScale(d.y);
+                }).interpolate("monotone");
+        _line = this.svg.drawArea.chart.append("path")
+                .attr('d', lineGen(data._d))
+                .attr("class", "line")
+                .attr('stroke', parent.color)
+                .attr('stroke-width', data.baseWidth)
+                .attr('fill', 'none')
+                .attr("pointer-events", "none");
+        }
+  
         return _line;
     },
     _drawCircles: function(data) {
-        var self = this;
+        var self = this,parent=data._parent;
         var g = this.svg.drawArea.chart.append("g")
-                        .attr("pointer-events","none");
-        var _circle =data.line.y2? 
+            .attr("pointer-events", "none");
+        var yScale = data.y2? self._getY2Scale() : self._getYScale();
+        var _circle = 
             g.selectAll("linepoint")
-                .data(data.line._d)
-                .enter()
-                .append("circle")
-                .attr("cx", function(d) {
-                    return self._getXScale()(d.x);
-                })
-                .attr("cy", function(d) {
-                    return self._getY2Scale()(d.y2);
-                })
-                .attr("r", function(d) {
-                    return 2* data.line.baseWidth;
-                }).attr("fill", data.color)
-                .attr("class",function(d,i){return "event-sharp-"+self._getXSetIndex(d.x)})
-            :
-             g.selectAll("linepoint")
-                    .data(data.line._d)
-                    .enter()
-                    .append("circle")
-                    .attr("cx", function(d) {
-                        return self._getXScale()(d.x);
-                    })
-                    .attr("cy", function(d) {
-                        return self._getYScale()(d.y);
-                    })
-                    .attr("r", function(d) {
-                        return 2* data.line.baseWidth;
-                    }).attr("fill", data.color)
-                    .attr("class",function(d,i){return "event-sharp-"+self._getXSetIndex(d.x)});
-            // .append("svg:title").text( function(d){return "X :"+d.x +"   Y: "+d.y});
+            .data(data._d)
+            .enter()
+            .append("circle")
+            .attr("cx", function(d) {
+                return self._getXScale()(d.x);
+            })
+            .attr("cy", function(d) {
+                return yScale(d.y);
+            })
+            .attr("r", function(d) {
+                return 2 * data.baseWidth;
+            }).attr("fill", parent.color)
+            .attr("class", function(d, i) {
+                return "event-sharp-" + self._getXSetIndex(d.x)
+            }) ;
+        // .append("svg:title").text( function(d){return "X :"+d.x +"   Y: "+d.y});
         g.on("click", function() {
             if (data.isSelected) {
                 eventManager.callEventHandler.call(self, "deSelect", data);
-               data.isSelected= false;
+                data.isSelected = false;
             } else {
                 eventManager.callEventHandler.call(self, "select", data);
-               data.isSelected = true;
+                data.isSelected = true;
             }
-             event.stopPropagation();
-              self._setSelectStyle();
+            event.stopPropagation();
+            self._setSelectStyle();
         });
         return g;
     },
@@ -400,14 +429,14 @@ SmartTrafficLineChart.prototype = {
             .attr("fill", function(d, i) {
                 return data.color;
             })
-           .append("svg:title").text("haha");
+            .append("svg:title").text("haha");
         var nameList = g
             .append("text")
             .attr("x", 12)
-            .attr("y", (i *32) + 4)
+            .attr("y", (i * 32) + 4)
             .text(data.name);
 
-           g.on("mouseover", function(d) {
+        g.on("mouseover", function(d) {
                 d3.select(this).select("rect").attr("fill", "rgb(240,240,240)");
                 eventManager.callEventHandler.call(self, "mouseover", data);
             })
@@ -433,162 +462,174 @@ SmartTrafficLineChart.prototype = {
     _drawTitles: function() {
         this.svg.xTitleBar.append("text").text(this.xTitle).attr("dominant-baseline", "text-after-edge");
         this.svg.yTitleBar.append("text").text(this.yTitle).attr("transform", "rotate(-90)").attr("dominant-baseline", "text-before-edge");
-        if(this._hasY2()) this.svg.y2TitleBar.append("text").text(this.y2Title).attr("transform", "rotate(-90)").attr("dominant-baseline", "text-before-edge");
+        if (this._hasY2()) this.svg.y2TitleBar.append("text").text(this.y2Title).attr("transform", "rotate(-90)").attr("dominant-baseline", "text-before-edge");
         this.svg.titleBar.append("text").text(this.title).attr("dominant-baseline", "text-before-edge").classed("titleBar", true);
         this.svg.titleBar.append("text").text(this.secondTitle).attr("dominant-baseline", "text-before-edge").attr("dy", this._titleHeight / 2);
     },
-    _drawEventRect:function(){
-        if(this.svg.drawArea.eventRects) this.svg.drawArea.eventRects.remove();
-        var self =this, set = this._xSet(),chart=this.svg.drawArea.chart ,_width = Math.floor(this._chartWidth/(set.length +1));
-        this.svg.drawArea.eventRects = chart.append("g").attr("class","eventRect");
+    _drawEventRect: function() {
+        if (this.svg.drawArea.eventRects) this.svg.drawArea.eventRects.remove();
+        var self = this,
+            set = this._xSet(),
+            chart = this.svg.drawArea.chart,
+            _width = Math.floor(this._chartWidth / (set.length + 1));
+        this.svg.drawArea.eventRects = chart.append("g").attr("class", "eventRect");
         this.svg.drawArea.eventRects.selectAll("rect").data(set)
-                                                .enter()
-                                                .append("rect")
-                                                .attr("x",function(d,i){ return self._getXScale()(d) - _width/2})
-                                                .attr("y", 0)
-                                                .attr("width",_width)
-                                                .attr("height",self._chartHeight)
-                                                .attr("class",function(d,i){ return "event-rect-"+i})
-                                                .attr("rect-index",function(d,i ){return i})
-                                                .attr("fill-opacity","0")
-                                                .on("mouseout",function(d,i){
-                                                       self.toolTip.setVisiable(false);
-                                                       self._removeGuideLine();
-                                                    })
-                                                .on("mousemove",function(d,i){
-                                                     var sharps=d3.selectAll(".event-sharp-"+i),mouse=d3.mouse(chart.node()),content=[];
-                                                     self.toolTip.setVisiable(false);
-                                                     self._removeGuideLine();
-                                                     sharps.filter(function(d){
-                                                         return self._isInSharp(this);
-                                                     }).each(function(d){
-                                                        self._drawGuideLine(d);
-                                                          
-                                                          if(d._parent.y2){
-                                                              content.push({x:d.x,y:d.y2,color:d._parent._parent.color,name:d._parent._parent.name});
-                                                            // self._drawGuideLine(self._getXScale()(d.x),self._getY2Scale()(d.y2),self._chartWidth,self._chartHeight);
-                                                          }else{
-                                                              content.push({x:d.x,y:d.y,color:d._parent._parent.color,name:d._parent._parent.name});
-                                                           //   self._drawGuideLine(self._getXScale()(d.x),self._getYScale()(d.y),0,self._chartHeight);
-                                                          }
-                                                     });
-                                                     if(content.length>0){
-                                                         self.toolTip.setPosition(event.pageX +10,event.pageY+20);
-                                                         self.toolTip.setContent(content);
-                                                         self.toolTip.setVisiable(true);
-                                                        // .style("top", (event.pageY -5) + "px").style("left", (event.pageX +10) + "px").html(content);
-                                                     }
-                                                 
-                                                })
-                                                .on("click",function(d,i){
-                                                     var sharps=d3.selectAll(".event-sharp-"+i),mouse=d3.mouse(chart.node());
-                                                     self.toolTip.setVisiable(false);
-                                                     self._removeGuideLine();
-                                                     sharps.filter(function(d){
-                                                         return self._isInSharp(this);
-                                                     }).each(function(d){
-                                                        var data = d._parent._parent;
-                                                        if (data.isSelected) {
-                                                            eventManager.callEventHandler.call(self, "deSelect", data);
-                                                            data.isSelected = false;
-                                                        } else {
-                                                            data.isSelected = true;
-                                                            eventManager.callEventHandler.call(self, "select", data);
-                                                        }
-                                                        event.stopPropagation();
-                                                        self._setSelectStyle();
-                                                     });    
-                                                });
-                                                
+            .enter()
+            .append("rect")
+            .attr("x", function(d, i) {
+                return self._getXScale()(d) - _width / 2
+            })
+            .attr("y", 0)
+            .attr("width", _width)
+            .attr("height", self._chartHeight)
+            .attr("class", function(d, i) {
+                return "event-rect-" + i
+            })
+            .attr("rect-index", function(d, i) {
+                return i
+            })
+            .attr("fill-opacity", "0")
+            .on("mouseout", function(d, i) {
+                self.toolTip.setVisiable(false);
+                self._removeGuideLine();
+            })
+            .on("mousemove", function(d, i) {
+                var sharps = d3.selectAll(".event-sharp-" + i),
+                    mouse = d3.mouse(chart.node()),
+                    content = [];
+                self.toolTip.setVisiable(false);
+                self._removeGuideLine();
+                sharps.filter(function(d) {
+                    return self._isInSharp(this);
+                }).each(function(d) {
+                    self._drawGuideLine(d);
+                    content.push(d);
+                });
+                if (content.length > 0) {
+                    self.toolTip.setPosition(event.pageX + 10, event.pageY + 20);
+                    self.toolTip.setContent(content);
+                    self.toolTip.setVisiable(true);
+                    // .style("top", (event.pageY -5) + "px").style("left", (event.pageX +10) + "px").html(content);
+                }
 
-} , 
-_isInSharp:function(_sharp){
-    _sharp = d3.select(_sharp);
- if(_sharp.node().nodeName ==="circle"){
-       var mouse=d3.mouse(this.svg.drawArea.chart.node()); x2=Number(_sharp.attr("cx")),y2=Number(_sharp.attr("cy")),r=Number(_sharp.attr("r"));
-         return Math.sqrt(Math.pow(mouse[0]-x2,2)+Math.pow(mouse[1]-y2,2)) < 3*r;
- }
-},
-    _initDraw:function(){
+            })
+            .on("click", function(d, i) {
+                var sharps = d3.selectAll(".event-sharp-" + i),
+                    mouse = d3.mouse(chart.node());
+                self.toolTip.setVisiable(false);
+                self._removeGuideLine();
+                sharps.filter(function(d) {
+                    return self._isInSharp(this);
+                }).each(function(d) {
+                    var data = d._parent._parent;
+                    if (data.isSelected) {
+                        eventManager.callEventHandler.call(self, "deSelect", data);
+                        data.isSelected = false;
+                    } else {
+                        data.isSelected = true;
+                        eventManager.callEventHandler.call(self, "select", data);
+                    }
+                    event.stopPropagation();
+                    self._setSelectStyle();
+                });
+            });
+
+
+    },
+    _isInSharp: function(_sharp) {
+        _sharp = d3.select(_sharp);
+        if (_sharp.node().nodeName === "circle") {
+            var mouse = d3.mouse(this.svg.drawArea.chart.node());
+            x2 = Number(_sharp.attr("cx")), y2 = Number(_sharp.attr("cy")), r = Number(_sharp.attr("r"));
+            return Math.sqrt(Math.pow(mouse[0] - x2, 2) + Math.pow(mouse[1] - y2, 2)) < 3 * r;
+        }
+    },
+    _initDraw: function() {
         var self = this;
-      
+
         this.svgContainer = d3.select("#" + this.appendId)
             .append("div")
             .attr("width", this.width)
             .attr("height", this.height)
-            .attr("class","smartTraffic-chart")
+            .attr("class", "smartTraffic-chart")
         this.svg = this.svgContainer
             .append("svg")
             .attr("width", "100%")
             .attr("height", "100%")
             .classed("noselect", true);
-           
+
         this.svg.append("defs").append("clipPath")
-                .attr("id", "clip")
-                .append("rect")
-                .attr("width", this._chartWidth)
-                .attr("height", this._chartHeight);
-        this.toolTip = new toolTip(this.svgContainer);
+            .attr("id", "clip")
+            .append("rect")
+            .attr("width", this._chartWidth)
+            .attr("height", this._chartHeight);
+        this.toolTip = SmartTrafficChartToolTip.create(this.svgContainer,this);
         this.svg.drawArea = this.svg.append("g")
             .attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth) + "," + this._titleHeight + ")")
-            .attr("class","drawArea")
-            .on("click",function(){ 
-                                                                                if (d3.event.defaultPrevented) {
-                                                                                       return;
-                                                                                }       
-                                                                                self._deselectAll.call(self);
-                                                                            });         
+            .attr("class", "drawArea")
+            .on("click", function() {
+                if (d3.event.defaultPrevented) {
+                    return;
+                }
+                self._deselectAll.call(self);
+            });
         this.svg.drawArea.chartArea = this.svg.drawArea.append("rect")
-                                                                            .attr("width",this._chartWidth)
-                                                                            .attr("height", this._chartHeight)
-                                                                            .attr("fill-opacity",0);
-                                                                        
-                                                                                                         
+            .attr("width", this._chartWidth)
+            .attr("height", this._chartHeight)
+            .attr("fill-opacity", 0);
+
+
         this.svg.drawArea.x = this.svg.drawArea.append("g");
         this.svg.drawArea.y = this.svg.drawArea.append("g");
-        this.svg.drawArea.chart=this.svg.drawArea.append("g")
-                                                             .attr("clip-path", "url(#clip)");
-        if(this._hasY2())
-        {
-             this.svg.y2TitleBar = this.svg.append("g").attr("transform", "translate("+(this._yTitleWidth+this._y2AxisWidth+this._chartWidth+this._yAxisWidth)+"," + (this._titleHeight + this._chartHeight / 2) + ")").classed("titleBar", true).attr("text-anchor", "middle");
+        this.svg.drawArea.chart = this.svg.drawArea.append("g")
+            .attr("clip-path", "url(#clip)");
+        if (this._hasY2()) {
+            this.svg.y2TitleBar = this.svg.append("g").attr("transform", "translate(" + (this._yTitleWidth + this._y2AxisWidth + this._chartWidth + this._yAxisWidth) + "," + (this._titleHeight + this._chartHeight / 2) + ")").classed("titleBar", true).attr("text-anchor", "middle");
         }
         this.svg.yTitleBar = this.svg.append("g").attr("transform", "translate(1," + (this._titleHeight + this._chartHeight / 2) + ")").classed("titleBar", true).attr("text-anchor", "middle");
         this.svg.titleBar = this.svg.append("g").attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth / 2 + this._chartWidth / 2) + ",1)").attr("text-anchor", "middle");
-        if(this._hasY2()){
-             this.svg.infoBar = this.svg.append("g").attr("transform", "translate(" + (this._chartWidth + this._yAxisWidth + this._yTitleWidth + this._infoBarMargin+this._y2TitleWidth+this._y2AxisWidth) + "," + this._titleHeight + ")").classed("infoBar", true);
-        }else{
-             this.svg.infoBar = this.svg.append("g").attr("transform", "translate(" + (this._chartWidth + this._yAxisWidth + this._yTitleWidth + this._infoBarMargin) + "," + this._titleHeight + ")").classed("infoBar", true);
+        if (this._hasY2()) {
+            this.svg.infoBar = this.svg.append("g").attr("transform", "translate(" + (this._chartWidth + this._yAxisWidth + this._yTitleWidth + this._infoBarMargin + this._y2TitleWidth + this._y2AxisWidth) + "," + this._titleHeight + ")").classed("infoBar", true);
+        } else {
+            this.svg.infoBar = this.svg.append("g").attr("transform", "translate(" + (this._chartWidth + this._yAxisWidth + this._yTitleWidth + this._infoBarMargin) + "," + this._titleHeight + ")").classed("infoBar", true);
         }
-       
+
         this.svg.xTitleBar = this.svg.append("g").attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth / 2 + this._chartWidth / 2) + "," + (this.height) + ")").classed("titleBar", true).attr("text-anchor", "middle");
         var zoom = d3.behavior.zoom()
-                                                .x(self._getXScale())
-                                                .scaleExtent([1,4])
-                                                .on("zoom",self._zoomed.bind(self));
-                                        
+            .x(self._getXScale())
+            .scaleExtent([1, 4])
+            .on("zoom", self._zoomed.bind(self));
+
         this.svg.drawArea.call(zoom).on("dblclick.zoom", null);
-        
-         },
-    _drawChart:function(datas){
-           var self  = this;
-           datas.forEach(function(v){
-               if(v.line ){
-                    v.figure = v.figure ||{};
-                if( v.figure.circles)  v.figure .circles.remove();
-                    v.figure.circles = self._drawCircles(v);
-                if( v.figure.line)  v.figure .line.remove();
-                    v.figure.line = self._drawLine(v);
-               }
-           });
-       },
-     _drawInfoBars:function(datas){
-          var self  = this;
-           datas.forEach(function(v,i){
-               v.figure = v.figure ||{};
-               if( v.figure.infoBar)  v.figure.infoBar.remove();
-                v.figure.infoBar = self._drawInfoBar(v,i);
-           });
-       },
+
+    },
+    _drawChart: function(datas) {
+        var self = this;
+        datas.forEach(function(v) {
+            if (v.line) {
+                v.figure = v.figure || {};
+                if (v.figure.circles) v.figure.circles.remove();
+                v.figure.circles = self._drawCircles(v.line);
+                if (v.figure.line) v.figure.line.remove();
+                v.figure.line = self._drawLine(v.line);
+            }
+            if(v.spline){
+                v.figure = v.figure || {};
+                if (v.figure.splineCircles) v.figure.splineCircles.remove();
+                v.figure.splineCircles = self._drawCircles(v.spline);
+                if (v.figure.spline) v.figure.spline.remove();
+                v.figure.spline = self._drawLine(v.spline);
+            }
+        });
+    },
+    _drawInfoBars: function(datas) {
+        var self = this;
+        datas.forEach(function(v, i) {
+            v.figure = v.figure || {};
+            if (v.figure.infoBar) v.figure.infoBar.remove();
+            v.figure.infoBar = self._drawInfoBar(v, i);
+        });
+    },
     _draw: function() {
         var self = this;
         this._drawAxis();
@@ -599,17 +640,17 @@ _isInSharp:function(_sharp){
         this._setSelectStyle();
     },
     appendTo: function(id) {
-       
+
         this.appendId = id;
         this._initDraw();
         this._draw();
     },
     _reDraw: function() {
-       // if (this.svg) this.svg.remove();
-        if(this.svgContainer) this.svgContainer.remove();
-        if (this._xScale) delete  this._xScale;
-        if (this._yScale) delete  this._yScale;
-        if(this._y2Scale) delete this._y2Scale;
+        // if (this.svg) this.svg.remove();
+        if (this.svgContainer) this.svgContainer.remove();
+        if (this._xScale) delete this._xScale;
+        if (this._yScale) delete this._yScale;
+        if (this._y2Scale) delete this._y2Scale;
         this._removeGuideLine();
         this._calculateMargin();
         this._initDraw();
@@ -618,7 +659,7 @@ _isInSharp:function(_sharp){
     _getXScale: function() {
         this._xScale = this._xScale || d3.time.scale()
             .range([0, this._chartWidth])
-            .domain([this._getMinXData(),this._getMaxXData()]).nice();
+            .domain([this._getMinXData(), this._getMaxXData()]).nice();
 
         return this._xScale;
     },
@@ -628,7 +669,7 @@ _isInSharp:function(_sharp){
             .domain([this._getMaxYData(), this._getMinYData()]).nice();
         return this._yScale;
     },
-    _getY2Scale:function(){
+    _getY2Scale: function() {
         this._y2Scale = this._y2Scale || d3.scale.linear()
             .range([0, this._chartHeight])
             .domain([this._getMaxY2Data(), this._getMinY2Data()]).nice();
@@ -637,8 +678,13 @@ _isInSharp:function(_sharp){
     _getMaxXData: function() {
         var _num = Number.MIN_VALUE;
         this.datas.forEach(function(d) {
-            if(d.line){
-                d.line ._d.forEach(function(v) {
+            if (d.line) {
+                d.line._d.forEach(function(v) {
+                    _num = Math.max(v.x, _num);
+                });
+            }
+              if (d.spline) {
+                d.spline._d.forEach(function(v) {
                     _num = Math.max(v.x, _num);
                 });
             }
@@ -648,8 +694,13 @@ _isInSharp:function(_sharp){
     _getMinXData: function() {
         var _num = Number.MAX_VALUE;
         this.datas.forEach(function(d) {
-              if(d.line){
-                d.line ._d.forEach(function(v) {
+            if (d.line) {
+                d.line._d.forEach(function(v) {
+                    _num = Math.min(v.x, _num);
+                });
+            }
+             if (d.spline) {
+                d.spline._d.forEach(function(v) {
                     _num = Math.min(v.x, _num);
                 });
             }
@@ -659,19 +710,29 @@ _isInSharp:function(_sharp){
     _getMaxYData: function() {
         var _num = Number.MIN_VALUE;
         this.datas.forEach(function(d) {
-         if(d.line && !d.line.y2){
-                d.line ._d.forEach(function(v) {
+            if (d.line && !d.line.y2) {
+                d.line._d.forEach(function(v) {
+                    _num = Math.max(v.y, _num);
+                });
+            }
+             if (d.spline && !d.spline.y2) {
+                d.spline._d.forEach(function(v) {
                     _num = Math.max(v.y, _num);
                 });
             }
         });
         return _num;
     },
-     _getMinYData: function() {
+    _getMinYData: function() {
         var _num = Number.MAX_VALUE;
         this.datas.forEach(function(d) {
-          if(d.line&& !d.line.y2){
-                d.line ._d.forEach(function(v) {
+            if (d.line && !d.line.y2) {
+                d.line._d.forEach(function(v) {
+                    _num = Math.min(v.y, _num);
+                });
+            }
+             if (d.spline && !d.spline.y2) {
+                d.spline._d.forEach(function(v) {
                     _num = Math.min(v.y, _num);
                 });
             }
@@ -681,25 +742,35 @@ _isInSharp:function(_sharp){
     _getMaxY2Data: function() {
         var _num = Number.MIN_VALUE;
         this.datas.forEach(function(d) {
-         if(d.line && d.line.y2){
-                d.line ._d.forEach(function(v) {
-                    _num = Math.max(v.y2, _num);
+            if (d.line && d.line.y2) {
+                d.line._d.forEach(function(v) {
+                    _num = Math.max(v.y, _num);
+                });
+            }
+             if (d.spline && d.spline.y2) {
+                d.spline._d.forEach(function(v) {
+                    _num = Math.max(v.y, _num);
                 });
             }
         });
         return _num;
     },
-_getMinY2Data: function() {
+    _getMinY2Data: function() {
         var _num = Number.MAX_VALUE;
         this.datas.forEach(function(d) {
-          if(d.line && d.line.y2){
-                d.line ._d.forEach(function(v) {
-                    _num = Math.min(v.y2, _num);
+            if (d.line && d.line.y2) {
+                d.line._d.forEach(function(v) {
+                    _num = Math.min(v.y, _num);
+                });
+            }
+            if (d.spline && d.spline.y2) {
+                d.spline._d.forEach(function(v) {
+                    _num = Math.min(v.y, _num);
                 });
             }
         });
         return _num;
-    },  
+    },
     setHeight: function(height) {
         this.height = height;
         this._reDraw();
@@ -708,42 +779,69 @@ _getMinY2Data: function() {
         this.width = width;
         this._reDraw();
     },
-    _setSelectStyle:function(){
-        var self =this;
-        var hasSelect = !( this.datas.find(function(v){ return v.isSelected;}) === undefined);
-        if(hasSelect){
-            this.datas.forEach(function(v){
-                v.figure.circles.classed("notSelected",!v.isSelected);
-                 v.figure.line.classed("notSelected",!v.isSelected);
-                 v.figure.infoBar.classed("notSelected",!v.isSelected);
+    _setSelectStyle: function() {
+        var self = this;
+        var hasSelect = !(this.datas.find(function(v) {
+            return v.isSelected;
+        }) === undefined);
+        if (hasSelect) {
+            this.datas.forEach(function(v) {
+                if(v.figure.circles) {
+                    v.figure.circles.classed("notSelected", !v.isSelected);
+                }
+                if(v.figure.line){
+                     v.figure.line.classed("notSelected", !v.isSelected);
+                }
+                if(v.figure.infoBar){ 
+                    v.figure.infoBar.classed("notSelected", !v.isSelected);
+                }
+                if(v.figure.spline){
+                    v.figure.spline.classed("notSelected", !v.isSelected);
+                }
+                if(v.figure.splineCircles){
+                    v.figure.splineCircles.classed("notSelected", !v.isSelected);
+                }
             });
-        }else{
-          this.datas.forEach(function(v){  
-                   v.figure.circles.classed("notSelected",false);
-                   v.figure.line.classed("notSelected",false);
-                   v.figure.infoBar.classed("notSelected",false);
+        } else {
+            this.datas.forEach(function(v) {
+                 if(v.figure.circles) {
+                    v.figure.circles.classed("notSelected", false);
+                }
+                if(v.figure.line){
+                     v.figure.line.classed("notSelected", false);
+                }
+                if(v.figure.infoBar){ 
+                    v.figure.infoBar.classed("notSelected", false);
+                }
+                if(v.figure.spline){
+                    v.figure.spline.classed("notSelected", false);
+                }
+                if(v.figure.splineCircles){
+                    v.figure.splineCircles.classed("notSelected", false);
+                }
+            
             })
         }
     },
-    _deselectAll:function(){
+    _deselectAll: function() {
         var self = this;
-        self.datas.forEach(function(v){
+        self.datas.forEach(function(v) {
             delete v.isSelected;
         });
         self._setSelectStyle();
     },
-    _zoomed:function(){
+    _zoomed: function() {
         var self = this;
         this._drawAxis();
         this._drawEventRect();
-       // this.svg.drawArea.select("g.xaxis").call(d3.svg.axis().scale(this._getXScale()).orient("bottom"));
-         self.toolTip.setVisiable(false);
+        // this.svg.drawArea.select("g.xaxis").call(d3.svg.axis().scale(this._getXScale()).orient("bottom"));
+        self.toolTip.setVisiable(false);
         self._removeGuideLine();
-        this._drawChart(this.datas,this._figures);
+        this._drawChart(this.datas, this._figures);
         this._setSelectStyle();
-        
-    //    this.svg.drawArea.selectAll("path.line").attr("transform", "translate(" + d3.event.translate[0] + ",0)scale(" + d3.event.scale + ", 1)");
-      //  this.svg.drawArea.selectAll("circle").attr("transform", "translate(" + d3.event.translate[0] + ",0)scale(" + d3.event.scale + ", 1)");
+
+        //    this.svg.drawArea.selectAll("path.line").attr("transform", "translate(" + d3.event.translate[0] + ",0)scale(" + d3.event.scale + ", 1)");
+        //  this.svg.drawArea.selectAll("circle").attr("transform", "translate(" + d3.event.translate[0] + ",0)scale(" + d3.event.scale + ", 1)");
     },
     addEventHandler: function(type, callback) {
         eventManager.addEventHandler.call(this, type, callback);
@@ -752,170 +850,162 @@ _getMinY2Data: function() {
         eventManager.removeEventHandler.call(this, type, callback);
     }
 };
-var guideLine={
-    addGuideLine:function(svg,x,y,x2,y2){
-            var self=this;
-            if(!self._guideLineGroup) self._guideLineGroup=svg.append("g").attr("class","guide-lines");
-            if(!self._guideLines) self._guideLines =[];
-            if(!self._yGuideLine){
-                   self._yGuideLine = self._guideLineGroup.append("line")
-                            .attr("x1",x)
-                            .attr("y1",y)
-                            .attr("x2",x)
-                            .attr("y2",y2)
-                            .attr("stroke","black")
-                            .attr("stroke-width",1)
-                            .attr("stroke-dasharray","1,1");
-            }else{
-                if(y<  Number(self._yGuideLine.attr("y1"))){
-                    self._yGuideLine.remove();
-                    self._yGuideLine = self._guideLineGroup.append("line")
-                            .attr("x1",x)
-                            .attr("y1",y)
-                            .attr("x2",x)
-                            .attr("y2",y2)
-                            .attr("stroke","black")
-                            .attr("stroke-width",1)
-                            .attr("stroke-dasharray","1,1");
-                }
-            }
-            self._guideLineGroup.append("line")
-                            .attr("x1",x)
-                            .attr("y1",y)
-                            .attr("x2",x2)
-                            .attr("y2",y)
-                            .attr("stroke","black")
-                            .attr("stroke-width",1)
-                            .attr("stroke-dasharray","1,1");
-            // if(!self._guideLines.find(function(l){
-            //     return   Number(l.attr("x1")) ===x && Number(l.attr("y1")) ===y && Number(l.attr("x2")) ===x && Number(l.attr("y2")) === y2;
-            // })){
-            //         var yline = self._guideLineGroup.append("line")
-            //                 .attr("x1",x)
-            //                 .attr("y1",y)
-            //                 .attr("x2",x)
-            //                 .attr("y2",y2)
-            //                 .attr("stroke","black")
-            //                 .attr("stroke-width",1)
-            //                 .attr("stroke-dasharray","1,1");
-            //           self._guideLines.push(yline);
-            // }
-            //  if(!self._guideLines.find(function(l){
-            //     return   Number(l.attr("x1")) ===x && Number(l.attr("y1")) ===y && Number(l.attr("x2")) ===x2 && Number(l.attr("y2")) === y;
-            // })){
-            //     var xline = 
-            //     self._guideLines.push(xline);
-            // }
+var SmartTrafficChartClass = {
+    extend: function(prop) {
+        var subClass = Object.create(this);
+        for (var i in prop) {
+            if (prop.hasOwnProperty(i)) subClass[i] = prop[i];
+        }
+        return subClass;
     },
-    removeGuideLine:function(){
-        var self=this;
-        if(self._guideLineGroup) {
-            self._guideLineGroup.remove();
-            delete self._guideLineGroup;
+    create: function() {
+        var obj = Object.create(this);
+        if (obj.init) obj.init.apply(obj, arguments);
+        return obj;
+    },
+    mergeOption:function(option){
+        var dontMerge=["x","y","ref","data"];
+        for(var i in option){
+            if(option.hasOwnProperty(i) && !dontMerge.find(function(v){return v ===i;})) 
+            this[i] = option[i];
         }
-        if(self._yGuideLine){
-            self._yGuideLine.remove();
-            delete self._yGuideLine;
-        }
-        // if(self._guideLines){
-        //     self._guideLines.forEach(function(v){
-        //         v.remove()
-        //         v = null;
-        //     })
-        // }
-       // self._guideLines = null;
     }
-}
-var toolTip=function(container, option){
-    this.init(container);
 };
-toolTip.prototype=
-{
-    getContent:function(datas){
-        var text ="";
-        var title = datas[0].x;
-        text = "<table class='tool-tip-table' ><tbody><tr><th class = 'tooltip-title' colspan='2'>" +title + "</th></tr>";
-        datas.forEach(function(data){
-                text += "<tr>";
-                text += "<td class='tooltip-name'><span style=' background-color:" + data.color + "'></span>" + data.name + "</td>";
-                text += "<td class='tooltip-value'>" + data.y + "</td>";
-                text += "</tr>";
-        });
-        return text+="</tbody><table>";
-    },
-    setVisiable:function(isVisiable){
-        if(isVisiable)  this.toolTip.style("visibility", "visible");
-        else   this.toolTip.style("visibility", "hidden");
-    },
-    init:function(container){
- ;
-        if(container.select(".smartTraffic-tootip")) container.select(".smartTraffic-tootip").remove();
-        this.toolTip=  container .append("div") 
-            .style("pointer-events","none") 
+var SmartTrafficChartToolTip =SmartTrafficChartClass.extend({
+    init:function(container,chart){
+         this.chart =chart;
+          if (container.select(".smartTraffic-tootip")) container.select(".smartTraffic-tootip").remove();
+         this.toolTip = container.append("div")
+            .style("pointer-events", "none")
             .attr("class", "tooltip smartTraffic-tootip")
             .style("position", "absolute")
             .style("z-index", "10")
             .style("visibility", "hidden");
-        if(!this.toolTip) this.toolTip = this.append("g").attr("class","tool-tip");
+        if (!this.toolTip) this.toolTip = this.append("g").attr("class", "tool-tip");
     },
-    setContent:function(content){
-        if (this.toolTip)  this.toolTip.html(this.getContent(content)); 
+    getContent: function(datas) {
+        var text = "",self=this;
+        var title = datas[0].x ;
+        text = "<table class='tool-tip-table' ><tbody><tr><th class = 'tooltip-title' colspan='3'>" + title + "</th></tr>";
+        datas.forEach(function(data) {
+            text += self.parseData(data);
+        });
+        return text += "</tbody><table>";
     },
-    setPosition:function(x,y){
-        this.toolTip.style("top", y+ "px").style("left", x + "px");
-    }
-}
-toolTip.prototype.constructor = toolTip;
-var SmartTrafficChartLine = function (originData ,parent,chart){
-            var option = originData.option , self = this;
-            this.type= "line";
-            this.baseWidth = option.width || 2;
-            this._d = originData.data;
-            if(option.ref === "y2"){
-                this.y2=true;
+    setVisiable: function(isVisiable) {
+        if (isVisiable) this.toolTip.style("visibility", "visible");
+        else this.toolTip.style("visibility", "hidden");
+    },
+    setContent: function(points) {
+        if (this.toolTip) this.toolTip.html(this.getContent(points));
+    },
+    setPosition: function(x, y) {
+        this.toolTip.style("top", y + "px").style("left", x + "px");
+    },
+    parseData:function(point){
+        var data = point._parent,dataParent =data._parent,text="";
+        if(data.type ==="line" || data.type ==="spline"){
+            text += "<tr>";
+            text += "<td class='tooltip-name'><span style=' background-color:" + dataParent.color + "'></span>" + dataParent.name + "</td>";
+            if(data.yHint)  text += "<td class='tooltip-value'>" + data.yHint + "</td>";
+            else  {
+                if(data.y2)  text += "<td class='tooltip-value'>" + this.chart.y2Title + "</td>";
+                else  text += "<td class='tooltip-value'>" + this.chart.yTitle + "</td>"
             }
-            if(option.x){
-                  this._d.forEach(function(d){
-                     d.x = d[option.x];
-                     delete d[option.x];
-                 })
-            }
-            if(option.y){
-                  this._d.forEach(function(d){
-                     d.y = d[option.y];
-                     delete d[option.y];
-                 })
-            }
-             if(option.y2){
-                  this._d.forEach(function(d){
-                     d.y2 = d[option.y2];
-                     delete d[option.y2];
-                 })
-            }
-            if(chart.xType === "time"){
-                this._d.forEach(function(d){
-                        if(typeof d.x !== "time") d.x = new Date(d.x);
-                })
-            }
-            
-            this._d.forEach(function(d){
-                  d._parent = self;
-              })
-            
-            this._d.sort(function(v1,v2){
-                return v1.x -v2.x;
-            });
-            this._parent = parent;
-};
-SmartTrafficChartLine.prototype={
-     getX:function(point){
-         return [point.x];
-     },
-     getY:function(point){
-        if(this.y2){
-             return [point.y2];
+            text += "<td class='tooltip-value'>" + point.y + "</td>";
+            text += "</tr>";
         }
-         return [point.y];
-     }
-}
-SmartTrafficChartLine.prototype.constructor = SmartTrafficChartLine;
+        return text;
+    }
+});
+// var toolTip = function(container, option) {
+//     this.init(container);
+// };
+// toolTip.prototype = {
+//     getContent: function(datas) {
+//         var text = "";
+//         var title = datas[0].x;
+//         text = "<table class='tool-tip-table' ><tbody><tr><th class = 'tooltip-title' colspan='2'>" + title + "</th></tr>";
+//         datas.forEach(function(data) {
+//             text += "<tr>";
+//             text += "<td class='tooltip-name'><span style=' background-color:" + data.color + "'></span>" + data.name + "</td>";
+//             text += "<td class='tooltip-value'>" + data.y + "</td>";
+//             text += "</tr>";
+//         });
+//         return text += "</tbody><table>";
+//     },
+//     setVisiable: function(isVisiable) {
+//         if (isVisiable) this.toolTip.style("visibility", "visible");
+//         else this.toolTip.style("visibility", "hidden");
+//     },
+//     init: function(container) {;
+//         if (container.select(".smartTraffic-tootip")) container.select(".smartTraffic-tootip").remove();
+//         this.toolTip = container.append("div")
+//             .style("pointer-events", "none")
+//             .attr("class", "tooltip smartTraffic-tootip")
+//             .style("position", "absolute")
+//             .style("z-index", "10")
+//             .style("visibility", "hidden");
+//         if (!this.toolTip) this.toolTip = this.append("g").attr("class", "tool-tip");
+//     },
+//     setContent: function(content) {
+//         if (this.toolTip) this.toolTip.html(this.getContent(content));
+//     },
+//     setPosition: function(x, y) {
+//         this.toolTip.style("top", y + "px").style("left", x + "px");
+//     }
+// }
+// toolTip.prototype.constructor = toolTip;
+
+var LineBaseClass = SmartTrafficChartClass.extend({
+    type : "line",
+    init: function(originData, parent, chart) {
+        var option = originData.option,
+            self = this;
+       
+        this.baseWidth = option.width || 2;
+        this._d = originData.data;
+        if (option.ref === "y2") {
+            this.y2 = true;
+        }
+        if (option.x) {
+            if(option.x !=="x"){
+                 this._d.forEach(function(d) {
+                d.x = d[option.x];
+                delete d[option.x];
+            })
+            }
+           
+        }
+        if (option.y) {
+            if(option.y !=="y") {
+                this._d.forEach(function(d) {
+                    d.y = d[option.y];
+                    delete d[option.y];
+            })
+            }
+            
+        }
+        if (chart.xType === "time") {
+            this._d.forEach(function(d) {
+                if (typeof d.x !== "time") d.x = new Date(d.x);
+            })
+        }
+        this.mergeOption(option);
+        this._d.forEach(function(d) {
+            d._parent = self;
+        })
+
+        this._d.sort(function(v1, v2) {
+            return v1.x - v2.x;
+        });
+        this._parent = parent;
+    },
+    getX: function(point) {
+        return [point.x];
+    },
+    getY: function(point) {
+        return [point.y];
+    }
+});
+var SpLine =LineBaseClass.extend({type:"spline"});
