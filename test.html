@@ -6,12 +6,14 @@
 </head>
 <link rel="stylesheet" type="text/css" href="./SmartTrafficChart.css" />
 
-<body id="mybody">
+<body >
+    <div id="chart" ></div>
     <button onclick="addData('bar')">AddBar</button>
     <button onclick="addData('line')">AddLine</button>
      <button onclick="addData('area')">AddArea</button>
     <button onclick="addData('spline')">AddSpline</button>
     <button onclick="addData('boxplot')">AddBoxPlot</button>
+    
     <script src="./lib/d3.js" charset="utf-8"></script>
     <script src="./SmartTrafficChart.js" charset="utf-8"></script>
     <script>
@@ -27,6 +29,7 @@
         }
         window.onresize=function(e){
           _c.setWidth(document.body.clientWidth);
+          _c.setHeight(document.body.clientHeight-100);
         }
         function addData(type) {
             var _data = [],_d1=[];
@@ -55,8 +58,11 @@
                     type: type,
                     y: "num",
                     x:"time",
-                    ref: "y2",
-                    yHint:"数量"
+                    d1Hint:"最大值",
+                    d2Hint:"3/4分位值",
+                    d3Hint:"中位值",
+                    d4Hint:"1/4分位值",
+                    d5Hint:"最小值"
                 }
             });
             }else{
@@ -77,7 +83,7 @@
         };
         var _c = new SmartTrafficLineChart({
             "width": document.body.clientWidth,
-            "height": 600,
+            "height": document.body.clientHeight-100,
             title: "D3测试",
             yTitle: "Y轴标题",
             xTitle: "x轴标题",
@@ -111,7 +117,7 @@
                 type: "line"
             }
         });
-        _c.appendTo("mybody");
+        _c.appendTo("chart");
         _c.addEventHandler("select", function(data) {
             console.log(data)
         });

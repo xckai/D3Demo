@@ -33,11 +33,20 @@
     user-select: none;
 }
 .notSelected{
- opacity: 0.2;
+ opacity: 0.3 !important;
 }
-.tooltip{
+.smartTrafficChart-ToolTip{
     border-radius:2px;
     padding:4 4 4 4 ;
+}
+.SmartTrafficChart-bar{
+    opacity:0.7
+}
+.SmartTrafficChart-area{
+    opacity: 0.5
+}
+.SmartTrafficChart-boxplot{
+    opacity: 0.8
 }
 .tool-tip-table{
     border-collapse:collapse;
