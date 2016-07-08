@@ -793,8 +793,8 @@ SmartTrafficLineChart.prototype = {
                 if (v.figure.area) {
                     v.figure.area.style("visibility", "visible");
                 }
-                if (v.figure.area) {
-                    v.figure.area.style("visibility", "visible");
+                if (v.figure.boxplot) {
+                    v.figure.boxplot.style("visibility", "visible");
                 }
 
             })
