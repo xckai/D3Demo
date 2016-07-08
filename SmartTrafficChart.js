@@ -333,17 +333,19 @@ SmartTrafficLineChart.prototype = {
                         .attr("stroke-width", 1)
                         .attr("stroke-dasharray", "1,1");
                 }
-
             });
-            var maxY = Number.MIN_VALUE;
+            var minY = Number.MAX_VALUE;
             point._parent.getY(point).forEach(function(v) {
-                maxY = Math.max(maxY, yScale(v));
+                minY = Math.min(minY, yScale(v));
             });
-            if (self._guideLineGroup.yLine) self._guideLineGroup.yLine.remove();
+            if (self._guideLineGroup.yLine){
+               minY = Math.min(minY, Number( self._guideLineGroup.yLine.attr("y1")));
+                self._guideLineGroup.yLine.remove();
+            }
             self._guideLineGroup.yLine = self._guideLineGroup
                 .append("line")
                 .attr("x1", xScale(point._parent.getX(point)[0]))
-                .attr("y1", maxY)
+                .attr("y1", minY)
                 .attr("x2", xScale(point._parent.getX(point)[0]))
                 .attr("y2", self._chartHeight)
                 .attr("stroke", "black")
@@ -389,93 +391,6 @@ SmartTrafficLineChart.prototype = {
                     .classed("axis", true);
             }
         },
-        _drawLine: function(data) {
-            var self = this,
-                parent = data._parent;
-            var yScale = data.y2 ? self._getY2Scale() : self._getYScale(),
-                _line, lineGen;
-            if (data.type === "line") {
-                lineGen = d3.svg.line()
-                    .x(function(d) {
-                        return self._getXScale()(d.x);
-                    })
-                    .y(function(d) {
-                        return yScale(d.y);
-                    });
-                _line = this.svg.drawArea.chart.append("path")
-                    .attr('d', lineGen(data._d))
-                    .attr("class", "line")
-                    .attr('stroke', parent.color)
-                    .attr('stroke-width', data.baseWidth)
-                    .attr('fill', 'none')
-                    .attr("pointer-events", "none");
-            }
-            if (data.type === "spline") {
-                lineGen = d3.svg.line()
-                    .x(function(d) {
-                        return self._getXScale()(d.x);
-                    })
-                    .y(function(d) {
-                        return yScale(d.y);
-                    }).interpolate("monotone");
-                _line = this.svg.drawArea.chart.append("path")
-                    .attr('d', lineGen(data._d))
-                    .attr("class", "line")
-                    .attr('stroke', parent.color)
-                    .attr('stroke-width', data.baseWidth)
-                    .attr('fill', 'none')
-                    .attr("pointer-events", "none");
-            }
-
-            return _line;
-        },
-        _drawArea: function(data) {
-            var self = this,
-                parent = data._parent;
-            var yScale = data.y2 ? self._getY2Scale() : self._getYScale(),
-                _area, _gen;
-            _gen  = d3.svg.area()
-                        .x(function(d) { return self._getXScale()(d.x); })
-                        .y0(self._chartHeight)
-                        .y1(function(d) { return yScale(d.y); }).interpolate("monotone");
-            _area = this.svg.drawArea.chart.append("path")
-                .attr('d', _gen(data._d))
-                .attr("class", "line")
-                .attr('stroke', parent.color)
-                .attr('stroke-width', 0)
-                .attr('fill',  parent.color)
-                .attr("pointer-events", "none")
-                .attr("opacity",0.3);
-        
-            return _area;
-    },
-    _drawCircles: function(data) {
-        var self = this,
-            parent = data._parent;
-        var g = this.svg.drawArea.chart.append("g")
-            .attr("pointer-events", "none");
-        var yScale = data.y2 ? self._getY2Scale() : self._getYScale();
-        var _circle =
-            g.selectAll("linepoint")
-            .data(data._d)
-            .enter()
-            .append("circle")
-            .attr("cx", function(d) {
-                return self._getXScale()(d.x);
-            })
-            .attr("cy", function(d) {
-                return yScale(d.y);
-            })
-            .attr("r", function(d) {
-                return 2 * data.baseWidth;
-            }).attr("fill", parent.color)
-            .attr("class", function(d, i) {
-                return "event-sharp-" + self._getXSetIndex(d.x)
-            });
-        // .append("svg:title").text( function(d){return "X :"+d.x +"   Y: "+d.y});
-    
-        return g;
-    },
     _drawInfoBar: function(data, i) {
         var self = this;
         var g = this.svg.infoBar.append("g");
@@ -671,7 +586,7 @@ SmartTrafficLineChart.prototype = {
         this.svg.xTitleBar = this.svg.append("g").attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth / 2 + this._chartWidth / 2) + "," + (this.height) + ")").classed("titleBar", true).attr("text-anchor", "middle");
         this. zoom = d3.behavior.zoom()
             .x(self._getXScale())
-            .scaleExtent([1, 4])
+            .scaleExtent([0.5, 8])
             .on("zoom", self._zoomed.bind(self));
 
         this.svg.drawArea.call(this.zoom).on("dblclick.zoom", null);
@@ -683,56 +598,24 @@ SmartTrafficLineChart.prototype = {
             if(v.area){
                  v.figure = v.figure || {};
                 if (v.figure.area) v.figure.area.remove();
-                v.figure.area = self._drawArea(v.area);
+                v.figure.area = v.area.draw(self);
             }
              if (v.bar) {
                 v.figure = v.figure || {};
                 if (v.figure.bar) v.figure.bar.remove();
-                v.figure.bar = self._drawBar(v.bar);
+                v.figure.bar =v.bar.draw(self);
             }
             if (v.line) {
                 v.figure = v.figure || {};
-                if (v.figure.circles) v.figure.circles.remove();
-                v.figure.circles = self._drawCircles(v.line);
                 if (v.figure.line) v.figure.line.remove();
-                v.figure.line = self._drawLine(v.line);
+                v.figure.line =v.line.draw(self);
             }
             if (v.spline) {
                 v.figure = v.figure || {};
-                if (v.figure.splineCircles) v.figure.splineCircles.remove();
-                v.figure.splineCircles = self._drawCircles(v.spline);
                 if (v.figure.spline) v.figure.spline.remove();
-                v.figure.spline = self._drawLine(v.spline);
+                v.figure.spline = v.spline.draw(self);
             }
         });
-    },
-    _drawBar:function(data){
-        var parent = data._parent, self = this,yScale,barWidth,barAcc;
-        yScale = data.y2 ? self._getY2Scale() : self._getYScale(); 
-        barAcc =data.getBarAcc(self.datas);
-        var zoomScale = self._zoomScale? self._zoomScale:1;
-        barWidth = Math.min(30,self._chartWidth/12/barAcc * zoomScale);
-
-        var bar = self.svg.drawArea.chart.append("g")
-                                                .attr("class","chart-bar")
-                                                .attr("pointer-events", "none");
-        bar.selectAll("rect").data(data._d)
-                    .enter()
-                    .append("rect")
-                    .attr("x",function(d){
-                       return  self._getXScale()(d.x) - (barAcc)/2*barWidth+ data.getBarIndex(self.datas)*barWidth;
-                    })
-                    .attr("y",function(d){
-                        return yScale(d.y);
-                    })
-                    .attr("width",barWidth)
-                    .attr("height",self._chartHeight)
-                    .attr("fill",parent.color)
-                    .attr("opacity",0.7)
-                    .attr("class", function(d, i) {
-                        return "event-sharp-" + self._getXSetIndex(d.x)
-                    });
-        return bar;
     },
     _drawInfoBars: function(datas) {
         var self = this;
@@ -779,16 +662,17 @@ SmartTrafficLineChart.prototype = {
         return this._xScale;
     },
     _getYScale: function() {
-
+        var span = (this._getMaxYData()- this._getMinYData())/10;
         this._yScale = this._yScale || d3.scale.linear()
             .range([0, this._chartHeight])
-            .domain([this._getMaxYData(), this._getMinYData()]).nice();
+            .domain([this._getMaxYData()+span, this._getMinYData()-3*span]).nice();
         return this._yScale;
     },
     _getY2Scale: function() {
+        var span = (this._getMaxY2Data()- this._getMinY2Data())/10;
         this._y2Scale = this._y2Scale || d3.scale.linear()
             .range([0, this._chartHeight])
-            .domain([this._getMaxY2Data(), this._getMinY2Data()]).nice();
+            .domain([this._getMaxY2Data()+span, this._getMinY2Data()-3*span]).nice();
         return this._y2Scale;
     },
     _getMaxXData: function() {
@@ -1166,16 +1050,135 @@ var LineBaseClass = SmartTrafficChartClass.extend({
             x2 = Number(_sharp.attr("cx")), y2 = Number(_sharp.attr("cy")), r = Number(_sharp.attr("r"));
             return Math.sqrt(Math.pow(mouse[0] - x2, 2) + Math.pow(mouse[1] - y2, 2)) < 3 * r;
         }
+    },
+    draw:function(svg){
+         var line = svg.svg.drawArea.chart.append("g").attr("class","line").attr("pointer-events", "none");
+         var parent = this._parent , yScale,_line, lineGen,_circle,xScale;
+         yScale = this.y2 ? svg._getY2Scale() : svg._getYScale();
+         xScale = svg._getXScale();
+            lineGen = d3.svg.line()
+                    .x(function(d) {
+                        return xScale(d.x);
+                    })
+                    .y(function(d) {
+                        return yScale(d.y);
+                    });
+            _line = line.append("path")
+                    .attr('d', lineGen(this._d))
+                    .attr('stroke', parent.color)
+                    .attr('stroke-width', this.baseWidth)
+                    .attr('fill', 'none');
+                   
+             _circle =
+                line.selectAll("linepoint")
+                .data(this._d)
+                .enter()
+                .append("circle")
+                .attr("cx", function(d) {
+                    return xScale(d.x);
+                })
+                .attr("cy", function(d) {
+                    return yScale(d.y);
+                })
+                .attr("r", function(d) {
+                    return 2 * d._parent.baseWidth;
+                }).attr("fill", parent.color)
+                .attr("class", function(d, i) {
+                    return "event-sharp-" + svg._getXSetIndex(d.x)
+                });
+            return line;
     }
 });
 var SpLine = LineBaseClass.extend({
-    type: "spline"
+    type: "spline",
+      draw:function(svg){
+         var line = svg.svg.drawArea.chart.append("g").attr("class","line").attr("pointer-events", "none");
+         var parent = this._parent , yScale,_line, lineGen,_circle,xScale;
+         yScale = this.y2 ? svg._getY2Scale() : svg._getYScale();
+        xScale = svg._getXScale();
+            lineGen = d3.svg.line()
+                    .x(function(d) {
+                        return xScale(d.x);
+                    })
+                    .y(function(d) {
+                        return yScale(d.y);
+                    }).interpolate("monotone");
+            _line = line.append("path")
+                    .attr('d', lineGen(this._d))
+                    .attr('stroke', parent.color)
+                    .attr('stroke-width', data.baseWidth)
+                    .attr('fill', 'none');         
+             _circle =
+                line.selectAll("linepoint")
+                .data(this._d)
+                .enter()
+                .append("circle")
+                .attr("cx", function(d) {
+                    return xScale(d.x);
+                })
+                .attr("cy", function(d) {
+                    return yScale(d.y);
+                })
+                .attr("r", function(d) {
+                    return 2 * d._parent.baseWidth;
+                }).attr("fill", parent.color)
+                .attr("class", function(d, i) {
+                    return "event-sharp-" + svg._getXSetIndex(d.x)
+                });
+            return line;            
+    }
 });
 var Area = LineBaseClass.extend({
-    type: "area"
+    type: "area",
+    draw:function(svg){
+         var  parent = this._parent,xScale = svg._getXScale(), yScale = this.y2 ? svg._getY2Scale() : svg._getYScale(),
+                _area, _gen;
+            _gen  = d3.svg.area()
+                        .x(function(d) { return xScale(d.x); })
+                        .y0(svg._chartHeight)
+                        .y1(function(d) { return yScale(d.y); }).interpolate("monotone");
+            _area = svg.svg.drawArea.chart.append("g").attr("pointer-events", "none").attr("class","area");
+            _area.append("path")
+                .attr('d', _gen(this._d))
+                .attr("class", "line")
+                .attr('stroke', parent.color)
+                .attr('stroke-width', 0)
+                .attr('fill',  parent.color)
+                .attr("opacity",0.3);
+            return _area;
+    }
 });
 var Bar = LineBaseClass.extend({
     type: "bar",
+    draw:function(svg){
+        var parent = this._parent, yScale,barWidth,barAcc,xScale,getBarIndex=this.getBarIndex.bind(this);
+        yScale = this.y2 ? svg._getY2Scale() : svg._getYScale(); 
+        barAcc =this.getBarAcc(svg.datas);
+        xScale = svg._getXScale();
+        var zoomScale = svg._zoomScale? svg._zoomScale:1;
+        barWidth = Math.min(30,svg._chartWidth/12/barAcc * zoomScale);
+
+        var bar = svg.svg.drawArea.chart.append("g")
+                                                .attr("class","chart-bar")
+                                                .attr("pointer-events", "none");
+        bar.selectAll("rect").data(this._d)
+                    .enter()
+                    .append("rect")
+                    .attr("x",function(d){
+                       return  xScale(d.x) - (barAcc)/2*barWidth+ getBarIndex(svg.datas)*barWidth;
+                    })
+                    .attr("y",function(d){
+                        return yScale(d.y);
+                    })
+                    .attr("width",barWidth)
+                    .attr("height",svg._chartHeight)
+                    .attr("fill",parent.color)
+                    .attr("opacity",0.7)
+                    .attr("class", function(d, i) {
+                        return "event-sharp-" + svg._getXSetIndex(d.x)
+                    });
+        return bar;
+    },
     getBarAcc:function(datas){
         var i =0;
         datas.forEach(function(v){
