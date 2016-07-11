@@ -13,10 +13,13 @@
      <button onclick="addData('area')">AddArea</button>
     <button onclick="addData('spline')">AddSpline</button>
     <button onclick="addData('boxplot')">AddBoxPlot</button>
-    
+    <button onclick="capture()">Capture</button>
     <script src="./lib/d3.js" charset="utf-8"></script>
     <script src="./SmartTrafficChart.js" charset="utf-8"></script>
     <script>
+        function capture(){
+            _c.getPic();
+        }
         Array.prototype.unique = function(){
             this.sort(function(v1,v2){return new Date(v1.time)- new Date(v2.time)});	//先排序
             var res = [this[0]];

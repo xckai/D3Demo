@@ -268,14 +268,14 @@ SmartTrafficLineChart.prototype = {
             this._infoBarWidth = Math.floor((this.width - this._yTitleWidth - this._yAxisWidth - this._y2AxisWidth - this._y2TitleWidth) * 0.2) - 20;
         }
         if (this.secondTitle) {
-            this._titleHeight = 50;
-            this._xAxisHeight = 20;
-            this._xTitleHeight = 20;
+            this._titleHeight = 55;
+            this._xAxisHeight = 25;
+            this._xTitleHeight = 25;
             this._chartHeight = this.height - this._titleHeight - this._xAxisHeight - this._xTitleHeight;
         } else {
-            this._titleHeight = 30;
-            this._xAxisHeight = 20;
-            this._xTitleHeight = 20;
+            this._titleHeight = 35;
+            this._xAxisHeight = 25;
+            this._xTitleHeight = 25;
             this._chartHeight = this.height - this._titleHeight - this._xAxisHeight - this._xTitleHeight;
         }
         return this;
@@ -348,13 +348,20 @@ SmartTrafficLineChart.prototype = {
                     return d.getHours() + ":" + d.getMinutes();
                 }
             }))
-            .classed("axis", true);
+
+        /////set style use attr
+        this._xAxis.selectAll(".tick").selectAll("line").attr("fill","none").attr("stroke","black");
+        this._xAxis.selectAll("path").attr("fill","none").attr("stroke","black");
+        this._xAxis.selectAll(".tick").style("font-size","11px");
         //x.selectAll("g").append("line").attr("x2",0).attr("x1",0).attr("y1",0).attr("y2", - self._chartHeight).attr("stroke-width",1).attr("stroke","black").attr("opacity","0.2");
         if (this._yAxis) this._yAxis.remove();
         this._yAxis = this.svg.drawArea.y.append("svg:g")
             .attr("class", "yaxis")
-            .call(d3.svg.axis().scale(this._getYScale()).orient("left"))
-            .classed("axis", true);
+            .call(d3.svg.axis().scale(this._getYScale()).orient("left"));
+        
+        this._yAxis.selectAll(".tick").selectAll("line").attr("fill","none").attr("stroke","black");
+        this._yAxis.selectAll("path").attr("fill","none").attr("stroke","black");
+        this._yAxis.selectAll(".tick").style("font-size","11px");
         this._yAxis.selectAll("g")
                 .append("line").attr("x2", self._chartWidth).attr("x1", 0).attr("y1", 0).attr("y2", 0).attr("stroke-width", 1)
                 .attr("stroke", "black").attr("opacity", "0.2").attr("stroke-dasharray", "5,3").attr("class","yAxisGuideLine");
@@ -363,8 +370,10 @@ SmartTrafficLineChart.prototype = {
             this._y2Axis = this.svg.drawArea.y.append("svg:g")
                 .attr("class", "y2axis")
                 .attr("transform", "translate(" + this._chartWidth + ",0)")
-                .call(d3.svg.axis().scale(this._getY2Scale()).orient("right"))
-                .classed("axis", true);
+                .call(d3.svg.axis().scale(this._getY2Scale()).orient("right"));
+        this._y2Axis.selectAll(".tick").selectAll("line").attr("fill","none").attr("stroke","black");
+        this._y2Axis.selectAll("path").attr("fill","none").attr("stroke","black");
+        this._y2Axis.selectAll(".tick").style("font-size","11px");
         }
     },
     _drawInfoBar: function(data, i) {
@@ -480,7 +489,7 @@ SmartTrafficLineChart.prototype = {
             })
             .on("click", function(d, i) {
                 var sharps = d3.selectAll(".event-sharp-" + i),
-                    mouse = d3.mouse(chart.node());
+                mouse = d3.mouse(chart.node());
                 self.toolTip.setVisiable(false);
                 self._removeGuideLine();
                 sharps.filter(function(d) {
@@ -512,9 +521,10 @@ SmartTrafficLineChart.prototype = {
             .attr("class", "smartTraffic-chart")
         this.svg = this.svgContainer
             .append("svg")
-            .attr("width", "100%")
-            .attr("height", "100%")
-            .classed("noselect", true);
+            .attr("width", this.width)
+            .attr("height",this.height)
+            .classed("noselect", true)
+            .style("font-family","sans-serif");
 
         this.svg.append("defs").append("clipPath")
             .attr("id", "clip")
@@ -545,14 +555,14 @@ SmartTrafficLineChart.prototype = {
             this.svg.y2TitleBar = this.svg.append("g").attr("transform", "translate(" + (this._yTitleWidth + this._y2AxisWidth + this._chartWidth + this._yAxisWidth) + "," + (this._titleHeight + this._chartHeight / 2) + ")").classed("titleBar", true).attr("text-anchor", "middle");
         }
         this.svg.yTitleBar = this.svg.append("g").attr("transform", "translate(1," + (this._titleHeight + this._chartHeight / 2) + ")").classed("titleBar", true).attr("text-anchor", "middle");
-        this.svg.titleBar = this.svg.append("g").attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth / 2 + this._chartWidth / 2) + ",1)").attr("text-anchor", "middle");
+        this.svg.titleBar = this.svg.append("g").attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth / 2 + this._chartWidth / 2) + ",5)").attr("text-anchor", "middle");
         if (this._hasY2()) {
             this.svg.infoBar = this.svg.append("g").attr("transform", "translate(" + (this._chartWidth + this._yAxisWidth + this._yTitleWidth + this._infoBarMargin + this._y2TitleWidth + this._y2AxisWidth) + "," + this._titleHeight + ")").classed("infoBar", true);
         } else {
             this.svg.infoBar = this.svg.append("g").attr("transform", "translate(" + (this._chartWidth + this._yAxisWidth + this._yTitleWidth + this._infoBarMargin) + "," + this._titleHeight + ")").classed("infoBar", true);
         }
 
-        this.svg.xTitleBar = this.svg.append("g").attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth / 2 + this._chartWidth / 2) + "," + (this.height) + ")").classed("titleBar", true).attr("text-anchor", "middle");
+        this.svg.xTitleBar = this.svg.append("g").attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth / 2 + this._chartWidth / 2) + "," + (this.height -5) + ")").classed("titleBar", true).attr("text-anchor", "middle");
         this.zoom = d3.behavior.zoom()
             .x(self._getXScale())
             .scaleExtent([0.5, 8])
@@ -822,6 +832,36 @@ SmartTrafficLineChart.prototype = {
     },
     removeEventHandler: function(type, callback) {
         eventManager.removeEventHandler.call(this, type, callback);
+    },
+    getPic:function(){
+        var canvas =this.svgContainer.append("canvas").attr("height",this.height).attr("width",this.width).node();
+        console.log(canvas);
+        var ctx = canvas.getContext('2d');
+        var data = (new XMLSerializer()).serializeToString(this.svg.node());
+        var DOMURL = window.URL || window.webkitURL || window;
+
+        var img = new Image();
+        var svgBlob = new Blob([data], {type: 'image/svg+xml;charset=utf-8'});
+        var url = DOMURL.createObjectURL(svgBlob);
+        var self = this;
+        img.onload = function () {
+            ctx.drawImage(img, 0, 0);
+            DOMURL.revokeObjectURL(url);
+            var imgURI = canvas
+                .toDataURL('image/png',1).replace('image/png', 'image/octet-stream');
+            var evt = new MouseEvent('click', {
+                view: window,
+                bubbles: false,
+                cancelable: true
+            });
+            var fileName = self.title+(self.secondTitle?"-"+self.secondTitle : "")+".png"; 
+            var a =self.svgContainer.append("a").node();
+            a.setAttribute('download',fileName);
+            a.setAttribute('href', imgURI);
+            a.setAttribute('target', '_blank');
+            a.dispatchEvent(evt);
+            }
+            img.src = url;
     }
 };
 var SmartTrafficChartClass = {
@@ -846,6 +886,7 @@ var SmartTrafficChartClass = {
                 this[i] = option[i];
         }
     }
+    
 };
 var SmartTrafficChartToolTip = SmartTrafficChartClass.extend({
     init: function(container, chart) {
@@ -1229,10 +1270,14 @@ var BoxPlot = LineBaseClass.extend({
         return boxplots;                                 
     },
     isInSharp:function(_sharp){
+          
+             _sharp = d3.select(_sharp); 
+             if (_sharp.style("visibility") ==="hidden") return false;
             var svg =this.chart,_d,mouse,yScale,xScale,recWidth;
             yScale = this.y2 ? svg._getY2Scale() : svg._getYScale();
             xScale = svg._getXScale();
-            _sharp = d3.select(_sharp); 
+         
+
             recWidth = this.recWidth;
             _d =_sharp.datum();
             mouse = d3.mouse(svg.svg.drawArea.chart.node());
