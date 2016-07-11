@@ -1139,7 +1139,7 @@ var Bar = LineBaseClass.extend({
         barAcc = this.getBarAcc(svg.datas);
         xScale = svg._getXScale();
         var zoomScale = svg._zoomScale ? svg._zoomScale : 1;
-        barWidth = Math.min(30, svg._chartWidth / 12 / barAcc * zoomScale);
+        barWidth = Math.min(25, svg._chartWidth / (this.chart._xSet().length+1) / barAcc * zoomScale);
 
         var bar = svg.svg.drawArea.chart.append("g")
             .attr("class", "SmartTrafficChart-bar")
