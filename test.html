@@ -14,11 +14,17 @@
     <button onclick="addData('spline')">AddSpline</button>
     <button onclick="addData('boxplot')">AddBoxPlot</button>
     <button onclick="capture()">Capture</button>
+     <div id="chart2" ></div>
+     <button onclick="addData2()">AddRadar</button>
+    <button onclick="capture2()">Capture</button>
     <script src="./lib/d3.js" charset="utf-8"></script>
     <script src="./SmartTrafficChart.js" charset="utf-8"></script>
     <script>
         function capture(){
             _c.getPic();
+        }
+          function capture2(){
+            c2.getPic();
         }
         Array.prototype.unique = function(){
             this.sort(function(v1,v2){return new Date(v1.time)- new Date(v2.time)});	//先排序
@@ -29,10 +35,6 @@
                 }
             }
             return res;
-        }
-        window.onresize=function(e){
-          _c.setWidth(document.body.clientWidth);
-          _c.setHeight(document.body.clientHeight-100);
         }
         function addData(type) {
             var _data = [],_d1=[];
@@ -84,9 +86,27 @@
             }
       
         };
+ function addData2() {
+               var _d1={
+                      d0:100*Math.random(),
+                      d1:100*Math.random(),
+                      d2:100*Math.random(),
+                      d3:100*Math.random(),
+                      d4:100*Math.random()
+                };
+            var name = Math.floor(10 * Math.random());
+                    c2.addData({
+                        name:name,
+                        id:name,
+                        data:_d1,
+                        option:{
+                            type:"radar"
+                        }
+                    });
+        };
         var _c = SmartTrafficChart.create({
-            "width": document.body.clientWidth,
-            "height": document.body.clientHeight-100,
+            "width": 1000,
+            "height": 800,
             title: "D3测试",
             yTitle: "Y轴标题",
             xTitle: "x轴标题",
@@ -122,13 +142,36 @@
             }
         });
         _c.appendTo("chart");
-        // _c.addEventHandler("select", function(data) {
-        //     console.log(data)
-        // });
-        // _c.addEventHandler("deSelect", function(data) {
-        //     console.log("remove id = " + data.id)
-        // });
+        _c.addEventHandler("select", function(data) {
+            console.log(data)
+        });
+        _c.addEventHandler("deSelect", function(data) {
+            console.log( data)
+        });
+         var c2 = SmartTrafficChart.create({
+            "width": 1000,
+            "height": 800,
+            title: "D3测试",
+            type:"radar",
+            labels:[
+                {label:"time"},
+                {label:"weight"},
+                {label:"num"},
+                {label:"acc"},
+                {label:"Avg"},
+                 {label:"Acc"}
 
+            ]
+        });
+        c2.addData({
+            name:"x",
+            id:"no",
+            data:{ d0:1,d1:2,d2:3,d3:5,d5:10},
+            option:{
+                type:"radar"
+            }
+        });
+        c2.appendTo("chart2");
         // var ws = new WebSocket("ws://127.0.0.1:8123");
         // ws.onopen = function(){ws.send("Test!"); };
 
