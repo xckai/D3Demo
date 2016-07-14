@@ -46,11 +46,11 @@
                 var d =100 + 100 * Math.random()+i;
                 _d1.push({
                       time: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
-                      d1:d+10,
-                      d2:d+5,
-                      d3:d,
-                      d4:d-10,
-                      d5:d-15
+                      d0:d+10,
+                      d1:d+5,
+                      d2:d,
+                      d3:d-10,
+                      d4:d-15
                 })
             }
             var name = Math.floor(10 * Math.random());
@@ -62,12 +62,7 @@
                 option: {
                     type: type,
                     y: "num",
-                    x:"time",
-                    d1Hint:"最大值",
-                    d2Hint:"3/4分位值",
-                    d3Hint:"中位值",
-                    d4Hint:"1/4分位值",
-                    d5Hint:"最小值"
+                    x:"time"
                 }
             });
             }else{
@@ -108,11 +103,33 @@
             "width": 1000,
             "height": 800,
             title: "D3测试",
-            yTitle: "Y轴标题",
-            xTitle: "x轴标题",
-            secondTitle: "二级标题测试",
-            y2Title: "y2轴标题",
-            type:"timeSeries"
+            type:"timeSeries",
+            labels:{
+                radar:[
+                "time",
+                "weight",
+                "num",
+                "acc",
+                "Avg"
+                ],
+                timeseries:{
+                    d0Label:"最大值",
+                    d1Label:"3/4分位值",
+                    d2Label:"中位值",
+                    d3Label:"1/4分位值",
+                    d4Label:"最小值"
+                }
+            },
+            axis:{
+                radar:[
+                    "time","w","e","i","g"
+                ],
+                timeseries:{
+                    yTitle: "Y轴标题",
+                    xTitle: "x轴标题",
+                    y2Title: "y2轴标题",
+                }
+            }
         });
         var data = [{
             "y": "152",
@@ -152,21 +169,40 @@
             "width": 1000,
             "height": 800,
             title: "D3测试",
+            secondTitle: "二级标题测试",
             type:"radar",
-            labels:[
+            labels:{
+                radar:[
                 {label:"time"},
                 {label:"weight"},
                 {label:"num"},
                 {label:"acc"},
                 {label:"Avg"},
-                 {label:"Acc"}
-
-            ]
+                {label:"Acc"}
+                ],
+                timeseries:{
+                    d0Label:"最大值",
+                    d1Label:"3/4分位值",
+                    d2Label:"中位值",
+                    d3Label:"1/4分位值",
+                    d4Label:"最小值"
+                }
+            },
+            axis:{
+                radar:[
+                    "time","w","e","i","g"
+                ],
+                timeseries:{
+                    yTitle: "Y轴标题",
+                    xTitle: "x轴标题",
+                    y2Title: "y2轴标题",
+                }
+            }
         });
         c2.addData({
             name:"x",
             id:"no",
-            data:{ d0:1,d1:2,d2:3,d3:5,d5:10},
+            data:{ d0:1,d1:2,d3:5,d4:10},
             option:{
                 type:"radar"
             }

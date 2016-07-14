@@ -41,6 +41,21 @@ var SmartTrafficChartClass = {
             }
         })
         return this;
+    },
+    setOption:function(option){
+        var self = this;
+        var  f = function(key,option){
+            if(typeof option ==="object" && !Array.isArray(option)){
+                Object.keys(option).forEach(function(k){
+                     f(key+"_"+k,option[k]);
+                });
+            }else{
+                self[key] = option;
+            }
+        };
+        Object.keys(option).forEach(function(k){
+            f(k,option[k]);
+        });
     }
 };
 var eventManager = SmartTrafficChartClass.extend({
@@ -94,13 +109,15 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
             $chart.height = option.height || 50;
             $chart.colorManager=colorManager.create().bindThis($chart);
             $chart.eventManager=eventManager.create().bindThis($chart);
-            $chart.mergeOption(option);
+            $chart.setOption(option);
             this.toolTip = SmartTrafficChartToolTip.create( this);
+            $chart.timeSeriesFigure=  new SmartTrafficLineChart($chart,option);
+            $chart.radarFigure = SmartTrafficRadarChart.create($chart,option);
             if($chart.type ==="timeSeries") {
-                $chart.figure = new SmartTrafficLineChart($chart,option);
+                $chart.figure =$chart.timeSeriesFigure;
             }
             if($chart.type ==="radar") {
-                $chart.figure =SmartTrafficRadarChart.create($chart,option);
+                $chart.figure = $chart.radarFigure;
             }
             $chart._calculateMargin();
              $chart.eventManager.addEventHandler("dataSelect",function(data,sender){this._setSelectStyle()},this);
@@ -135,7 +152,7 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
     },
     _parseData: function(originData) {
         var data = {},
-            self = this;
+            $chart = this;
         data.name = originData.name;
         data.id = originData.id;
         if (originData.id === undefined) {
@@ -143,26 +160,15 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
         }
         if (originData.option) {
                 data.type = originData.option.type || "line";
-            if (data.type === "line") {
-                data.line = LineBaseClass.create(originData, data, self);
-            }
-            if (data.type === "spline") {
-                data.spline = SpLine.create(originData, data, self);
-            }
-            if (data.type === "area") {
-                data.area = Area.create(originData, data, self);
-            }
-            if (data.type === "bar") {
-                data.bar = Bar.create(originData, data, self);
-            }
-             if (data.type === "boxplot") {
-                data.boxplot = BoxPlot.create(originData, data, self);
-            }
-             if (data.type === "radar") {
-                data.radar = Radar.create(originData,this.figure);
-                data.radar._parent =data;
-            }
-            data.color = originData.option.color || this.colorManager.getColor();
+        if( ["line","spline","area","bar","boxplot"].indexOf(data.type) !== -1){
+            data[data.type]= $chart.timeSeriesFigure._parseData(originData);
+            data[data.type]._parent = data;
+        }
+        if(["radar"].indexOf(data.type) !== -1){
+            data[data.type]= $chart.radarFigure._parseData(originData);
+            data[data.type]._parent = data;
+        }
+        data.color = originData.option.color || this.colorManager.getColor();
         } else {
             throw new Error("no data option ");
         }
@@ -206,7 +212,7 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
              this.svg.figure = this.svg
                 .append("g")
                 .attr("class","figure");
-           
+            this.toolTip._initDraw();
             this.svg.infoBar = this.svg.append("g").attr("transform", "translate(" + (this._figureWidth + this._infoBarMargin) + "," +this._infoBarMarinTop + ")").classed("infoBar", true);
             this.figure._initDraw()
             this.canvasContainer = this.svgContainer.append("div").attr("visibility","hidden");    
@@ -359,15 +365,17 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
         this.eventManager.removeEventHandler(type,callback);
     }
 })
-var SmartTrafficLineChart = function(chart,option) {
+var SmartTrafficLineChart = function(chart) {
+
+    var $chart=chart;
     this.$chart= chart;
     this.datas=chart.datas;
-    this.title = option.title;
-    this.xTitle = option.xTitle;
-    this.yTitle = option.yTitle;
-    this.y2Title = option.y2Title;
+    this.title = $chart.title;
+    this.secondTitle = $chart.secondTitle;
+    this.xTitle = $chart.axis_timeseries_xTitle;
+    this.yTitle = $chart.axis_timeseries_yTitle;
+    this.y2Title =$chart.axis_timeseries_y2Title;
     this.toolTip = chart.toolTip;
-    this.secondTitle = option.secondTitle;
     this.xType = "time";
     this.$chart.eventManager.addEventHandler("adddata",function(data,sender){this._xSet(true);if(this.svg) this._reDraw()},this);
     this.$chart.eventManager.addEventHandler("removedata",function(data,sender){this._xSet(true);if(this.svg) this._reDraw()},this);
@@ -392,6 +400,24 @@ SmartTrafficLineChart.prototype = {
         }
         this._xSet(true);
         if (this.svg) this._reDraw();
+    },
+    _parseData:function(originData){
+            var type =originData.option.type;
+            if (type === "line") {
+                return LineBaseClass.create(originData,this);
+            }
+            if (type === "spline") {
+                return  SpLine.create(originData,this);
+            }
+            if (type === "area") {
+               return Area.create(originData,this);
+            }
+            if (type === "bar") {
+               return Bar.create(originData,this);
+            }
+             if (type === "boxplot") {
+               return BoxPlot.create(originData,this);
+            }
     },
     _xSet: function(isUpdata) {
         if (!isUpdata) return this.xSet;
@@ -441,6 +467,9 @@ SmartTrafficLineChart.prototype = {
             }
             if (d.bar) {
                 find = d.bar.y2 || false;
+            }
+             if (d.boxplot) {
+                find = d.boxplot.y2 || false;
             }
         })
         return find;
@@ -551,7 +580,6 @@ SmartTrafficLineChart.prototype = {
         this._xAxis.selectAll(".tick").selectAll("line").attr("fill","none").attr("stroke","black");
         this._xAxis.selectAll("path").attr("fill","none").attr("stroke","black");
         this._xAxis.selectAll(".tick").style("font-size","11px");
-        //x.selectAll("g").append("line").attr("x2",0).attr("x1",0).attr("y1",0).attr("y2", - self._chartHeight).attr("stroke-width",1).attr("stroke","black").attr("opacity","0.2");
         if (this._yAxis) this._yAxis.remove();
         this._yAxis = this.svg.drawArea.y.append("svg:g")
             .attr("class", "yaxis")
@@ -562,7 +590,7 @@ SmartTrafficLineChart.prototype = {
         this._yAxis.selectAll(".tick").style("font-size","11px");
         this._yAxis.selectAll("g")
                 .append("line").attr("x2", self._figureWidth).attr("x1", 0).attr("y1", 0).attr("y2", 0).attr("stroke-width", 1)
-                .attr("stroke", "black").attr("opacity", "0.2").attr("stroke-dasharray", "5,3").attr("class","yAxisGuideLine");
+                .attr("stroke", "black").attr("opacity", "0.2").attr("stroke-dasharray", "2,2").attr("class","yAxisGuideLine");
         if (this._hasY2()) {
             if (this._y2Axis) this._y2Axis.remove();
             this._y2Axis = this.svg.drawArea.y.append("svg:g")
@@ -582,6 +610,7 @@ SmartTrafficLineChart.prototype = {
         this.svg.titleBar.append("text").text(this.secondTitle).attr("dominant-baseline", "text-before-edge").attr("dy", this._titleHeight / 2);
     },
     _drawEventRect: function() {
+        var $figure = this;
         if (this.svg.drawArea.eventRects) this.svg.drawArea.eventRects.remove();
         var self = this,
             set = this._xSet(),
@@ -624,9 +653,8 @@ SmartTrafficLineChart.prototype = {
                 });
                 if (content.length > 0) {
                     self.toolTip.setPosition(event.pageX , event.pageY);
-                    self.toolTip.setContent(content);
+                    self.toolTip.setContent($figure.getTooltipContent(content));
                     self.toolTip.setVisiable(true);
-                    // .style("top", (event.pageY -5) + "px").style("left", (event.pageX +10) + "px").html(content);
                 }
 
             })
@@ -659,35 +687,35 @@ SmartTrafficLineChart.prototype = {
              if (v.area) {
                 v.figure = v.figure || {};
                 if (v.figure.area) v.figure.area.remove();
-                v.figure.area = v.area.draw(self);
+                v.figure.area = v.area.drawOn(self.svg.drawArea.figure);
             }   
         });
         datas.forEach(function(v) {
             if (v.bar) {
                 v.figure = v.figure || {};
                 if (v.figure.bar) v.figure.bar.remove();
-                v.figure.bar = v.bar.draw(self);
+                v.figure.bar = v.bar.drawOn(self.svg.drawArea.figure);
             }
         });
         datas.forEach(function(v) {
             if (v.boxplot) {
                 v.figure = v.figure || {};
                 if (v.figure.boxplot) v.figure.boxplot.remove();
-                v.figure.boxplot = v.boxplot.draw(self);
+                v.figure.boxplot = v.boxplot.drawOn(self.svg.drawArea.figure);
             }
         });
         datas.forEach(function(v) {
             if (v.spline) {
                 v.figure = v.figure || {};
                 if (v.figure.spline) v.figure.spline.remove();
-                v.figure.spline = v.spline.draw(self);
+                v.figure.spline = v.spline.drawOn(self.svg.drawArea.figure);
             }
         });
         datas.forEach(function(v) {
             if (v.line) {
                 v.figure = v.figure || {};
                 if (v.figure.line) v.figure.line.remove();
-                v.figure.line = v.line.draw(self);
+                v.figure.line = v.line.drawOn(self.svg.drawArea.figure);
             }
         });
     },
@@ -714,7 +742,7 @@ SmartTrafficLineChart.prototype = {
                     .attr("y2", yScale(v))
                     .attr("stroke", "black")
                     .attr("stroke-width", 1)
-                    .attr("stroke-dasharray", "1,1");
+                    .attr("stroke-dasharray", "3,3");
             } else {
                 self._guideLineGroup
                     .append("line")
@@ -724,7 +752,7 @@ SmartTrafficLineChart.prototype = {
                     .attr("y2", yScale(v))
                     .attr("stroke", "black")
                     .attr("stroke-width", 1)
-                    .attr("stroke-dasharray", "1,1");
+                    .attr("stroke-dasharray", "3,3");
             }
         });
         var minY = Number.MAX_VALUE;
@@ -743,7 +771,7 @@ SmartTrafficLineChart.prototype = {
             .attr("y2", self._figureHeight)
             .attr("stroke", "black")
             .attr("stroke-width", 1)
-            .attr("stroke-dasharray", "1,1");
+            .attr("stroke-dasharray", "3,3");
     self.svg.selectAll(".yAxisGuideLine").attr("visibility","hidden");
     },
     _removeGuideLine: function() {
@@ -755,7 +783,6 @@ SmartTrafficLineChart.prototype = {
         self.svg.selectAll(".yAxisGuideLine").attr("visibility","visible");
     },
     _reDraw: function() {
-        // if (this.svg) this.svg.remove();
         this.reset();
         this._draw();
     },
@@ -939,21 +966,88 @@ SmartTrafficLineChart.prototype = {
         self._removeGuideLine();
         this._drawChart(this.datas, this._figures);
         this._setSelectStyle();
+    },
+    getTooltipContent: function(datas) {
+        var text = "",
+            self = this;
+        var title = datas[0].x;
+        text = "<table class='tool-tip-table' ><tbody><tr><th class = 'tooltip-title' colspan='3'>" + title + "</th></tr>";
+        datas.forEach(function(data) {
+            text += self.parseTooltipData(data);
+        });
+        return text += "</tbody><table>";
+    },
+     parseTooltipData: function(point) {
+         var $figure = this,$chart = $figure.$chart;
+        var data = point._parent,
+            dataParent = data._parent,
+            text = "";
+        if (data.type === "line" || data.type === "spline" || data.type === "bar") {
+            text += "<tr>";
+            text += "<td class='tooltip-name'><span style=' background-color:" + dataParent.color + "'></span>" + dataParent.name + "</td>";
+            if(data.y2){
+                text += "<td class='tooltip-value'>" + $chart.labels_timeseries_y2Label  || $figure.y2Title + "</td>";
+            }else{
+                text += "<td class='tooltip-value'>" + $chart.labels_timeseries_yLabel  || $figure.yTitle + "</td>";
+            }
+            text += "<td class='tooltip-value'>" + point.y + "</td>";
+            text += "</tr>";
+        }
+        if(data.type ==="boxplot"){
+            text += "<tr>";
+            text += "<td class='tooltip-name' rowspan='5'><span style=' background-color:" + dataParent.color + "'></span>" + dataParent.name + "</td>";
+            text+= "<td class='tooltip-value'>" +$chart.labels_timeseries_d0Label || "Data 0" + "</td>";
+            text += "<td class='tooltip-value'>" + point.d0 + "</td>";
+            text += "</tr>";
+            text += "<tr>";
+           
+            text+= "<td class='tooltip-value'>" + $chart.labels_timeseries_d1Label || "Data 1"+ "</td>";
+            text += "<td class='tooltip-value'>" + point.d1 + "</td>";
+            text += "</tr>";
+            text += "<tr>";
+            
+            text+= "<td class='tooltip-value'>" +$chart.labels_timeseries_d2Label || "Data 2"+ "</td>";
+            text += "<td class='tooltip-value'>" + point.d2 + "</td>";
+            text += "</tr>";
+            text += "<tr>";
+
+            text+= "<td class='tooltip-value'>" + $chart.labels_timeseries_d3Label || "Data 3" + "</td>";
+            text += "<td class='tooltip-value'>" + point.d3 + "</td>";
+            text += "</tr>";
+            text += "<tr>";
+  
+            text+= "<td class='tooltip-value'>" +$chart.labels_timeseries_d4Label || "Data 4" + "</td>";
+            text += "<td class='tooltip-value'>" + point.d4 + "</td>";
+            text += "</tr>";
+        }
+        return text;
     }
 };
 var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
       init:function(chart,option){
           this.$chart= chart;
-          this.axisNum =option.labels.length || 6;
+          var $chart =chart;
+          if($chart.axis_radar ===undefined || $chart.axis_radar.length <2)
+          {
+              return null;
+          }
+          this.axisNum =$chart.axis_radar.length
           this.title = option.title;
           this.scales ={};
-          this.labels=option.labels;
+          this.toolTip = chart.toolTip;
+          this.axises=$chart.axis_radar;
          this.$chart.eventManager.addEventHandler("adddata",function(data,sender){
          if(this.svg) this._reDraw()},this);
          this.$chart.eventManager.addEventHandler("removedata",function(data,sender){
          if(this.svg) this._reDraw()},this);
          this.$chart.eventManager.addEventHandler("dataSelect",function(){this._setSelectStyle()},this);
          
+      },
+      _parseData:function(originData){
+          var type =originData.option.type;
+            if (type === "radar") {
+                return Radar.create(originData,this);
+            }
       },
       _calculateMargin:function(){
           var $chart = this.$chart,width =$chart._figureWidth,height=$chart._figureHeight;
@@ -993,7 +1087,6 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
                 figure.scales[key] = d3.scale.linear()
                                                     .range([0,Math.min(figure._drawAreaHeight/2,figure._drawAreaWidth/2)])
                                                     .domain([min,max]);
-            
             }
             return  figure.scales[key];
 
@@ -1004,10 +1097,11 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
         this._drawAxisTickets();
          this._drawTitle();
          var self =this;
+         this._drawEventRect();
          this.$chart.datas.forEach(function(data){
              if(data.figure === undefined) data.figure={};
             if(data.radar){
-                data.figure.radar = data.radar.draw(self.svg.drawArea);
+                data.figure.radar = data.radar.drawOn(self.svg.drawArea);
             }
         })
         this._setSelectStyle();
@@ -1015,7 +1109,7 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
       _drawAxis:function(){
           var figure = this,$chart = this.$chart,axis=figure.svg.drawArea.axis;
           var r = Math.min(figure._drawAreaHeight/2,figure._drawAreaWidth/2)
-          axis.data(figure.labels).enter()
+          axis.data(figure.axises).enter()
                                     .append("svg:line")
                                     .attr("x1",figure._drawAreaWidth/2)
                                     .attr("y1",figure._drawAreaHeight/2)
@@ -1028,9 +1122,9 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
       _drawAxisLabels:function(){
         var figure = this,$chart = this.$chart,axis=figure.svg.drawArea.axis;
         var r = Math.min(figure._drawAreaHeight/2,figure._drawAreaWidth/2)
-        axis.data(figure.labels).enter()
+        axis.data(figure.axises).enter()
                                     .append("svg:text")
-                                    .text(function(d) { return d.label; })
+                                    .text(function(d) { return d; })
                                     .attr("text-anchor", "middle")
                                     .attr("x",function(d,i){return figure._drawAreaWidth/2+ r*(1.05* Math.sin(i * 2*Math.PI / figure.axisNum))})
                                     .attr("y",function(d,i){return figure._drawAreaHeight/2+ r*( -1.03* Math.cos(i * 2*Math.PI / figure.axisNum))})
@@ -1041,7 +1135,7 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
             var r = Math.min(figure._drawAreaHeight/2,figure._drawAreaWidth/2)
             for(var i = 0; i<5 ;++i){
              _r =r*(i+1)/5;
-              ticks.data(figure.labels).enter()
+              ticks.data(figure.axises).enter()
                                     .append("svg:line")
                                     .attr("x1",function(d,i){return figure._drawAreaWidth/2+ _r*( Math.sin(i * 2*Math.PI / figure.axisNum))})
                                     .attr("y1",function(d,i){return figure._drawAreaHeight/2+ _r*( - Math.cos(i * 2*Math.PI / figure.axisNum))})
@@ -1059,6 +1153,67 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
                                 .attr("text-anchor", "middle")
                                 .attr("font-size","22px")
                                 .attr("dominant-baseline", "text-before-edge");
+      },
+      _drawEventRect:function(){
+          var $figure=this; var $chart=$figure.$chart;
+         var r = Math.min($figure._drawAreaHeight/2,$figure._drawAreaWidth/2)
+          if(this._eventFigure) this._eventFigure.remove();
+          var arc = d3.svg.arc()
+			.startAngle(function(d,i) { return (360/$figure.axises.length) *(i)*2*Math.PI /360 -Math.min(Math.PI/12,360/$figure.axises.length)})
+			.endAngle(function(d,i) {return (360/$figure.axises.length) *(i)*2*Math.PI /360+Math.min(Math.PI/12,360/$figure.axises.length)})
+			.innerRadius(0)
+			.outerRadius(r);
+          this._eventFigure= this.svg.drawArea.append("g").classed("event-figure",true).attr("transform","translate("+$figure._drawAreaWidth/2+","+$figure._drawAreaHeight/2+")")
+          this._eventFigure.selectAll("path").data($figure.axises)
+                                                                .enter()
+                                                                .append("svg:path")
+                                                                .attr("d",arc)
+                                                                .attr("fill","black")
+                                                                 .attr("fill-opacity", "0")
+            .on("mouseout", function(d, i) {
+                 $figure.toolTip.setVisiable(false);
+                //self._removeGuideLine();
+            })
+            .on("mousemove", function(d, i) {
+                var sharps = $figure.svg.selectAll(".event-radar-" + i);
+                    content = [];
+                 $figure.toolTip.setVisiable(false);
+               // self._removeGuideLine();
+                sharps.filter(function(d) {
+                    return true;
+                }).each(function(d) {
+                    //self._drawGuideLine(d);
+                    content.push(d);
+                });
+                if (content.length > 0) {
+                     $figure.toolTip.setPosition(event.pageX , event.pageY);
+                     $figure.toolTip.setContent($figure.getTooltipContent(content));
+                     $figure.toolTip.setVisiable(true);
+                }
+
+            })
+            .on("click", function(d, i) {
+                var sharps = $figure.svg.selectAll(".event-radar-" + i);
+                 $figure.toolTip.setVisiable(false);
+                //self._removeGuideLine();
+                sharps.filter(function(d) {
+                    return true;
+                }).each(function(d) {
+                    var data = d._parent._parent;
+                    if (data.isSelected) {
+                        eventManager.callEventHandler("deSelect", [data]);
+                        eventManager.callEventHandler("dataSelect", data);
+                        data.isSelected = false;
+                    } else {
+                        data.isSelected = true;
+                        eventManager.callEventHandler ("select", [data]);
+                        eventManager.callEventHandler("dataSelect", data);
+                    }
+                     event.stopPropagation();
+                     $figure._setSelectStyle();
+                });
+            });
+
       },
       _reDraw:function(){
           this.reset();
@@ -1095,10 +1250,12 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
          })
         return d;
     },
-    _getCoordinate:function(r,axisIndex){
+    _getCoordinate:function(r,axisIndex,_d){
         var c={};
         c.x= this._drawAreaWidth/2+ r*( Math.sin(axisIndex * 2*Math.PI / this.axisNum));
         c.y= this._drawAreaHeight/2+ r*( -Math.cos(axisIndex * 2*Math.PI / this.axisNum));
+        c.i =axisIndex;
+        c.originData=_d;;
         return c;
     },
     _setSelectStyle:function(){
@@ -1120,6 +1277,31 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
                 }
            });
        }
+    },
+    getTooltipContent: function(datas) {
+        var text = "",
+            self = this;
+        var $chart=this.$chart,$figure=this;
+
+        var title = $figure.axises[datas[0].i];
+        text = "<table class='tool-tip-table' ><tbody><tr><th class = 'tooltip-title' colspan='3'>" + title + "</th></tr>";
+        datas.forEach(function(data) {
+            text += self.parseTooltipData(data);
+        });
+        return text += "</tbody><table>";
+    },
+     parseTooltipData: function(point) {
+         var $figure = this,$chart = $figure.$chart;
+         var i = point.i;
+        var data = point.originData._parent,
+            dataParent = data._parent,
+            text = "";
+            text += "<tr>";
+            text += "<td class='tooltip-name'><span style=' background-color:" + dataParent.color + "'></span>" + dataParent.name + "</td>";
+            text += "<td class='tooltip-value'>" + $chart.labels_radar[i]  || $figure.axises[i] + "</td>";
+            text += "<td class='tooltip-value'>" + point.originData["d"+i] + "</td>";
+            text += "</tr>";
+        return text;
     }
 });
 var Radar=SmartTrafficChartClass.extend({
@@ -1141,9 +1323,10 @@ var Radar=SmartTrafficChartClass.extend({
             }
         
         });
-        this.mergeOption(option);
+    this._d._parent=this;
+       // this.mergeOption(option);
     },
-    draw:function(svg){
+    drawOn:function(svg){
        var scales = this.figure._getScale.bind(this.figure),getCoordinate=this.figure._getCoordinate.bind(this.figure);
        var  lineGen = d3.svg.line()
             .x(function(d) {
@@ -1156,50 +1339,51 @@ var Radar=SmartTrafficChartClass.extend({
     for(var i = 0; i<this.mapkey.length;++i){
         if(this._d[this.mapkey[i]] !== undefined){
             var r= scales(this.mapkey[i])(this._d[this.mapkey[i]])
-            var d=getCoordinate(r,i);
+            var d=getCoordinate(r,i,this._d);
             datas.push(d);
         }
     }
-        var area = svg.append("path")
+    var area = svg.append("svg:g").attr("class","radar-area");
+    area.append("svg:path")
             .attr('d', lineGen(datas))
             .attr('stroke', this._parent.color)
             .attr('stroke-width', 2)
             .attr('fill',this._parent.color)
             .attr("opacity",0.4);
+    area.selectAll("circle").data(datas)
+                        .enter()
+                        .append("svg:circle").
+                        attr("cx",function(d){return d.x}).attr("cy",function(d){return d.y}).attr("r",1)
+                        .attr("fill",this._parent.color)
+                        .attr("class",function(d,i){return "event-radar-"+d.i});
         return area;
     }
 });
 var SmartTrafficChartToolTip = SmartTrafficChartClass.extend({
     init: function(chart) {
         this.chart = chart;
-        if (d3.select("body").select("#smartTrafficChart-tooltip")) d3.select("body").select("#smartTrafficChart-tooltip").remove();
-        this.toolTip =  d3.select("body").append("div")
-            .style("pointer-events", "none")
-            .attr("class", "smartTrafficChart-toolTip")
-            .style("position", "absolute")
-            .style("z-index", "10")
-            .attr("id","smartTrafficChart-tooltip")
-            .style("visibility", "hidden");
-        if (!this.toolTip) this.toolTip = this.append("g").attr("class", "tool-tip");
+    
     },
-    getContent: function(datas) {
-        var text = "",
-            self = this;
-        var title = datas[0].x;
-        text = "<table class='tool-tip-table' ><tbody><tr><th class = 'tooltip-title' colspan='3'>" + title + "</th></tr>";
-        datas.forEach(function(data) {
-            text += self.parseData(data);
-        });
-        return text += "</tbody><table>";
+    _initDraw:function(){
+            if (d3.select("#smartTrafficChart-tooltip")) d3.select("#smartTrafficChart-tooltip").remove();
+                this.toolTip = d3.select("body").append("div")
+                    .style("pointer-events", "none")
+                    .attr("class", "smartTrafficChart-toolTip")
+                    .style("position", "absolute")
+                    .style("z-index", "10")
+                    .attr("id","smartTrafficChart-tooltip")
+                    .style("visibility", "hidden");
+                if (!this.toolTip) this.toolTip = this.append("g").attr("class", "tool-tip");
     },
     setVisiable: function(isVisiable) {
         if (isVisiable) this.toolTip.style("visibility", "visible");
         else this.toolTip.style("visibility", "hidden");
     },
-    setContent: function(points) {
-        if (this.toolTip) this.toolTip.html(this.getContent(points));
+    setContent: function(content) {
+        if (this.toolTip) this.toolTip.html(content);
     },
     setPosition: function(x, y) {
+        this.toolTip =d3.select("#smartTrafficChart-tooltip");
         var width =document.getElementById("smartTrafficChart-tooltip").offsetWidth;
         var height =document.getElementById("smartTrafficChart-tooltip").offsetHeight;
         var screenWidth=document.body.clientWidth || 800;
@@ -1217,60 +1401,17 @@ var SmartTrafficChartToolTip = SmartTrafficChartClass.extend({
         }else{
             this.toolTip.style("top", y - height -10+ "px");
         }
-    },
-    parseData: function(point) {
-        var data = point._parent,
-            dataParent = data._parent,
-            text = "";
-        if (data.type === "line" || data.type === "spline" || data.type === "bar") {
-            text += "<tr>";
-            text += "<td class='tooltip-name'><span style=' background-color:" + dataParent.color + "'></span>" + dataParent.name + "</td>";
-            if (data.yHint) text += "<td class='tooltip-value'>" + data.yHint + "</td>";
-            else {
-                if (data.y2) text += "<td class='tooltip-value'>" + this.chart.y2Title + "</td>";
-                else text += "<td class='tooltip-value'>" + this.chart.yTitle + "</td>"
-            }
-            text += "<td class='tooltip-value'>" + point.y + "</td>";
-            text += "</tr>";
-        }
-        if(data.type ==="boxplot"){
-             text += "<tr>";
-            text += "<td class='tooltip-name' rowspan='5'><span style=' background-color:" + dataParent.color + "'></span>" + dataParent.name + "</td>";
-            if (data.d1Hint) text += "<td class='tooltip-value'>" + data.d1Hint + "</td>";
-            else text+= "<td class='tooltip-value'>" + "Data 1" + "</td>";
-            text += "<td class='tooltip-value'>" + point.d1 + "</td>";
-            text += "</tr>";
-            text += "<tr>";
-            if (data.d2Hint) text += "<td class='tooltip-value'>" + data.d2Hint + "</td>";
-            else text+= "<td class='tooltip-value'>" + "Data 2" + "</td>";
-            text += "<td class='tooltip-value'>" + point.d2 + "</td>";
-            text += "</tr>";
-             text += "<tr>";
-            if (data.d3Hint) text += "<td class='tooltip-value'>" + data.d3Hint + "</td>";
-            else text+= "<td class='tooltip-value'>" + "Data 3" + "</td>";
-            text += "<td class='tooltip-value'>" + point.d3 + "</td>";
-            text += "</tr>";
-            text += "<tr>";
-            if (data.d4Hint) text += "<td class='tooltip-value'>" + data.d4Hint + "</td>";
-            else text+= "<td class='tooltip-value'>" + "Data 4" + "</td>";
-            text += "<td class='tooltip-value'>" + point.d4 + "</td>";
-            text += "</tr>";
-             text += "<tr>";
-            if (data.d5Hint) text += "<td class='tooltip-value'>" + data.d5Hint + "</td>";
-            else text+= "<td class='tooltip-value'>" + "Data 5" + "</td>";
-            text += "<td class='tooltip-value'>" + point.d5 + "</td>";
-            text += "</tr>";
-        }
-        return text;
     }
+   
 });
 var LineBaseClass = SmartTrafficChartClass.extend({
     type: "line",
     mapkey: ["x", "y"],
-    init: function(originData, parent, chart) {
+    init: function(originData, figure) {
         var option = originData.option,
             self = this;
-        this.chart = chart;
+        this.$figure = figure;
+        this.$chart = figure.$chart;
         this._d = originData.data;
         if (option.ref === "y2") {
             this.y2 = true;
@@ -1289,14 +1430,13 @@ var LineBaseClass = SmartTrafficChartClass.extend({
         this._d.forEach(function(d) {
                 if (typeof d.x !== "time") d.x = new Date(d.x);
             });
-        this.mergeOption(option);
+        //this.mergeOption(option);
         this._d.forEach(function(d) {
             d._parent = self;
         })
         this._d.sort(function(v1, v2) {
             return v1.x - v2.x;
         });
-        this._parent = parent;
     },
     getX: function(point) {
         return [point.x];
@@ -1341,17 +1481,18 @@ var LineBaseClass = SmartTrafficChartClass.extend({
     isInSharp: function(_sharp) {
         _sharp = d3.select(_sharp);
         if (_sharp.node().nodeName === "circle") {
-            var mouse = d3.mouse(this.chart.figure.svg.drawArea.figure.node());
+            var mouse = d3.mouse(this.$figure.svg.drawArea.figure.node());
             x2 = Number(_sharp.attr("cx")), y2 = Number(_sharp.attr("cy")), r = Number(_sharp.attr("r"));
             return Math.sqrt(Math.pow(mouse[0] - x2, 2) + Math.pow(mouse[1] - y2, 2)) < 3 * r;
         }
     },
-    draw: function(svg) {
-        var line = svg.svg.drawArea.figure.append("g").attr("class", "SmartTrafficChart-line").attr("pointer-events", "none");
+    drawOn: function(svg) {
+        var $figure = this.$figure,$chart = $figure.$chart;
+        var line = svg.append("g").attr("class", "SmartTrafficChart-line").attr("pointer-events", "none");
         var parent = this._parent,
             yScale, _line, lineGen, _circle, xScale;
-        yScale = this.y2 ? svg._getY2Scale() : svg._getYScale();
-        xScale = svg._getXScale();
+        yScale = this.y2 ? $figure._getY2Scale() : $figure._getYScale();
+        xScale = $figure._getXScale();
         lineGen = d3.svg.line()
             .x(function(d) {
                 return xScale(d.x);
@@ -1380,19 +1521,20 @@ var LineBaseClass = SmartTrafficChartClass.extend({
                 return 4;
             }).attr("fill", parent.color)
             .attr("class", function(d, i) {
-                return "event-sharp-" + svg._getXSetIndex(d.x)
+                return "event-sharp-" + $figure._getXSetIndex(d.x)
             });
         return line;
     }
 });
 var SpLine = LineBaseClass.extend({
     type: "spline",
-    draw: function(svg) {
-        var line = svg.svg.drawArea.figure.append("g").attr("class", "SmartTrafficChart-spline").attr("pointer-events", "none");
+    drawOn: function(svg) {
+         var $figure = this.$figure,$chart = $figure.$chart;
+        var line = svg.append("g").attr("class", "SmartTrafficChart-spline").attr("pointer-events", "none");
         var parent = this._parent,
             yScale, _line, lineGen, _circle, xScale;
-        yScale = this.y2 ? svg._getY2Scale() : svg._getYScale();
-        xScale = svg._getXScale();
+        yScale = this.y2 ?  $figure._getY2Scale() :  $figure._getYScale();
+        xScale =  $figure._getXScale();
         lineGen = d3.svg.line()
             .x(function(d) {
                 return xScale(d.x);
@@ -1420,27 +1562,28 @@ var SpLine = LineBaseClass.extend({
                 return 4;
             }).attr("fill", parent.color)
             .attr("class", function(d, i) {
-                return "event-sharp-" + svg._getXSetIndex(d.x)
+                return "event-sharp-" +  $figure._getXSetIndex(d.x)
             });
         return line;
     }
 });
 var Area = LineBaseClass.extend({
     type: "area",
-    draw: function(svg) {
+    drawOn: function(svg) {
+        var $figure = this.$figure,$chart = $figure.$chart;
         var parent = this._parent,
-            xScale = svg._getXScale(),
-            yScale = this.y2 ? svg._getY2Scale() : svg._getYScale(),
+            xScale =  $figure._getXScale(),
+            yScale = this.y2 ?  $figure._getY2Scale() :  $figure._getYScale(),
             _area, _gen;
         _gen = d3.svg.area()
             .x(function(d) {
                 return xScale(d.x);
             })
-            .y0(svg._figureHeight)
+            .y0( $figure._figureHeight)
             .y1(function(d) {
                 return yScale(d.y);
             }).interpolate("monotone");
-        _area = svg.svg.drawArea.figure.append("g").attr("pointer-events", "none").attr("class", "SmartTrafficChart-area");
+        _area = svg.append("g").attr("pointer-events", "none").attr("class", "SmartTrafficChart-area");
         _area.append("path")
             .attr('d', _gen(this._d))
             .attr('stroke', parent.color)
@@ -1451,32 +1594,33 @@ var Area = LineBaseClass.extend({
 });
 var Bar = LineBaseClass.extend({
     type: "bar",
-    draw: function(svg) {
+    drawOn: function(svg) {
+        var $figure = this.$figure,$chart = $figure.$chart;
         var parent = this._parent,
             yScale, barWidth, barAcc, xScale, getBarIndex = this.getBarIndex.bind(this);
-        yScale = this.y2 ? svg._getY2Scale() : svg._getYScale();
-        barAcc = this.getBarAcc(svg.datas);
-        xScale = svg._getXScale();
-        var zoomScale = svg._zoomScale ? svg._zoomScale : 1;
-        barWidth = Math.min(25, svg._figureWidth / (svg._xSet().length+1) / barAcc * zoomScale);
+        yScale = this.y2 ?  $figure._getY2Scale() :  $figure._getYScale();
+        barAcc = this.getBarAcc($chart.datas);
+        xScale =  $figure._getXScale();
+        var zoomScale =  $figure._zoomScale ?  $figure._zoomScale : 1;
+        barWidth = Math.min(25,  $figure._figureWidth / ( $figure._xSet().length+1) / barAcc * zoomScale);
 
-        var bar = svg.svg.drawArea.figure.append("g")
+        var bar = svg.append("g")
             .attr("class", "SmartTrafficChart-bar")
             .attr("pointer-events", "none");
         bar.selectAll("rect").data(this._d)
             .enter()
             .append("rect")
             .attr("x", function(d) {
-                return xScale(d.x) - (barAcc) / 2 * barWidth + getBarIndex(svg.datas) * barWidth;
+                return xScale(d.x) - (barAcc) / 2 * barWidth + getBarIndex($chart.datas) * barWidth;
             })
             .attr("y", function(d) {
                 return yScale(d.y);
             })
             .attr("width", barWidth)
-            .attr("height", svg._figureHeight)
+            .attr("height",  $figure._figureHeight)
             .attr("fill", parent.color)
             .attr("class", function(d, i) {
-                return "event-sharp-" + svg._getXSetIndex(d.x)
+                return "event-sharp-" +  $figure._getXSetIndex(d.x)
             });
         return bar;
     },
@@ -1502,9 +1646,10 @@ var Bar = LineBaseClass.extend({
         return i;
     },
     isInSharp: function(_sharp) {
+        var $figure = this.$figure,$chart = $figure.$chart;
         _sharp = d3.select(_sharp);
         if (_sharp.node().nodeName === "rect") {
-            var mouse = d3.mouse(this.chart.figure.svg.drawArea.figure.node());
+            var mouse = d3.mouse( $figure.svg.drawArea.figure.node());
             x = Number(_sharp.attr("x")), y = Number(_sharp.attr("y")), width = Number(_sharp.attr("width"));
             return mouse[0] > x && mouse[1] > y && mouse[0] < x + width;
         }
@@ -1512,58 +1657,59 @@ var Bar = LineBaseClass.extend({
 });
 var BoxPlot = LineBaseClass.extend({
     type: "boxplot",
-    mapkey: ["x", "d1", "d2", "d3", "d4", "d5"],
-    init: function(originData, parent, chart) {
-        LineBaseClass.init.call(this, originData, parent,chart);
+    mapkey: ["x", "d0", "d1", "d2", "d3", "d4"],
+    init: function(originData, figure) {
+        LineBaseClass.init.call(this, originData, figure);
         this.lineWidth = this.lineWidth || 20;
         this.recWidth = this.recWidth || 16;
     },
-    draw: function(svg) {
+    drawOn: function(svg) {
         var parent = this._parent,
             yScale, barWidth, barAcc, xScale,lineWidth = this.lineWidth,recWidth = this.recWidth,color = this._parent.color;
-        yScale = this.y2 ? svg._getY2Scale() : svg._getYScale();
-        xScale = svg._getXScale();
-        var boxplots = svg.svg.drawArea.figure.append("g").attr("class","SmartTrafficChart-boxplot").attr("pointer-events", "none");
+        var $figure = this.$figure,$chart = $figure.$chart;
+        yScale = this.y2 ? $figure._getY2Scale() : $figure._getYScale();
+        xScale = $figure._getXScale();
+        var boxplots = svg.append("g").attr("class","SmartTrafficChart-boxplot").attr("pointer-events", "none");
         this._d.forEach(function(d){
-                var boxplot =boxplots.append("g").attr("class","event-sharp-" + svg._getXSetIndex(d.x)).datum(d);
-                boxplot.append("line").attr("x1", xScale(d.x)-lineWidth/2).attr("y1", yScale(d.d1))
-                                                                    .attr("x2",  xScale(d.x)+lineWidth/2 ).attr("y2", yScale(d.d1))
+                var boxplot =boxplots.append("g").attr("class","event-sharp-" + $figure._getXSetIndex(d.x)).datum(d);
+                boxplot.append("line").attr("x1", xScale(d.x)-lineWidth/2).attr("y1", yScale(d.d0))
+                                                                    .attr("x2",  xScale(d.x)+lineWidth/2 ).attr("y2", yScale(d.d0))
                                                                     .attr("stroke","black").attr("stroke-width","2");
-                boxplot.append("line").attr("x1", xScale(d.x)).attr("y1", yScale(d.d1))
-                                                                    .attr("x2",  xScale(d.x) ).attr("y2", yScale(d.d2))
-                                                                    .attr("stroke","black").attr("stroke-width","1").attr("stroke-dasharray", "3,3").attr("stroke-fill".color);
-                boxplot.append("rect").attr("x", xScale(d.x)-recWidth/2).attr("y", yScale(d.d2))
-                                                                    .attr("width",recWidth).attr("height", yScale(d.d4)- yScale(d.d2))
+                boxplot.append("line").attr("x1", xScale(d.x)).attr("y1", yScale(d.d0))
+                                                                    .attr("x2",  xScale(d.x) ).attr("y2", yScale(d.d1))
+                                                                    .attr("stroke","black").attr("stroke-width","1.5px").attr("stroke-dasharray", "2,2").attr("stroke-fill".color);
+                boxplot.append("rect").attr("x", xScale(d.x)-recWidth/2).attr("y", yScale(d.d1))
+                                                                    .attr("width",recWidth).attr("height", yScale(d.d3)- yScale(d.d1))
                                                                     .attr("fill",color);
-                boxplot.append("line").attr("x1", xScale(d.x)-recWidth/2).attr("y1", yScale(d.d3))
-                                                                    .attr("x2",  xScale(d.x)+recWidth/2 ).attr("y2", yScale(d.d3))
+                boxplot.append("line").attr("x1", xScale(d.x)-recWidth/2).attr("y1", yScale(d.d2))
+                                                                    .attr("x2",  xScale(d.x)+recWidth/2 ).attr("y2", yScale(d.d2))
                                                                     .attr("stroke","black").attr("stroke-width","2");
-                boxplot.append("line").attr("x1", xScale(d.x)).attr("y1", yScale(d.d4))
-                                                                    .attr("x2",  xScale(d.x)).attr("y2", yScale(d.d5))
-                                                                    .attr("stroke","black").attr("stroke-width","1").attr("stroke-dasharray", "3,3").attr("stroke-fill".color);
-                boxplot.append("line").attr("x1", xScale(d.x)-lineWidth/2).attr("y1", yScale(d.d5))
-                                                                    .attr("x2",  xScale(d.x)+lineWidth/2 ).attr("y2", yScale(d.d5))
+                boxplot.append("line").attr("x1", xScale(d.x)).attr("y1", yScale(d.d3))
+                                                                    .attr("x2",  xScale(d.x)).attr("y2", yScale(d.d4))
+                                                                    .attr("stroke","black").attr("stroke-width","1.5px").attr("stroke-dasharray", "2,2").attr("stroke-fill".color);
+                boxplot.append("line").attr("x1", xScale(d.x)-lineWidth/2).attr("y1", yScale(d.d4))
+                                                                    .attr("x2",  xScale(d.x)+lineWidth/2 ).attr("y2", yScale(d.d4))
                                                                     .attr("stroke","black").attr("stroke-width","2");
         });
         return boxplots;                                 
     },
     isInSharp:function(_sharp){
-          
+           var $figure = this.$figure,$chart = $figure.$chart;
              _sharp = d3.select(_sharp); 
              if (_sharp.style("visibility") ==="hidden") return false;
-            var svg =this.chart.figure,_d,mouse,yScale,xScale,recWidth;
-            yScale = this.y2 ? svg._getY2Scale() : svg._getYScale();
-            xScale = svg._getXScale();
+            var figure,_d,mouse,yScale,xScale,recWidth;
+            yScale = this.y2 ? $figure._getY2Scale() : $figure._getYScale();
+            xScale = $figure._getXScale();
             recWidth = this.recWidth;
             _d =_sharp.datum();
-            mouse = d3.mouse(svg.svg.drawArea.figure.node());
-            return mouse[0]> xScale(_d.x) - recWidth/2 && mouse[0] < xScale(_d.x) + recWidth/2 && mouse[1]> yScale(_d.d1) && mouse[1] <yScale(_d.d5);
+            mouse = d3.mouse($figure.svg.drawArea.figure.node());
+            return mouse[0]> xScale(_d.x) - recWidth/2 && mouse[0] < xScale(_d.x) + recWidth/2 && mouse[1]> yScale(_d.d0) && mouse[1] <yScale(_d.d4);
 
     },
     getY:function(point){
-        return  [point.d1,point.d2,point.d3,point.d4,point.d5];
+        return  [point.d0,point.d1,point.d2,point.d3,point.d4];
     },
     getAllY:function(){
-        return this._d.map(function(v){ return [v.d1,v.d2,v.d3,v.d4,v.d5]}).reduce(function(v1,v2){return v1.concat(v2)});
+        return this._d.map(function(v){ return [v.d0,v.d1,v.d2,v.d3,v.d4]}).reduce(function(v1,v2){return v1.concat(v2)});
     }
 });
