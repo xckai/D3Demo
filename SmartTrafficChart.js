@@ -109,6 +109,7 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
             $chart.height = option.height || 50;
             $chart.colorManager=colorManager.create().bindThis($chart);
             $chart.eventManager=eventManager.create().bindThis($chart);
+            $chart.labels_radar=[];
             $chart.setOption(option);
             this.toolTip = SmartTrafficChartToolTip.create( this);
             $chart.timeSeriesFigure=  new SmartTrafficLineChart($chart,option);
@@ -1282,8 +1283,7 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
         var text = "",
             self = this;
         var $chart=this.$chart,$figure=this;
-
-        var title = $figure.axises[datas[0].i];
+        var title = $chart.labels_radar[datas[0].i]  || $figure.axises[datas[0].i] ;
         text = "<table class='tool-tip-table' ><tbody><tr><th class = 'tooltip-title' colspan='3'>" + title + "</th></tr>";
         datas.forEach(function(data) {
             text += self.parseTooltipData(data);
@@ -1298,7 +1298,6 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
             text = "";
             text += "<tr>";
             text += "<td class='tooltip-name'><span style=' background-color:" + dataParent.color + "'></span>" + dataParent.name + "</td>";
-            text += "<td class='tooltip-value'>" + $chart.labels_radar[i]  || $figure.axises[i] + "</td>";
             text += "<td class='tooltip-value'>" + point.originData["d"+i] + "</td>";
             text += "</tr>";
         return text;
@@ -1349,7 +1348,8 @@ var Radar=SmartTrafficChartClass.extend({
             .attr('stroke', this._parent.color)
             .attr('stroke-width', 2)
             .attr('fill',this._parent.color)
-            .attr("opacity",0.4);
+            .attr("opacity",0.4)
+            .attr("pointer-events", "none");
     area.selectAll("circle").data(datas)
                         .enter()
                         .append("svg:circle").
