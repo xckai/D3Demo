@@ -332,8 +332,12 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
     },
     getPic:function(){
         this.canvasContainer.selectAll("canvas").remove();
-        var canvas =this.canvasContainer.append("canvas").attr("height",this.height).attr("width",this.width).node();
+        var canvas =this.canvasContainer.append("canvas").attr("height",this.height+100).attr("width",this.width+100).node();
         var ctx = canvas.getContext('2d');
+            ctx.beginPath();
+            ctx.rect(0, 0, this.width+100, this.height+100);
+            ctx.fillStyle = "white";
+            ctx.fill();
         var data = (new XMLSerializer()).serializeToString(this.svg.node());
         var DOMURL = window.URL || window.webkitURL || window;
         var img = new Image();
@@ -341,7 +345,7 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
         var url = DOMURL.createObjectURL(svgBlob);
         var self = this,$chart = this;
         img.onload = function () {
-            ctx.drawImage(img, 0, 0);
+            ctx.drawImage(img, 50, 50);
             DOMURL.revokeObjectURL(url);
             var imgURI = canvas
                 .toDataURL('image/png').replace('image/png', 'image/octet-stream');
@@ -1110,9 +1114,15 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
          var self =this;
          this._drawEventRect();
          this.$chart.datas.forEach(function(data){
-             if(data.figure === undefined) data.figure={};
+            if(data.figure === undefined) data.figure={};
             if(data.radar){
-                data.figure.radar = data.radar.drawOn(self.svg.drawArea);
+                if(data.figure.radar){
+                     data.figure.radar.remove();
+                     data.figure.radar = data.radar.drawOn(self.svg.drawArea);
+                }else{
+                    data.figure.radar = data.radar.drawOn(self.svg.drawArea,true);
+                }
+                
             }
         })
         this._setSelectStyle();
@@ -1335,7 +1345,8 @@ var Radar=SmartTrafficChartClass.extend({
     this._d._parent=this;
        // this.mergeOption(option);
     },
-    drawOn:function(svg){
+    drawOn:function(svg,isTransition){
+        var transitionTime = 1000;
        var scales = this.figure._getScale.bind(this.figure),getCoordinate=this.figure._getCoordinate.bind(this.figure);
        var  lineGen = d3.svg.line()
             .x(function(d) {
@@ -1353,7 +1364,14 @@ var Radar=SmartTrafficChartClass.extend({
         }
     }
     var area = svg.append("svg:g").attr("class","radar-area");
-    area.append("svg:path")
+    var tFunction=function(d){
+        d.attr("opacity",0)
+            .transition()
+            .duration(transitionTime)
+            .ease("linear")
+            .attr("opacity",0.4);
+    }
+    var p=area.append("svg:path")
             .attr('d', lineGen(datas))
             .attr('stroke', this._parent.color)
             .attr('stroke-width', 2)
@@ -1366,6 +1384,9 @@ var Radar=SmartTrafficChartClass.extend({
                         attr("cx",function(d){return d.x}).attr("cy",function(d){return d.y}).attr("r",1)
                         .attr("fill",this._parent.color)
                         .attr("class",function(d,i){return "event-radar-"+d.i});
+    if(isTransition){
+        p.call(tFunction);
+    }
         return area;
     }
 });
@@ -1636,23 +1657,21 @@ var Area = LineBaseClass.extend({
             .y1(function(d) {
                 return yScale(d.y);
             }).interpolate("monotone");
-        _area = svg.append("g").attr("pointer-events", "none").attr("class", "SmartTrafficChart-area");
+        _area = svg.append("g").attr("pointer-events", "none").attr("class", "SmartTrafficChart-area").attr("opacity",0.5);
     var line=_area.append("path")
             .attr('d', _gen(this._d))
             .attr('stroke', parent.color)
             .attr('stroke-width', 0)
             .attr('fill', parent.color);
     var lineTransition = function(l){
-             var totalLength = l.node().getTotalLength();
-             l.attr("stroke-dasharray", totalLength + "," + totalLength)
-                .attr("stroke-dashoffset", totalLength)
+             l.attr("opacity", 0)
                 .transition()
                     .duration(transSitionTime)
                     .ease("linear")
-                    .attr("stroke-dashoffset", 0);
+                    .attr("opacity", 0.5);
         }       
       if(isTransition){
-            line.call(lineTransition);
+            _area.call(lineTransition);
         } 
         return _area;
     }
@@ -1770,11 +1789,15 @@ var BoxPlot = LineBaseClass.extend({
                                                                     .attr("stroke","black").attr("stroke-width","2");
         });
         var tFunction =function(d){
-            d.attr("transform","translate(0,"+$figure._figureHeight+")")
+            var boxs= d.selectAll("g")[0];
+            boxs.forEach(function(box,i){
+                d3.select(box).attr("transform","translate(0,"+$figure._figureHeight+")")
                 .transition()
-                .duration(transSitionTime)
+                .delay(i*transSitionTime/(boxs.length+1))
+                .duration(transSitionTime/2)
                 .ease("linear")
                 .attr("transform","translate(0,+"+0+")");
+            })
         }
         if(isTransition){
             boxplots.call(tFunction);
