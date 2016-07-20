@@ -1,17 +1,5 @@
 "user direct"
-
-function inherit(base, derived) {
-
-    if (Object.create) {
-        derived.prototype = Object.create(base.prototype);
-    } else {
-        var f = function f() {};
-        f.prototype = base.prototype;
-        derived.prototype = new f();
-    }
-    derived.prototype.constructor = derived;
-    return derived;
-}
+!function(){
 var SmartTrafficChartClass = {
     extend: function(prop) {
         var subClass = Object.create(this);
@@ -449,19 +437,19 @@ SmartTrafficLineChart.prototype = {
         var find = false;
         this.datas.forEach(function(d) {
             if (d.line) {
-                find = d.line.y2 || false;
+                find = (d.line.y2 || find);
             }
             if (d.area) {
-                find = d.area.y2 || false;
+                find = d.area.y2 || find;
             }
             if (d.spline) {
-                find = d.spline.y2 || false;
+                find = d.spline.y2 || find;
             }
             if (d.bar) {
-                find = d.bar.y2 || false;
+                find = d.bar.y2 || find;
             }
-             if (d.boxplot) {
-                find = d.boxplot.y2 || false;
+            if (d.boxplot) {
+                find = d.boxplot.y2 || find;
             }
         })
         return find;
@@ -802,7 +790,11 @@ SmartTrafficLineChart.prototype = {
         this._draw();
     },
     reset:function(){
-        if (this.svg) this.svg.selectAll("g").remove();
+        if (this.svg) {
+            this.svg.selectAll("g").remove();
+            this.svg.selectAll("defs").remove();
+        }
+
         if (this._xScale) delete this._xScale;
         if (this._yScale) delete this._yScale;
         if (this._y2Scale) delete this._y2Scale;
@@ -1824,3 +1816,6 @@ var BoxPlot = LineBaseClass.extend({
         return this._d.map(function(v){ return [v.d0,v.d1,v.d2,v.d3,v.d4]}).reduce(function(v1,v2){return v1.concat(v2)});
     }
 });
+
+window.SmartTrafficChart=SmartTrafficChart;
+}();
