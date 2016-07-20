@@ -216,7 +216,7 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
     appendTo: function(id) {
             this.appendId = id;
             this._initDraw();
-            this._draw();
+            //this._draw();
         },
     _reDraw: function() {
             if (this.svgContainer) this.svgContainer.remove();
@@ -597,6 +597,7 @@ SmartTrafficLineChart.prototype = {
             chart = this.svg.drawArea.figure,
             zoomScale = self._zoomScale ? self._zoomScale : 1,
             eventManager = this.$chart.eventManager;
+        if(!set) return;
         _width = Math.floor(this._figureWidth / (set.length + 1) * zoomScale);
         this.svg.drawArea.eventRects = chart.append("g").attr("class", "eventRect");
         this.svg.drawArea.eventRects.selectAll("rect").data(set)

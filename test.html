@@ -151,6 +151,8 @@
             "y": "176",
             "x": "2016-2-3 1:40"
         }];
+
+        _c.appendTo("chart");
         _c.addData({
             "name": "bule",
             id: "no.1",
@@ -159,7 +161,6 @@
                 type: "line"
             }
         });
-        _c.appendTo("chart");
         _c.addEventHandler("select", function(data) {
             console.log(data)
         });
@@ -192,6 +193,8 @@
                 }
             }
         });
+   
+        c2.appendTo("chart2");
         c2.addData({
             name:"x",
             id:"no",
@@ -200,7 +203,6 @@
                 type:"radar"
             }
         });
-        c2.appendTo("chart2");
         // var ws = new WebSocket("ws://127.0.0.1:8123");
         // ws.onopen = function(){ws.send("Test!"); };
 
