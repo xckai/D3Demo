@@ -196,7 +196,7 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
             return;
         }
        this.eventManager.callEventHandler("removedata", data);
-       if(this.svg)  this._drawInfoBars(this.datas);
+        this._reDraw();
     },
     _initDraw: function() {
             var self = this;
@@ -390,6 +390,11 @@ var SmartTrafficLineChart = function(chart) {
     this.toolTip = chart.toolTip;
     this.xType = "time";
     this.isInitDraw = false;
+    this.xValueFormat=function(d){
+        var hours = d.getHours().toString().length <2? "0"+ d.getHours():d.getHours();
+        var minu =d.getMinutes().toString().length <2 ? "0"+d.getMinutes():d.getMinutes();
+        return hours+":"+minu;
+    }
     this.$chart.eventManager.addEventHandler("adddata",this.handleAddData,this);
     this.$chart.eventManager.addEventHandler("removedata",function(data,sender){this._xSet(true);if(this.svg) this._reDraw()},this);
     this.$chart.eventManager.addEventHandler("dataSelect",function(data,sender){this._setSelectStyle()},this);
@@ -554,11 +559,7 @@ SmartTrafficLineChart.prototype = {
         this._xAxis = this.svg.drawArea.x.append("svg:g")
             .attr("transform", "translate(0," + (this._figureHeight) + ")")
             .attr("class", "xaxis")
-            .call(d3.svg.axis().scale(this._getXScale()).orient("bottom").tickFormat(function(d) {
-                if (self.xType === "time") {
-                    return d.getHours() + ":" + d.getMinutes();
-                }
-            }))
+            .call(d3.svg.axis().scale(this._getXScale()).orient("bottom").tickFormat(this.xValueFormat))
         /////set style use attr
         this._xAxis.selectAll(".tick").selectAll("line").attr("fill","none").attr("stroke","black");
         this._xAxis.selectAll("path").attr("fill","none").attr("stroke","black");
@@ -993,7 +994,7 @@ SmartTrafficLineChart.prototype = {
     getTooltipContent: function(datas) {
         var text = "",
             self = this;
-        var title = datas[0].x;
+        var title = this.xValueFormat(datas[0].x);
         text = "<table class='tool-tip-table' ><tbody><tr><th class = 'tooltip-title' colspan='3'>" + title + "</th></tr>";
         datas.forEach(function(data) {
             text += self.parseTooltipData(data);

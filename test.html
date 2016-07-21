@@ -44,13 +44,14 @@
                     num: 100 + 100 * Math.random()+i
                 });
                 var d =100 + 100 * Math.random()+i;
+
                 _d1.push({
                       time: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
-                      d0:d+10,
-                      d1:d+5,
+                      d0:d+10+10*Math.random(),
+                      d1:d+5+5*Math.random(),
                       d2:d,
-                      d3:d-10,
-                      d4:d-15
+                      d3:d-10-5*Math.random(),
+                      d4:d-15-10*Math.random()
                 })
             }
             var name = Math.floor(10 * Math.random());
