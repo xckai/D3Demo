@@ -105,26 +105,17 @@
             title: "D3测试",
             type:"timeSeries",
             labels:{
-                radar:[
-                "time",
-                "weight",
-                "num",
-                "acc",
-                "Avg"
-                ],
                 timeseries:{
                     d0Label:"最大值",
                     d1Label:"3/4分位值",
                     d2Label:"中位值",
                     d3Label:"1/4分位值",
                     d4Label:"最小值",
-                    yLabel:"Num"
+                    yLabel:"Num",
+                    y2Label:"Num2"
                 }
             },
             axis:{
-                radar:[
-                    "time","w","e","i","g"
-                ],
                 timeseries:{
                     yTitle: "Y轴标题",
                     xTitle: "x轴标题",
@@ -173,24 +164,11 @@
             title: "D3测试",
             secondTitle: "二级标题测试",
             type:"radar",
-            labels:{
-                timeseries:{
-                    d0Label:"最大值",
-                    d1Label:"3/4分位值",
-                    d2Label:"中位值",
-                    d3Label:"1/4分位值",
-                    d4Label:"最小值"
-                }
-            },
             axis:{
                 radar:[
                     "time","w","e","i","g"
-                ],
-                timeseries:{
-                    yTitle: "Y轴标题",
-                    xTitle: "x轴标题",
-                    y2Title: "y2轴标题",
-                }
+                ]
+               
             }
         });
    
