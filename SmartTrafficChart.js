@@ -389,6 +389,7 @@ var SmartTrafficLineChart = function(chart) {
         var minu =d.getMinutes().toString().length <2 ? "0"+d.getMinutes():d.getMinutes();
         return hours+":"+minu;
     }
+    this.xValueFormat=chart.xValueFormat || this.xValueFormat;
     this.$chart.eventManager.addEventHandler("adddata",this.handleAddData,this);
     this.$chart.eventManager.addEventHandler("removedata",function(data,sender){this._xSet(true);if(this.svg) this._reDraw()},this);
     this.$chart.eventManager.addEventHandler("dataSelect",function(data,sender){this._setSelectStyle()},this);
@@ -992,7 +993,7 @@ SmartTrafficLineChart.prototype = {
         }
         if(data.type ==="boxplot"){
             text += "<tr>";
-            text += "<td class='tooltip-name' rowspan='5'><span style=' background-color:" + dataParent.color + "'></span>" + dataParent.name + "</td>";
+            text += "<td class='tooltip-name' rowspan='6'><span style=' background-color:" + dataParent.color + "'></span>" + dataParent.name + "</td>";
             text+= "<td class='tooltip-value'>" +$chart.labels_timeseries_d0Label || "Data 0" + "</td>";
             text += "<td class='tooltip-value'>" + point.d0 + "</td>";
             text += "</tr>";
@@ -1015,6 +1016,10 @@ SmartTrafficLineChart.prototype = {
   
             text+= "<td class='tooltip-value'>" +$chart.labels_timeseries_d4Label || "Data 4" + "</td>";
             text += "<td class='tooltip-value'>" + point.d4 + "</td>";
+            text += "</tr>";
+
+            text+= "<td class='tooltip-value'>" +$chart.labels_timeseries_d5Label || "Data 5" + "</td>";
+            text += "<td class='tooltip-value'>" + point.d5 + "</td>";
             text += "</tr>";
         }
         return text;
@@ -1765,16 +1770,20 @@ var BoxPlot = LineBaseClass.extend({
                                                                     .attr("x2",  xScale(d.x) ).attr("y2", yScale(d.d1))
                                                                     .attr("stroke","black").attr("stroke-width","1.5px").attr("stroke-dasharray", "2,2").attr("stroke-fill".color);
                 boxplot.append("rect").attr("x", xScale(d.x)-recWidth/2).attr("y", yScale(d.d1))
-                                                                    .attr("width",recWidth).attr("height", yScale(d.d3)- yScale(d.d1))
+                                                                    .attr("width",recWidth).attr("height", yScale(d.d4)- yScale(d.d1))
                                                                     .attr("fill",color);
                 boxplot.append("line").attr("x1", xScale(d.x)-recWidth/2).attr("y1", yScale(d.d2))
                                                                     .attr("x2",  xScale(d.x)+recWidth/2 ).attr("y2", yScale(d.d2))
                                                                     .attr("stroke","black").attr("stroke-width","2");
-                boxplot.append("line").attr("x1", xScale(d.x)).attr("y1", yScale(d.d3))
-                                                                    .attr("x2",  xScale(d.x)).attr("y2", yScale(d.d4))
+                boxplot.append("line").attr("x1", xScale(d.x)-recWidth/2).attr("y1", yScale(d.d3))
+                                                                    .attr("x2",  xScale(d.x)+recWidth/2 ).attr("y2", yScale(d.d3))
+                                                                    .attr("stroke","black").attr("stroke-width","2")
+                                                                    .attr("stroke-dasharray", "2,2");
+                boxplot.append("line").attr("x1", xScale(d.x)).attr("y1", yScale(d.d4))
+                                                                    .attr("x2",  xScale(d.x)).attr("y2", yScale(d.d5))
                                                                     .attr("stroke","black").attr("stroke-width","1.5px").attr("stroke-dasharray", "2,2").attr("stroke-fill".color);
-                boxplot.append("line").attr("x1", xScale(d.x)-lineWidth/2).attr("y1", yScale(d.d4))
-                                                                    .attr("x2",  xScale(d.x)+lineWidth/2 ).attr("y2", yScale(d.d4))
+                boxplot.append("line").attr("x1", xScale(d.x)-lineWidth/2).attr("y1", yScale(d.d5))
+                                                                    .attr("x2",  xScale(d.x)+lineWidth/2 ).attr("y2", yScale(d.d5))
                                                                     .attr("stroke","black").attr("stroke-width","2");
         });
         var tFunction =function(d){
