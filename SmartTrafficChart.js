@@ -144,9 +144,7 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
             }
         }
         if (_i !== -1) {
-            this.datas[i][data.type] = data[data.type];
-            delete this.datas[i].figure[data.type];
-            data[data.type]._parent = this.datas[i];
+            this.datas[i] = data;
         } else {
             this.datas.push(data);
         }
@@ -165,8 +163,8 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
         if (originData.option) {
                 data.type = originData.option.type || "line";
         if( ["line","spline","area","bar","boxplot"].indexOf(data.type) !== -1){
-            data[data.type]= $chart.timeSeriesFigure._parseData(originData);
-            data[data.type]._parent = data;
+            data.figureObj= $chart.timeSeriesFigure._parseData(originData);
+            data.figureObj._parent = data;
         }
         if(["radar"].indexOf(data.type) !== -1){
             data[data.type]= $chart.radarFigure._parseData(originData);
@@ -178,7 +176,7 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
         }
         return data;
     },
-    removeData:function(id,type){
+    removeData:function(id){
         var _i = -1;
         for (var i in this.datas) {
             if (this.datas[i].id === id) {
@@ -187,11 +185,7 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
             }
         }
         if (_i !== -1) {
-            if (type === undefined) this.datas.splice(i, 1);
-            else {
-                delete this.datas[i][type];
-                //todo find empty data;
-            }
+           this.datas.splice(i, 1);
         } else {
             return;
         }
@@ -668,61 +662,58 @@ SmartTrafficLineChart.prototype = {
     },
     _drawChart: function(datas) {
         var self = this;
-        datas.forEach(function(v) {
-             if (v.area) {
-                v.figure = v.figure || {};
-                if (v.figure.area){
-                    v.figure.area.remove();
-                    v.figure.area = v.area.drawOn(self.svg.drawArea.figure);
-                }else{
-                    v.figure.area = v.area.drawOn(self.svg.drawArea.figure,true);
-                }
-
-            }   
-        });
-        datas.forEach(function(v) {
-            if (v.bar) {
-                v.figure = v.figure || {};
-                if (v.figure.bar){
-                    v.figure.bar.remove();
-                    v.figure.bar = v.bar.drawOn(self.svg.drawArea.figure);
-                }else{
-                    v.figure.bar = v.bar.drawOn(self.svg.drawArea.figure,true);
-                }
-            }
-        });
-        datas.forEach(function(v) {
-            if (v.boxplot) {
-                v.figure = v.figure || {};
-                if (v.figure.boxplot) {
-                    v.figure.boxplot.remove();
-                    v.figure.boxplot = v.boxplot.drawOn(self.svg.drawArea.figure);
-                }else{
-                    v.figure.boxplot = v.boxplot.drawOn(self.svg.drawArea.figure,true);
-                }
-            }
-        });
-        datas.forEach(function(v) {
-            if (v.spline) {
-                v.figure = v.figure || {};
-                if (v.figure.spline) 
+      datas.forEach(function(v) {
+            if (v.type === "area") {
+                if (v.figure)
                 {
-                    v.figure.spline.remove();
-                    v.figure.spline = v.spline.drawOn(self.svg.drawArea.figure);
+                    v.figure.remove();
+                    v.figure = v.figureObj.drawOn(self.svg.drawArea.figure);
                 }else{
-                    v.figure.spline = v.spline.drawOn(self.svg.drawArea.figure,true);
+                    v.figure = v.figureObj.drawOn(self.svg.drawArea.figure,true);
                 }
             }
         });
-        datas.forEach(function(v) {
-            if (v.line) {
-                v.figure = v.figure || {};
-                if (v.figure.line)
+         datas.forEach(function(v) {
+            if (v.type === "bar") {
+                if (v.figure)
                 {
-                    v.figure.line.remove();
-                    v.figure.line = v.line.drawOn(self.svg.drawArea.figure);
+                    v.figure.remove();
+                    v.figure = v.figureObj.drawOn(self.svg.drawArea.figure);
                 }else{
-                    v.figure.line = v.line.drawOn(self.svg.drawArea.figure,true);
+                    v.figure = v.figureObj.drawOn(self.svg.drawArea.figure,true);
+                }
+            }
+        });
+         datas.forEach(function(v) {
+            if (v.type === "boxplot") {
+                if (v.figure)
+                {
+                    v.figure.remove();
+                    v.figure = v.figureObj.drawOn(self.svg.drawArea.figure);
+                }else{
+                    v.figure = v.figureObj.drawOn(self.svg.drawArea.figure,true);
+                }
+            }
+        });
+         datas.forEach(function(v) {
+            if (v.type === "spline") {
+                if (v.figure)
+                {
+                    v.figure.remove();
+                    v.figure = v.figureObj.drawOn(self.svg.drawArea.figure);
+                }else{
+                    v.figure = v.figureObj.drawOn(self.svg.drawArea.figure,true);
+                }
+            }
+        });
+         datas.forEach(function(v) {
+            if (v.type === "line") {
+                if (v.figure)
+                {
+                    v.figure.remove();
+                    v.figure = v.figureObj.drawOn(self.svg.drawArea.figure);
+                }else{
+                    v.figure = v.figureObj.drawOn(self.svg.drawArea.figure,true);
                 }
             }
         });
@@ -916,57 +907,39 @@ SmartTrafficLineChart.prototype = {
     },
     _setSelectStyle: function() {
         var self = this;
+        var isAllSelect = (this.datas.find(function(v) {
+            return !v.isSelected;
+        }) === undefined);
+        if(isAllSelect){
+            this.datas.forEach(function(v){
+                v.isSelected = false;
+            })
+        }
         var hasSelect = !(this.datas.find(function(v) {
             return v.isSelected;
         }) === undefined);
         if (hasSelect) {
             this.datas.forEach(function(v) {
-                if (v.figure.circles) {
-                    v.figure.circles.classed("notSelected", !v.isSelected);
-                }
-                if (v.figure.line) {
-                    v.figure.line.classed("notSelected", !v.isSelected);
-                }
-                if (v.figure.spline) {
-                    v.figure.spline.classed("notSelected", !v.isSelected);
-                }
-                if (v.figure.splineCircles) {
-                    v.figure.splineCircles.classed("notSelected", !v.isSelected);
-                }
-                if (v.figure.bar) {
-                    v.figure.bar.classed("notSelected", !v.isSelected);
-                }
-                if (v.figure.area) {
-                    var _result = v.isSelected ? "visible" : "hidden";
-                    v.figure.area.style("visibility", _result);
-                }
-                if (v.figure.boxplot) {
-                    var _result = v.isSelected ? "visible" : "hidden";
-                    v.figure.boxplot.style("visibility", _result);
+                if (v.figure) {
+                    if(["line","spline","bar"].indexOf(v.type)!== -1){
+                          v.figure.classed("notSelected", !v.isSelected);
+                    }else{
+                         var _result = v.isSelected ? "visible" : "hidden";
+                         v.figure.style("visibility", _result);
+                    }
+                  
                 }
             });
         } else {
             this.datas.forEach(function(v) {
-                if (v.figure.circles) {
-                    v.figure.circles.classed("notSelected", false);
-                }
-                if (v.figure.bar) {
-                    v.figure.bar.classed("notSelected", false);
-                }
-                if (v.figure.line) {
-                    v.figure.line.classed("notSelected", false);
-                }
-                if (v.figure.spline) {
-                    v.figure.spline.classed("notSelected", false);
-                }
-                if (v.figure.splineCircles) {
-                    v.figure.splineCircles.classed("notSelected", false);
-                }
-                if (v.figure.area) {
-                    v.figure.area.style("visibility", "visible");
-                }
-                if (v.figure.boxplot) {
-                    v.figure.boxplot.style("visibility", "visible");
+                 if (v.figure) {
+                    if(["line","spline","bar"].indexOf(v.type)!== -1){
+                          v.figure.classed("notSelected", false);
+                    }else{
+                         var _result = v.isSelected ? "visible" : "hidden";
+                         v.figure.style("visibility", "visible");
+                    }
+                  
                 }
             })
         }
@@ -1739,7 +1712,7 @@ var Bar = LineBaseClass.extend({
     getBarAcc: function(datas) {
         var i = 0;
         datas.forEach(function(v) {
-            if (v.bar) ++i;
+            if (v.type === "bar") ++i;
         });
         return i;
     },
@@ -1747,7 +1720,7 @@ var Bar = LineBaseClass.extend({
         var i = 0;
         var id = this._parent.id;
         for (var j = 0; j < datas.length; ++j) {
-            if (datas[j].bar) {
+            if (datas[j].type ==="bar") {
                 if (datas[j].id === id) {
                     break;
                 } else {
