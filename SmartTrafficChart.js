@@ -102,7 +102,7 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
             $chart.setOption(option);
            
             this.toolTip = SmartTrafficChartToolTip.create( this);
-            $chart.timeSeriesFigure=  new SmartTrafficLineChart($chart,option);
+            $chart.timeSeriesFigure= SmartTrafficTimeSeriesChart.create($chart,option);
             $chart.radarFigure = SmartTrafficRadarChart.create($chart,option);
              switch($chart.type)
             {
@@ -370,8 +370,9 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
     removeEventHandler:function(type,callback){
         this.eventManager.removeEventHandler(type,callback);
     }
-})
-var SmartTrafficLineChart = function(chart) {
+});
+SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
+    init:function(chart) {
     var $chart=chart;
     this.$chart= chart;
     this.datas=chart.datas;
@@ -393,9 +394,7 @@ var SmartTrafficLineChart = function(chart) {
     this.$chart.eventManager.addEventHandler("adddata",this.handleAddData,this);
     this.$chart.eventManager.addEventHandler("removedata",function(data,sender){this._xSet(true);if(this.svg) this._reDraw()},this);
     this.$chart.eventManager.addEventHandler("dataSelect",function(data,sender){this._setSelectStyle()},this);
-};
-SmartTrafficLineChart.prototype.constructor = SmartTrafficLineChart;
-SmartTrafficLineChart.prototype = {
+    },
     handleAddData: function(data) {
         this._xSet(true);
         //if (this.svg) this._reDraw();
@@ -1024,7 +1023,7 @@ SmartTrafficLineChart.prototype = {
         }
         return text;
     }
-};
+});
 var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
       init:function(chart,option){
           this.$chart= chart;
