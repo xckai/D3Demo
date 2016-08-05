@@ -61,7 +61,7 @@
                 id: name,
                 "name": "name" + name,
                 "data": _d1.unique(),
-                option: {
+                config: {
                     type: type,
                     y: "num",
                     x:"time"
@@ -72,7 +72,7 @@
                             id: name,
                             "name": "name" + name,
                             "data": _data.unique(),
-                            option: {
+                            config: {
                                 type: type,
                                 y: "num",
                                 x:"time",
@@ -96,7 +96,7 @@
                         name:name,
                         id:name,
                         data:_d1,
-                        option:{
+                        config:{
                             type:"radar"
                         }
                     });
@@ -114,7 +114,6 @@
                     d3Label:"平均数",
                     d4Label:"1/4分位值",
                     d5Label:"最小值",
-
                     yLabel:"Num",
                     y2Label:"Num2"
                 }
@@ -152,10 +151,10 @@
 
         _c.appendTo("chart");
         _c.addData({
-            "name": "bule",
+            name: "bule",
             id: "no.1",
-            "data": data,
-            option: {
+            data: data,
+            config: {
                 type: "line"
             }
         });
@@ -184,7 +183,7 @@
             name:"x",
             id:"no",
             data:{ d0:1,d1:2,d3:5,d4:10},
-            option:{
+            config:{
                 type:"radar"
             }
         });

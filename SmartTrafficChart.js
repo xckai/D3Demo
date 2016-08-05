@@ -160,8 +160,8 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
         if (originData.id === undefined) {
             data.id = "smartTraffic" + this.datas.length;
         }
-        if (originData.option) {
-                data.type = originData.option.type || "line";
+        if (originData.config) {
+                data.type = originData.config.type || "line";
         if( ["line","spline","area","bar","boxplot"].indexOf(data.type) !== -1){
             data.figureObj= $chart.timeSeriesFigure._parseData(originData);
             data.figureObj._parent = data;
@@ -170,7 +170,7 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
             data[data.type]= $chart.radarFigure._parseData(originData);
             data[data.type]._parent = data;
         }
-        data.color = originData.option.color || this.colorManager.getColor();
+        data.color = originData.config.color || this.colorManager.getColor();
         } else {
             throw new Error("no data option ");
         }
@@ -400,7 +400,7 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
         //if (this.svg) this._reDraw();
     },
     _parseData:function(originData){
-            var type =originData.option.type;
+            var type =originData.config.type;
             if (type === "line") {
                 return LineBaseClass.create(originData,this);
             }
@@ -1022,10 +1022,17 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
             text += "</tr>";
         }
         return text;
+    },
+    enableDrawLine:function(){
+        var drawCanvas = this.svg.drawArea.figureArea,self = this;
+        drawCanvas.on("click",self.drawLine);
+    },
+    drawLine:function(event){
+        console.log(event);
     }
 });
 var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
-      init:function(chart,option){
+      init:function(chart,config){
           this.$chart= chart;
           var $chart =chart;
           if($chart.axis_radar ===undefined || $chart.axis_radar.length <2)
@@ -1034,7 +1041,7 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
           }
           this.isInitDraw = false;
           this.axisNum =$chart.axis_radar.length
-          this.title = option.title;
+          this.title = config.title;
           this.scales ={};
           this.toolTip = chart.toolTip;
           this.axises=$chart.axis_radar;
@@ -1046,7 +1053,7 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
          
       },
       _parseData:function(originData){
-          var type =originData.option.type;
+          var type =originData.config.type;
             if (type === "radar") {
                 return Radar.create(originData,this);
             }
@@ -1319,17 +1326,17 @@ var Radar=SmartTrafficChartClass.extend({
     type:"radar",
     mapkey:["d0","d1","d2","d3","d4","d5","d6","d7","d8","d9"],
     init:function(originData,figure){
-         var option = originData.option,
+         var config = originData.config,
             self = this;
         this.figure = figure;
         this.$chart = figure.$chart;
         this._d=originData.data;
         var mapkey = this.mapkey;
         mapkey.forEach(function(key) {
-            if (option[key]) {
-                if (option[key] !== key) {
-                    self._d[key] = self._d[option[key]];
-                    delete self._d[option[key]];
+            if (config[key]) {
+                if (config[key] !== key) {
+                    self._d[key] = self._d[config[key]];
+                    delete self._d[config[key]];
                 }
             }
         
@@ -1431,21 +1438,21 @@ var LineBaseClass = SmartTrafficChartClass.extend({
     type: "line",
     mapkey: ["x", "y"],
     init: function(originData, figure) {
-        var option = originData.option,
+        var config = originData.config,
             self = this;
         this.$figure = figure;
         this.$chart = figure.$chart;
         this._d = originData.data;
-        if (option.ref === "y2") {
+        if (config.ref === "y2") {
             this.y2 = true;
         }
         var mapkey = this.mapkey;
         mapkey.forEach(function(key) {
-            if (option[key]) {
-                if (option[key] !== key) {
+            if (config[key]) {
+                if (config[key] !== key) {
                     self._d.forEach(function(d) {
-                        d[key] = d[option[key]];
-                        delete d[option[key]];
+                        d[key] = d[config[key]];
+                        delete d[config[key]];
                     })
                 }
             }
