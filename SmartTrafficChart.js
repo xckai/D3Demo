@@ -947,6 +947,15 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
         this.$chart.eventManager.callEventHandler("deSelect",datas);
     },
     _zoomed: function() {
+        console.log(d3.event);
+        var max,min;
+        min = this._getXScale()(this._xSet()[0]);
+        max = this._getXScale()(this._xSet()[this._xSet().length-1]);
+        if(max< this._figureWidth/2 || min > this._figureWidth/2) {
+           
+           this.zoom.translate(this.translate);
+        };
+        this.translate=this.zoom.translate();
         var self = this;
         this._zoomScale = d3.event.scale;
         this._drawAxis();
