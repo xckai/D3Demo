@@ -135,6 +135,7 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
             return this;
         },
     addData:function(data){
+        data = Object.create(data);
         data = this._parseData(data);
         var _i = -1;
         for (var i in this.datas) {
@@ -376,12 +377,12 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
     var $chart=chart;
     this.$chart= chart;
     this.datas=chart.datas;
+    this.customeLine=chart.customeLine;
     this.title = $chart.title;
     this.secondTitle = $chart.secondTitle;
-    this.xTitle = $chart.axis_timeseries_xTitle;
-    this.yTitle = $chart.axis_timeseries_yTitle;
-    this.y2Title =$chart.axis_timeseries_y2Title;
-    if(!this.xTitle) return null;
+    this.xTitle = $chart.axis_timeseries_xTitle ||"undefined";
+    this.yTitle = $chart.axis_timeseries_yTitle ||"undefined";
+    this.y2Title =$chart.axis_timeseries_y2Title ;
     this.toolTip = chart.toolTip;
     this.xType = "time";
     this.isInitDraw = false;
@@ -454,20 +455,8 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
     _hasY2: function() {
         var find = false;
         this.datas.forEach(function(d) {
-            if (d.line) {
-                find = (d.line.y2 || find);
-            }
-            if (d.area) {
-                find = d.area.y2 || find;
-            }
-            if (d.spline) {
-                find = d.spline.y2 || find;
-            }
-            if (d.bar) {
-                find = d.bar.y2 || find;
-            }
-            if (d.boxplot) {
-                find = d.boxplot.y2 || find;
+            if (d.figureObj) {
+                find = (d.figureObj.y2 || find);
             }
         })
         return find;
@@ -546,6 +535,8 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
         this._drawEventRect();
         this._drawChart(this.datas);
         this._setSelectStyle();
+        if(this.customeLine)  this.enableDrawLine();
+       
     },
     _drawAxis: function() {
         var self = this;
@@ -638,6 +629,7 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
 
             })
             .on("click", function(d, i) {
+                if($figure.customeLine) return;
                 var sharps = d3.selectAll(".event-sharp-" + i),
                 mouse = d3.mouse(chart.node());
                 self.toolTip.setVisiable(false);
@@ -655,7 +647,7 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
                         eventManager.callEventHandler ("select", [data]);
                         eventManager.callEventHandler("dataSelect", data);
                     }
-                    event.stopPropagation();
+                    //event.stopPropagation();
                     self._setSelectStyle();
                 });
             });
@@ -963,6 +955,7 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
         self._removeGuideLine();
         this._drawChart(this.datas, this._figures);
         this._setSelectStyle();
+        this.drawCustomeLine(this.p1,this.p2);
     },
     getTooltipContent: function(datas) {
         var text = "",
@@ -1024,11 +1017,85 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
         return text;
     },
     enableDrawLine:function(){
-        var drawCanvas = this.svg.drawArea.figureArea,self = this;
-        drawCanvas.on("click",self.drawLine);
+        var drawCanvas = this.svg.drawArea,self = this;
+        drawCanvas.on("click",self.getLinePosition.bind(this));
     },
-    drawLine:function(event){
-        console.log(event);
+    getLinePosition:function(){
+        if(d3.event.defaultPrevented) return;
+        if(this.p1 &&  this.p2)
+        {
+            this.p1 = null;
+            this.p2 = null;
+            if(this.customeLineFigure) this.customeLineFigure.remove();
+        }
+
+        if(this.p1){
+        var self = this;
+        var position = d3.mouse(this.svg.drawArea.node());
+           this.svg.drawArea.on("mousemove",null)
+           self.p2={};
+            self.p2.x=self._getXScale().invert(position[0]);
+            self.p2.y = self._getYScale().invert(position[1]);
+            self.drawCustomeLine(this.p1,this.p2);
+           
+        }else{
+            var position = d3.mouse(this.svg.drawArea.node());
+            this.p1 ={};
+            this.p1.x=this._getXScale().invert(position[0]);
+            this.p1.y = this._getYScale().invert(position[1]);
+            var self = this;
+            this.svg.drawArea.on("mousemove",function(){
+                var position = d3.mouse(self.svg.drawArea.node());
+                var p2={};
+                p2.x=self._getXScale().invert(position[0]);
+                p2.y = self._getYScale().invert(position[1]);
+                self.drawCustomeLine(self.p1,p2,true);
+            })
+        }
+       
+    },
+    drawCustomeLine:function (p1,p2,isMouseMove) {
+         if(p1 && p2){
+            var x0,y0,x1,y1,x2,y2;
+            x0=this._getXScale()(p1.x),y0=this._getYScale()(p1.y),x2=this._getXScale()(p2.x),y2=this._getYScale()(p2.y);
+            
+            if(y2>y0){
+                var tempx=x2,tempy=y2;
+                x2=x0;y2=y0;x0=tempx;y0=tempy;
+            }
+            x1=x0;
+            y1=y0;
+            if(!isMouseMove){
+                   if(x2 ===x0 && y2 === y0) return;
+                    x1=2*x0-x2;
+                    y1=2*y0-y2;
+                    while( (y1>-5000&&y1<5000)&&(x1>-5000&&x1<5000)){
+                        x1=2*x0-x2;
+                        y1=2*y0-y2;
+                        x0=x1;
+                        y0=y1;
+                    }
+                    x0=x2;
+                    y0=y2;
+                    while(x2>-5000&&x2<5000&&y2>-5000&&y2<5000){
+                        x2=2*x0-x1;
+                        y2=2*y0-y1;
+                        x0=x2;
+                        y0=y2;
+                        
+                    }
+        
+            }
+            
+            if(this.customeLineFigure) this.customeLineFigure.remove();
+            this.customeLineFigure=this.svg.drawArea.figure.append("line").attr("x1",x1)
+                                                .attr("y1",y1)
+                                                .attr("x2",x2)
+                                                .attr("y2",y2)
+                                                .attr("stroke", "black")
+                                                .attr("stroke-width", 2)
+                                                .attr("stroke-dasharray", "3,3");
+        }
     }
 });
 var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
@@ -1045,7 +1112,7 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
           this.scales ={};
           this.toolTip = chart.toolTip;
           this.axises=$chart.axis_radar;
-         this.$chart.eventManager.addEventHandler("adddata",function(data,sender){
+          this.$chart.eventManager.addEventHandler("adddata",function(data,sender){
          if(this.svg) this._reDraw()},this);
          this.$chart.eventManager.addEventHandler("removedata",function(data,sender){
          if(this.svg) this._reDraw()},this);
@@ -1072,7 +1139,7 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
         var self = this,$chart = this.$chart;
         this.svg= $chart.svg.figure;
         this.svg.title=this.svg.append("g").classed("SmartTrafficChart-title",true)
-                                                                                                    .attr("transform","translate("+(this._marginLeft+this._drawAreaWidth/2)+",5)");
+                            .attr("transform","translate("+(this._marginLeft+this._drawAreaWidth/2)+",5)");
         this.svg.drawArea =this.svg.append("g").attr("transform","translate("+this._marginLeft+","+this._titleHeight+")")
                                                                         .attr("click","drawArea");
         this.svg.drawArea.axis= this.svg.drawArea.selectAll(".axis")
@@ -1219,7 +1286,7 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
                 sharps.filter(function(d) {
                     return true;
                 }).each(function(d) {
-                    var data = d._parent._parent;
+                    var data = d.originData;
                     if (data.isSelected) {
                         eventManager.callEventHandler("deSelect", [data]);
                         eventManager.callEventHandler("dataSelect", data);
@@ -1229,7 +1296,7 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
                         eventManager.callEventHandler ("select", [data]);
                         eventManager.callEventHandler("dataSelect", data);
                     }
-                     event.stopPropagation();
+                     //event.stopPropagation();
                      $figure._setSelectStyle();
                 });
             });
@@ -1524,7 +1591,6 @@ var LineBaseClass = SmartTrafficChartClass.extend({
             yScale, _line, lineGen, _circle, xScale;
         yScale = this.y2 ? $figure._getY2Scale() : $figure._getYScale();
         xScale = $figure._getXScale();
-        console.log(xScale);
         var lineTransition = function(l){
              var totalLength = l.node().getTotalLength();
              l.attr("stroke-dasharray", totalLength + "," + totalLength)
