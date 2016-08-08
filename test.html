@@ -11,7 +11,7 @@
     <button onclick="addData('bar')">AddBar</button>
     <button onclick="addData('line')">AddLine</button>
      <button onclick="addData('area')">AddArea</button>
-    <button onclick="addData('spline')">AddSpline</button>
+    <button onclick="addData('dashline')">AddDashLine</button>
     <button onclick="addData('boxplot')">AddBoxPlot</button>
     <button onclick="capture()">Capture</button>
      <div id="chart2" ></div>
@@ -55,6 +55,10 @@
                       d5:d-15-10*Math.random()
                 })
             }
+             _data.push({
+                    time: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
+                    num: "N"
+                });
             var name = Math.floor(10 * Math.random());
             if(type === "boxplot") {
                    _c.addData({
@@ -139,7 +143,7 @@
             "y": "179",
             "x": "2016-2-3 1:10"
         }, {
-            "y": "199",
+            "y": "nan",
             "x": "2016-2-3 1:20"
         }, {
             "y": "134",

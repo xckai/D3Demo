@@ -135,7 +135,7 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
             return this;
         },
     addData:function(data){
-        data = Object.create(data);
+        data = JSON.parse(JSON.stringify(data));
         data = this._parseData(data);
         var _i = -1;
         for (var i in this.datas) {
@@ -163,7 +163,7 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
         }
         if (originData.config) {
                 data.type = originData.config.type || "line";
-        if( ["line","spline","area","bar","boxplot"].indexOf(data.type) !== -1){
+        if( ["line","dashline","area","bar","boxplot"].indexOf(data.type) !== -1){
             data.figureObj= $chart.timeSeriesFigure._parseData(originData);
             data.figureObj._parent = data;
         }
@@ -393,11 +393,11 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
     }
     this.xValueFormat=chart.xValueFormat || this.xValueFormat;
     this.$chart.eventManager.addEventHandler("adddata",this.handleAddData,this);
-    this.$chart.eventManager.addEventHandler("removedata",function(data,sender){this._xSet(true);if(this.svg) this._reDraw()},this);
+    this.$chart.eventManager.addEventHandler("removedata",function(data,sender){this._getXset(true);if(this.svg) this._reDraw()},this);
     this.$chart.eventManager.addEventHandler("dataSelect",function(data,sender){this._setSelectStyle()},this);
     },
     handleAddData: function(data) {
-        this._xSet(true);
+        this._getXset(true);
         //if (this.svg) this._reDraw();
     },
     _parseData:function(originData){
@@ -405,8 +405,8 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
             if (type === "line") {
                 return LineBaseClass.create(originData,this);
             }
-            if (type === "spline") {
-                return  SpLine.create(originData,this);
+            if (type === "dashline") {
+                return  DashLine.create(originData,this);
             }
             if (type === "area") {
                return Area.create(originData,this);
@@ -418,7 +418,7 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
                return BoxPlot.create(originData,this);
             }
     },
-    _xSet: function(isUpdata) {
+    _getXset: function(isUpdata) {
         if (!isUpdata) return this.xSet;
         var self = this,
             datas = this.datas;
@@ -441,9 +441,9 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
         return this.xSet;
     },
     _getXSetIndex: function(obj) {
-        if (!this._xSet()) return -1;
+        if (!this._getXset()) return -1;
         var _index = -1,
-            set = this._xSet();
+            set = this._getXset();
         for (var i = 0; i < set.length; ++i) {
             if (set[i] - obj === 0) {
                 _index = i;
@@ -582,7 +582,7 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
         var $figure = this;
         if (this.svg.drawArea.eventRects) this.svg.drawArea.eventRects.remove();
         var self = this,
-            set = this._xSet(),
+            set = this._getXset(),
             chart = this.svg.drawArea.figure,
             zoomScale = self._zoomScale ? self._zoomScale : 1,
             eventManager = this.$chart.eventManager;
@@ -688,7 +688,7 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
             }
         });
          datas.forEach(function(v) {
-            if (v.type === "spline") {
+            if (v.type === "dashline") {
                 if (v.figure)
                 {
                     v.figure.remove();
@@ -804,9 +804,16 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
         
         if(!this._xScale ){
             var span =(this._getMaxXData() -this._getMinXData())/24;
-            this._xScale = this._xScale || d3.time.scale()
-                .range([0, this._figureWidth])
-                .domain([this._getMinXData() - span, this._getMaxXData() + span]).nice();            
+            if(this.type="timeSeries"){
+                this._xScale = d3.time.scale()
+                                .range([0, this._figureWidth])
+                                .domain([this._getMinXData() - span, this._getMaxXData() + span]);          
+            }else{
+                this._xScale = d3.scale.linear()
+                                .range([0, this._figureWidth])
+                                .domain([this._getMinXData() - span, this._getMaxXData() + span]);
+            }
+                     
         }
       
         return this._xScale;
@@ -913,7 +920,7 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
         if (hasSelect) {
             this.datas.forEach(function(v) {
                 if (v.figure) {
-                    if(["line","spline","bar"].indexOf(v.type)!== -1){
+                    if(["line","dashline","bar"].indexOf(v.type)!== -1){
                           v.figure.classed("notSelected", !v.isSelected);
                     }else{
                          var _result = v.isSelected ? "visible" : "hidden";
@@ -925,7 +932,7 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
         } else {
             this.datas.forEach(function(v) {
                  if (v.figure) {
-                    if(["line","spline","bar"].indexOf(v.type)!== -1){
+                    if(["line","dashline","bar"].indexOf(v.type)!== -1){
                           v.figure.classed("notSelected", false);
                     }else{
                          var _result = v.isSelected ? "visible" : "hidden";
@@ -947,12 +954,10 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
         this.$chart.eventManager.callEventHandler("deSelect",datas);
     },
     _zoomed: function() {
-        console.log(d3.event);
         var max,min;
-        min = this._getXScale()(this._xSet()[0]);
-        max = this._getXScale()(this._xSet()[this._xSet().length-1]);
+        min = this._getXScale()(this._getXset()[0]);
+        max = this._getXScale()(this._getXset()[this._getXset().length-1]);
         if(max< this._figureWidth/2 || min > this._figureWidth/2) {
-           
            this.zoom.translate(this.translate);
         };
         this.translate=this.zoom.translate();
@@ -981,7 +986,7 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
         var data = point._parent,
             dataParent = data._parent,
             text = "";
-        if (data.type === "line" || data.type === "spline" || data.type === "bar") {
+        if (data.type === "line" || data.type === "dashline" || data.type === "bar") {
             text += "<tr>";
             text += "<td class='tooltip-name'><span style=' background-color:" + dataParent.color + "'></span>" + dataParent.name + "</td>";
             if(data.y2){
@@ -1519,6 +1524,7 @@ var LineBaseClass = SmartTrafficChartClass.extend({
         this.$figure = figure;
         this.$chart = figure.$chart;
         this._d = originData.data;
+        this.isHandleNaN=this.$chart.isHandleNaN ===undefined ?true:this.$chart.isHandleNaN;
         if (config.ref === "y2") {
             this.y2 = true;
         }
@@ -1560,7 +1566,10 @@ var LineBaseClass = SmartTrafficChartClass.extend({
         if(this._maxx) return this._maxx;
         var x = Number.MIN_VALUE;
         this._d.forEach(function(v){
-            x = Math.max(v.x , x);
+            if(!isNaN(x)){
+                x = Math.max(v.x , x);
+            }
+           
         });
         this._maxx =x;
         return x;
@@ -1569,19 +1578,33 @@ var LineBaseClass = SmartTrafficChartClass.extend({
         if(this._minx) return this._minx;
         var x = Number.MAX_VALUE;
         this._d.forEach(function(v){
-            x = Math.min(x,v.x);
+              if(!isNaN(x)){
+                 x = Math.min(x,v.x);
+              }
         });
         this._minx =x;
         return x;
     },
     getMaxY:function(){
         if(this._maxy) return this._maxy;
-        this._maxy= this.getAllY().reduce(function(v1,v2){return Math.max(v1,v2)});
+         var self =this;
+        this._maxy = Number.MIN_VALUE;
+        this.getAllY().forEach(function(v){
+            if(!isNaN(v)){
+                self._maxy=Math.max(v,self._maxy);
+            }
+        })
         return this._maxy;
     },
      getMinY:function(){
          if(this._miny) return this._miny;
-        this._miny= this.getAllY().reduce(function(v1,v2){return Math.min(v1,v2)});
+         var self =this;
+        this._miny=Number.MAX_VALUE;
+        this.getAllY().forEach(function(v){
+            if(!isNaN(v)){
+                self._miny=Math.min(v,self._miny);
+            }
+        })
         return this._miny;
     },
     isInSharp: function(_sharp) {
@@ -1600,6 +1623,7 @@ var LineBaseClass = SmartTrafficChartClass.extend({
             yScale, _line, lineGen, _circle, xScale;
         yScale = this.y2 ? $figure._getY2Scale() : $figure._getYScale();
         xScale = $figure._getXScale();
+        
         var lineTransition = function(l){
              var totalLength = l.node().getTotalLength();
              l.attr("stroke-dasharray", totalLength + "," + totalLength)
@@ -1626,12 +1650,12 @@ var LineBaseClass = SmartTrafficChartClass.extend({
             .attr('stroke', parent.color)
             .attr('stroke-width', 2)
             .attr('fill', 'none')
-            .attr('d', lineGen(this._d));
+            .attr('d', this.smartLineGen(xScale,yScale,this.isHandleNaN,this._d));
 
           
         _circle =
             line.selectAll("linepoint")
-            .data(this._d)
+            .data(this._d.filter(function(v){return !isNaN(v.y)}))
             .enter()
             .append("circle")
             .attr("fill", parent.color)
@@ -1652,14 +1676,105 @@ var LineBaseClass = SmartTrafficChartClass.extend({
             _circle.call(circleTransition);
         }  
         return line;
-    }
+    },
+    smartLineGen: function(xScale,yScale,isHandleNaN,ds){
+            if (ds.length<1) return "M0,0"; 
+            var lineString="";
+            var isStartPoint = true;
+            if(!isHandleNaN){
+                ds=ds.filter(function(v){
+                    return !isNaN(v.y);
+                })
+            }
+            for(var i=0;i< ds.length;++i){
+                if(isStartPoint){
+                    if(isNaN(ds[i].y)) {
+                        isStartPoint = true;
+                        continue;
+                    }else{
+                        lineString+="M"+xScale(ds[i].x)+","+yScale(ds[i].y);
+                        isStartPoint = false;
+                    }
+                }else{
+                     if(isNaN(ds[i].y)) {
+                        isStartPoint = true;
+                        continue;
+                    }else{
+                         lineString+="L"+xScale(ds[i].x)+","+yScale(ds[i].y);
+                    }
+                }
+               
+            }
+           return lineString;
+        }
 });
-var SpLine = LineBaseClass.extend({
-    type: "spline",
+// var SpLine = LineBaseClass.extend({
+//     type: "spline",
+//     drawOn: function(svg,isTransition) {
+//         var transSitionTime =1000;
+//          var $figure = this.$figure,$chart = $figure.$chart;
+//         var line = svg.append("g").attr("class", "SmartTrafficChart-spline").attr("pointer-events", "none");
+//         var parent = this._parent,
+//             yScale, _line, lineGen, _circle, xScale;
+//         yScale = this.y2 ?  $figure._getY2Scale() :  $figure._getYScale();
+//         xScale =  $figure._getXScale();
+//         var lineTransition = function(l){
+//              var totalLength = l.node().getTotalLength();
+//              l.attr("stroke-dasharray", totalLength + "," + totalLength)
+//                 .attr("stroke-dashoffset", totalLength)
+//                 .transition()
+//                     .duration(transSitionTime)
+//                     .ease("linear")
+//                     .attr("stroke-dashoffset", 0);
+//         }
+//        var circleTransition=function(c){
+//              c.attr("opacity","0")
+//                          .transition()
+//                         .delay(transSitionTime)
+//                         .attr("opacity",1);
+//         }       
+//         lineGen = d3.svg.line()
+//             .x(function(d) {
+//                 return xScale(d.x);
+//             })
+//             .y(function(d) {
+//                 return yScale(d.y);
+//             }).interpolate("monotone");
+//         _line = line.append("path")
+//             .attr('d', lineGen(this._d))
+//             .attr('stroke', parent.color)
+//             .attr('stroke-width', 2)
+//             .attr('fill', 'none');
+//         _circle =
+//             line.selectAll("linepoint")
+//             .data(this._d.filter(function(v){return !isNaN(v.y)}))
+//             .enter()
+//             .append("circle")
+//             .attr("cx", function(d) {
+//                 return xScale(d.x);
+//             })
+//             .attr("cy", function(d) {
+//                 return yScale(d.y);
+//             })
+//             .attr("r", function(d) {
+//                 return 4;
+//             }).attr("fill", parent.color)
+//             .attr("class", function(d, i) {
+//                 return "event-sharp-" +  $figure._getXSetIndex(d.x)
+//             });
+//         if(isTransition){
+//             _line.call(lineTransition);
+//             _circle.call(circleTransition);
+//         } 
+//         return line;
+//     }
+// });
+var DashLine = LineBaseClass.extend({
+    type: "dashline",
     drawOn: function(svg,isTransition) {
         var transSitionTime =1000;
          var $figure = this.$figure,$chart = $figure.$chart;
-        var line = svg.append("g").attr("class", "SmartTrafficChart-spline").attr("pointer-events", "none");
+        var line = svg.append("g").attr("class", "SmartTrafficChart-dashline").attr("pointer-events", "none");
         var parent = this._parent,
             yScale, _line, lineGen, _circle, xScale;
         yScale = this.y2 ?  $figure._getY2Scale() :  $figure._getYScale();
@@ -1671,7 +1786,10 @@ var SpLine = LineBaseClass.extend({
                 .transition()
                     .duration(transSitionTime)
                     .ease("linear")
-                    .attr("stroke-dashoffset", 0);
+                    .attr("stroke-dashoffset", 0)
+                    .transition()
+                    .duration(0)
+                     .attr("stroke-dasharray","3,3");
         }
        var circleTransition=function(c){
              c.attr("opacity","0")
@@ -1679,21 +1797,17 @@ var SpLine = LineBaseClass.extend({
                         .delay(transSitionTime)
                         .attr("opacity",1);
         }       
-        lineGen = d3.svg.line()
-            .x(function(d) {
-                return xScale(d.x);
-            })
-            .y(function(d) {
-                return yScale(d.y);
-            }).interpolate("monotone");
+        //lineGen = this.smartLineGen()
         _line = line.append("path")
-            .attr('d', lineGen(this._d))
+            .attr('d', this.smartLineGen(xScale,yScale,this.isHandleNaN,this._d))
             .attr('stroke', parent.color)
-            .attr('stroke-width', 2)
-            .attr('fill', 'none');
+            .attr('stroke-width', 3)
+            .attr('fill', 'none')
+            .attr("stroke-dasharray","3,3");
+           
         _circle =
             line.selectAll("linepoint")
-            .data(this._d)
+            .data(this._d.filter(function(v){return !isNaN(v.y)}))
             .enter()
             .append("circle")
             .attr("cx", function(d) {
@@ -1734,7 +1848,7 @@ var Area = LineBaseClass.extend({
             }).interpolate("monotone");
         _area = svg.append("g").attr("pointer-events", "none").attr("class", "SmartTrafficChart-area").attr("opacity",0.5);
     var line=_area.append("path")
-            .attr('d', _gen(this._d))
+            .attr('d', _gen(this._d.filter(function(v){return !isNaN(v.y)})))
             .attr('stroke', parent.color)
             .attr('stroke-width', 0)
             .attr('fill', parent.color);
@@ -1762,7 +1876,7 @@ var Bar = LineBaseClass.extend({
         barAcc = this.getBarAcc($chart.datas);
         xScale =  $figure._getXScale();
         var zoomScale =  $figure._zoomScale ?  $figure._zoomScale : 1;
-        barWidth = Math.min(25,  $figure._figureWidth / ( $figure._xSet().length+1) / barAcc * zoomScale);
+        barWidth = Math.min(25,  $figure._figureWidth / ( $figure._getXset().length+1) / barAcc * zoomScale);
         var transitionFunction=function(b){
             b.each(function(d){
                 d3.select(this).attr("y",$figure._figureHeight)
@@ -1777,7 +1891,7 @@ var Bar = LineBaseClass.extend({
         var bar = svg.append("g")
             .attr("class", "SmartTrafficChart-bar")
             .attr("pointer-events", "none");
-        var bars= bar.selectAll("rect").data(this._d)
+        var bars= bar.selectAll("rect").data(this._d.filter(function(v){return !isNaN(v.y)}))
             .enter()
             .append("rect")
             .attr("x", function(d) {
