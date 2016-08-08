@@ -244,8 +244,8 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
             var self = this;
             datas.forEach(function(v, i) {
                 v.figure = v.figure || {};
-                if (v.figure.infoBar) v.figure.infoBar.remove();
-                v.figure.infoBar = self._drawInfoBar(v, i);
+                if (v.legend) v.legend.remove();
+                v.legend = self._drawInfoBar(v, i);
             });
             this._setSelectStyle();
         },
@@ -319,14 +319,14 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
         }) === undefined);
         if (hasSelect) {
             this.datas.forEach(function(v) {
-                if (v.figure.infoBar) {
-                    v.figure.infoBar.classed("notSelected", !v.isSelected);
+                if (v.legend) {
+                   v.legend.classed("notSelected", !v.isSelected);
                 }
             });
         } else {
             this.datas.forEach(function(v) {
-                if (v.figure.infoBar) {
-                    v.figure.infoBar.classed("notSelected", false);
+                if (v.legend) {
+                    v.legend.classed("notSelected", false);
                 }
             })
         }
@@ -710,14 +710,6 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
             }
         });
     },
-    _drawInfoBars: function(datas) {
-        var self = this;
-        datas.forEach(function(v, i) {
-            v.figure = v.figure || {};
-            if (v.figure.infoBar) v.figure.infoBar.remove();
-            v.figure.infoBar = self._drawInfoBar(v, i);
-        });
-    },
     _drawGuideLine: function(point) {
         var self = this,$chart =this.$chart;
         var xScale = self._getXScale(),
@@ -1068,7 +1060,7 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
         }
        
     },
-    drawCustomeLine:function (p1,p2,isMouseMove) {
+    drawCustomeLine:function (p1,p2,isLineExtend) {
          if(p1 && p2){
             var x0,y0,x1,y1,x2,y2;
             x0=this._getXScale()(p1.x),y0=this._getYScale()(p1.y),x2=this._getXScale()(p2.x),y2=this._getYScale()(p2.y);
@@ -1079,7 +1071,7 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
             }
             x1=x0;
             y1=y0;
-            if(!isMouseMove){
+            if(!isLineExtend){
                    if(x2 ===x0 && y2 === y0) return;
                     x1=2*x0-x2;
                     y1=2*y0-y2;
@@ -1177,7 +1169,7 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
         this.svg.title=this.svg.append("g").classed("SmartTrafficChart-title",true)
                             .attr("transform","translate("+(this._marginLeft+this._drawAreaWidth/2)+",5)");
         this.svg.drawArea =this.svg.append("g").attr("transform","translate("+this._marginLeft+","+this._titleHeight+")")
-                                                                        .attr("click","drawArea").attr("class","drawArea");
+                                                                        .attr("class","drawArea");
         this.svg.drawArea.axis= this.svg.drawArea.selectAll(".axis")
                                                                                 .append("svg:g").classed("axis",true);
         this.svg.drawArea.axisTickets= this.svg.drawArea.selectAll(".axis-ticks")
