@@ -168,8 +168,8 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
             data.figureObj._parent = data;
         }
         if(["radar"].indexOf(data.type) !== -1){
-            data[data.type]= $chart.radarFigure._parseData(originData);
-            data[data.type]._parent = data;
+            data.figureObj= $chart.radarFigure._parseData(originData);
+             data.figureObj._parent = data;
         }
         data.color = originData.config.color || this.colorManager.getColor();
         } else {
@@ -280,10 +280,10 @@ var SmartTrafficChart =SmartTrafficChartClass.extend({
             .text(data.name);
         g.on("mouseover", function(d) {
                 d3.select(this).select("rect").attr("fill", "rgb(240,240,240)");
-                self.eventManager.callEventHandler("mouseover", data);
+                self.eventManager.callEventHandler("legendmouseover", data);
             })
             .on("mouseout", function(d) {
-                self.eventManager.callEventHandler( "mouseout", data);
+                self.eventManager.callEventHandler( "legendmouseout", data);
                 d3.select(this).select("rect").attr("fill", "transparent");
             });
         g.on("click", function() {
@@ -1113,6 +1113,7 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
     }
 });
 var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
+     mapkey:["d0","d1","d2","d3","d4","d5","d6","d7","d8","d9"],
       init:function(chart,config){
           this.$chart= chart;
           var $chart =chart;
@@ -1123,6 +1124,7 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
           this.isInitDraw = false;
           this.axisNum =$chart.axis_radar.length
           this.title = config.title;
+          this.radarValueFormater=chart.radarValueFormater;
           this.scales ={};
           this.toolTip = chart.toolTip;
           this.axises=$chart.axis_radar;
@@ -1131,7 +1133,27 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
          this.$chart.eventManager.addEventHandler("removedata",function(data,sender){
          if(this.svg) this._reDraw()},this);
          this.$chart.eventManager.addEventHandler("dataSelect",function(){this._setSelectStyle()},this);
-         
+         this.$chart.eventManager.addEventHandler("legendmouseover",function(d){
+             var self =this;
+             var datas=[];
+            this.mapkey.forEach(function(key,i){
+                if(d.figureObj._d[key]!==undefined){
+                    datas.push({i:i,data:d.figureObj._d[key]});
+                }
+            });
+            this._drawDetailValue(datas);
+            // this.$chart.datas.forEach(function(v){
+            //     if(v.id!==d.id){
+            //           v.figure.style("visibility", "hidden");
+            //     }else{
+            //         v.figure.style("visibility", "visible");
+            //     }
+            // })
+         },this)
+         this.$chart.eventManager.addEventHandler("legendmouseout",function(d){
+            this._drawDetailMaxValue();
+           // this._setSelectStyle();
+         },this)
       },
       _parseData:function(originData){
           var type =originData.config.type;
@@ -1155,7 +1177,7 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
         this.svg.title=this.svg.append("g").classed("SmartTrafficChart-title",true)
                             .attr("transform","translate("+(this._marginLeft+this._drawAreaWidth/2)+",5)");
         this.svg.drawArea =this.svg.append("g").attr("transform","translate("+this._marginLeft+","+this._titleHeight+")")
-                                                                        .attr("click","drawArea");
+                                                                        .attr("click","drawArea").attr("class","drawArea");
         this.svg.drawArea.axis= this.svg.drawArea.selectAll(".axis")
                                                                                 .append("svg:g").classed("axis",true);
         this.svg.drawArea.axisTickets= this.svg.drawArea.selectAll(".axis-ticks")
@@ -1194,17 +1216,17 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
          var self =this;
          this._drawEventRect();
          this.$chart.datas.forEach(function(data){
-            if(data.figure === undefined) data.figure={};
-            if(data.radar){
-                if(data.figure.radar){
-                     data.figure.radar.remove();
-                     data.figure.radar = data.radar.drawOn(self.svg.drawArea);
+            if(data.type === "radar") {
+                if(data.figure){
+                      data.figure.remove();
+                      data.figure = data.figureObj.drawOn(self.svg.drawArea);
                 }else{
-                    data.figure.radar = data.radar.drawOn(self.svg.drawArea,true);
+                    data.figure = data.figureObj.drawOn(self.svg.drawArea,true);
                 }
                 
             }
-        })
+        });
+        this._drawDetailMaxValue();
         this._setSelectStyle();
       },
       _drawAxis:function(){
@@ -1270,51 +1292,117 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
                                                                 .append("svg:path")
                                                                 .attr("d",arc)
                                                                 .attr("fill","black")
-                                                                 .attr("fill-opacity", "0")
-            .on("mouseout", function(d, i) {
-                 $figure.toolTip.setVisiable(false);
-                //self._removeGuideLine();
-            })
-            .on("mousemove", function(d, i) {
-                var sharps = $figure.svg.selectAll(".event-radar-" + i);
-                    content = [];
-                 $figure.toolTip.setVisiable(false);
-               // self._removeGuideLine();
-                sharps.filter(function(d) {
-                    return true;
-                }).each(function(d) {
-                    //self._drawGuideLine(d);
-                    content.push(d);
-                });
-                if (content.length > 0) {
-                     $figure.toolTip.setPosition(event.pageX , event.pageY);
-                     $figure.toolTip.setContent($figure.getTooltipContent(content));
-                     $figure.toolTip.setVisiable(true);
+                                                                .attr("fill-opacity", "0")
+                        .on("mouseout", function(d, i) {
+                            $figure.toolTip.setVisiable(false);
+                            //self._removeGuideLine();
+                        })
+                        .on("mousemove", function(d, i) {
+                            var sharps = $figure.svg.selectAll(".event-radar-" + i);
+                                content = [];
+                            $figure.toolTip.setVisiable(false);
+                        // self._removeGuideLine();
+                            sharps.filter(function(d) {
+                                return true;
+                            }).each(function(d) {
+                                //self._drawGuideLine(d);
+                                content.push(d);
+                            });
+                            if (content.length > 0) {
+                                $figure.toolTip.setPosition(event.pageX , event.pageY);
+                                $figure.toolTip.setContent($figure.getTooltipContent(content));
+                                $figure.toolTip.setVisiable(true);
+                            }
+
+                        })
+                        .on("click", function(d, i) {
+                            var sharps = $figure.svg.selectAll(".event-radar-" + i);
+                            $figure.toolTip.setVisiable(false);
+                            //self._removeGuideLine();
+                            sharps.filter(function(d) {
+                                return true;
+                            }).each(function(d) {
+                                var data = d.originData;
+                                if (data.isSelected) {
+                                    eventManager.callEventHandler("deSelect", [data]);
+                                    eventManager.callEventHandler("dataSelect", data);
+                                    data.isSelected = false;
+                                } else {
+                                    data.isSelected = true;
+                                    eventManager.callEventHandler ("select", [data]);
+                                    eventManager.callEventHandler("dataSelect", data);
+                                }
+                                //event.stopPropagation();
+                                $figure._setSelectStyle();
+                            });
+                        });
+
+      },
+      _drawDetailMaxValue:function(){
+            var datas=[],self=this;
+             var hasSelect = !(this.$chart.datas.find(function(v) {
+                    return v.isSelected;
+                }) === undefined);
+            if(hasSelect){
+                this.mapkey.forEach(function(k,i){
+                var data= Number.MIN_VALUE;
+                    self.$chart.datas.forEach(function(v){
+                        if(v.figureObj &&v.isSelected){
+                            if(v.figureObj._d[k] !==undefined){
+                                data=Math.max(data,v.figureObj._d[k]);
+                            }
+                        }
+                    })
+
+                if(data !== Number.MIN_VALUE){
+                    datas.push({i:i,data:data});
                 }
+            }) 
+            }else{
+                 this.mapkey.forEach(function(k,i){
+                var data= Number.MIN_VALUE;
+                    self.$chart.datas.forEach(function(v){
+                        if(v.figureObj ){
+                            if(v.figureObj._d[k] !==undefined){
+                                data=Math.max(data,v.figureObj._d[k]);
+                            }
+                        }
+                    })
 
+                if(data !== Number.MIN_VALUE){
+                    datas.push({i:i,data:data});
+                }
             })
-            .on("click", function(d, i) {
-                var sharps = $figure.svg.selectAll(".event-radar-" + i);
-                 $figure.toolTip.setVisiable(false);
-                //self._removeGuideLine();
-                sharps.filter(function(d) {
-                    return true;
-                }).each(function(d) {
-                    var data = d.originData;
-                    if (data.isSelected) {
-                        eventManager.callEventHandler("deSelect", [data]);
-                        eventManager.callEventHandler("dataSelect", data);
-                        data.isSelected = false;
-                    } else {
-                        data.isSelected = true;
-                        eventManager.callEventHandler ("select", [data]);
-                        eventManager.callEventHandler("dataSelect", data);
-                    }
-                     //event.stopPropagation();
-                     $figure._setSelectStyle();
-                });
-            });
-
+            }
+           
+          self._drawDetailValue(datas);
+      },
+      _drawDetailValue:function(vals){
+           var scales = this._getScale.bind(this),getCoordinate=this._getCoordinate.bind(this),datas=[],figure=this;
+            for(var i =0; i<vals.length;++i){
+                var val ={},r,coor;
+                val.i=vals[i].i;
+                val.data=vals[i].data;
+                r=scales(this.mapkey[val.i])(val.data);
+                val.x=figure._drawAreaWidth/2+ r*(1.02* Math.sin(val.i * 2*Math.PI / figure.axisNum));
+                val.y=figure._drawAreaHeight/2+ r*( -1.02* Math.cos(val.i * 2*Math.PI / figure.axisNum));
+                datas.push(val);
+            }
+            this.svg.drawArea.selectAll(".detail-text").remove();
+            var textArea=  this.svg.drawArea.selectAll(".detail-text").data(datas)
+                            .enter()
+                            .append("svg:text")
+                            .attr("text-anchor", "middle")
+                            .attr("x", function(d){return d.x})
+                            .attr("y", function(d){return d.y})
+                            .text(function(d){
+                                 if(figure.radarValueFormater){
+                                     return figure.radarValueFormater(d.data)}
+                                    else{
+                                       return d.data; 
+                                    }}
+                                 )
+                            .attr("class","detail-text");
       },
       _reDraw:function(){
           this.reset();
@@ -1332,9 +1420,9 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
      _getMinData:function(key){
         var d= Number.MAX_VALUE;
          this.$chart.datas.forEach(function(v){
-             if(v.radar){
-                 if(v.radar._d[key] !==undefined){
-                     d=Math.min(d,v.radar._d[key]);
+             if(v.figureObj){
+                 if(v.figureObj._d[key] !==undefined){
+                     d=Math.min(d,v.figureObj._d[key]);
                  }
              }
          })
@@ -1343,9 +1431,9 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
     _getMaxData:function(key){
         var d= Number.MIN_VALUE;
          this.$chart.datas.forEach(function(v){
-             if(v.radar){
-                 if(v.radar._d[key] !==undefined){
-                     d=Math.max(d,v.radar._d[key]);
+             if(v.figureObj){
+                 if(v.figureObj._d[key] !==undefined){
+                     d=Math.max(d,v.figureObj._d[key]);
                  }
              }
          })
@@ -1366,15 +1454,15 @@ var SmartTrafficRadarChart = SmartTrafficChartClass.extend({
         }) === undefined);
        if(hasSelect){
            datas.forEach(function(v){
-            if (v.figure.radar) {
+            if (v.figure) {
                                 var _result = v.isSelected ? "visible" : "hidden";
-                                v.figure.radar.style("visibility", _result);
+                                v.figure.style("visibility", _result);
                             }
            });
        }else{
               datas.forEach(function(v){
-            if (v.figure.radar) {
-                                v.figure.radar.style("visibility", "visible");
+            if (v.figure) {
+                                v.figure.style("visibility", "visible");
                 }
            });
        }
@@ -1460,14 +1548,35 @@ var Radar=SmartTrafficChartClass.extend({
             .attr("pointer-events", "none");
     area.selectAll("circle").data(datas)
                         .enter()
-                        .append("svg:circle").
-                        attr("cx",function(d){return d.x}).attr("cy",function(d){return d.y}).attr("r",1)
+                        .append("svg:circle")
+                        .attr("cx",function(d){return d.x}).attr("cy",function(d){return d.y}).attr("r",1)
                         .attr("fill",this._parent.color)
                         .attr("class",function(d,i){return "event-radar-"+d.i});
+  
     if(isTransition){
         p.call(tFunction);
     }
         return area;
+    },
+    showDetailValue:function(svg,vals){
+        var scales = this.figure._getScale.bind(this.figure),getCoordinate=this.figure._getCoordinate.bind(this.figure),datas=[],figure=this.figure;
+        for(var i =0; i<vals.length;++i){
+            var val ={},r,coor;
+            val.i=vals[i].i;
+            val.data=vals[i].data;
+            r=scales(this.mapkey[val.i])(val.data);
+            val.x=figure._drawAreaWidth/2+ r*(1.02* Math.sin(val.i * 2*Math.PI / figure.axisNum));
+            val.y=figure._drawAreaHeight/2+ r*( -1.04* Math.cos(val.i * 2*Math.PI / figure.axisNum));
+            datas.push(val);
+        }
+        var textArea=  svg.selectAll("text").data(datas)
+                        .enter()
+                        .append("svg:text")
+                        .attr("text-anchor", "middle")
+                        .attr("x", function(d){return d.x})
+                        .attr("y", function(d){return d.y})
+                        .text(function(d){
+                            return d.data});
     }
 });
 var SmartTrafficChartToolTip = SmartTrafficChartClass.extend({
