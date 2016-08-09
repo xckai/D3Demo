@@ -14,17 +14,29 @@
     <button onclick="addData('dashline')">AddDashLine</button>
     <button onclick="addData('boxplot')">AddBoxPlot</button>
     <button onclick="capture()">Capture</button>
-     <div id="chart2" ></div>
-     <button onclick="addData2()">AddRadar</button>
-    <button onclick="capture2()">Capture</button>
+    <div id="chart2" ></div>
+    <button onclick="addData2('bar')">AddBar</button>
+    <button onclick="addData2('line')">AddLine</button>
+    <button onclick="addData2('area')">AddArea</button>
+    <button onclick="addData2('dashline')">AddDashLine</button>
+    <button onclick="addData2('boxplot')">AddBoxPlot</button>
+    <div id="chart3" ></div>
+    <button onclick="addData3('bar')">AddBar</button>
+    <!--<button onclick="addData3('line')">AddLine</button>
+    <button onclick="addData3('area')">AddArea</button>
+    <button onclick="addData3('dashline')">AddDashLine</button>-->
+    <button onclick="addData3('boxplot')">AddBoxPlot</button>
+    <div id="chart4" ></div>
+    <button onclick="addData4()">AddRadar</button>
+    <button onclick="capture4()">Capture</button>
     <script src="./lib/d3.js" charset="utf-8"></script>
     <script src="./SmartTrafficChart.js" charset="utf-8"></script>
     <script>
         function capture(){
-            _c.getPic();
+            c1.getPic();
         }
-          function capture2(){
-            c2.getPic();
+          function capture4(){
+            c4.getPic();
         }
         Array.prototype.unique = function(){
             this.sort(function(v1,v2){return new Date(v1.time)- new Date(v2.time)});	//先排序
@@ -36,75 +48,29 @@
             }
             return res;
         }
-        function addData(type) {
-            var _data = [],_d1=[];
-            for (var i = 0; i < 30; ++i) {
-                _data.push({
-                    time: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
-                    num: 100 + 100 * Math.random()+i
-                });
-                var d =100 + 100 * Math.random()+i;
-
-                _d1.push({
-                      time: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
-                      d0:d+10+10*Math.random(),
-                      d1:d+5+5*Math.random(),
-                      d2:d,
-                      d3:d+Math.random(),
-                      d4:d-10-5*Math.random(),
-                      d5:d-15-10*Math.random()
-                })
-            }
-             _data.push({
-                    time: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
-                    num: "N"
-                });
-            var name = Math.floor(10 * Math.random());
-            if(type === "boxplot") {
-                   _c.addData({
-                id: name,
-                "name": "name" + name,
-                "data": _d1.unique(),
-                config: {
-                    type: type,
-                    y: "num",
-                    x:"time"
+        Array.prototype.numUnique = function(){
+            var res =[];
+            for(var i=0;i<this.length; ++i){
+                var val =this[i];
+                if(res.find(function(v){return  v.num == val.num})=== undefined){
+                    res.push(val);
                 }
-            });
-            }else{
-                _c.addData({
-                            id: name,
-                            "name": "name" + name,
-                            "data": _data.unique(),
-                            config: {
-                                type: type,
-                                y: "num",
-                                x:"time",
-                                ref: "y2",
-                                yHint:"数量"
-                            }
-                        });
             }
-        };
- function addData2() {
-               var _d1={
-                      d0:100*Math.random(),
-                      d1:100*Math.random(),
-                      d2:100*Math.random(),
-                      d3:100*Math.random(),
-                      d4:100*Math.random()
-                };
-            var name = Math.floor(10 * Math.random());
-                    c2.addData({
-                        name:name,
-                        id:name,
-                        data:_d1,
-                        config:{
-                            type:"radar"
-                        }
-                    });
-        };
-        var _c = SmartTrafficChart.create({
+            return res;
+        }
+        Array.prototype.nameUnique = function(){
+            var res =[];
+            for(var i=0;i<this.length; ++i){
+                var val =this[i];
+                if(res.find(function(v){return  v.name == val.name})=== undefined){
+                    res.push(val);
+                }
+            }
+            return res;
+        }
+       
+ 
+    var c1 = SmartTrafficChart.create({
             "width": 1000,
             "height": 800,
             title: "D3测试",
@@ -129,46 +95,239 @@
                 }
             },
             xValueFormat:function(v){
-                return v.getFullYear();
+                return d3.time.format("%H:%M")(new Date(v));
             },
             customeLine:true
         });
-        var data = [{
-            "y": "152",
-            "x": "2016-2-3 1:00"
-        }, {
-            "y": "189",
-            "x": "2016-2-3 1:05"
-        }, {
-            "y": "179",
-            "x": "2016-2-3 1:10"
-        }, {
-            "y": "nan",
-            "x": "2016-2-3 1:20"
-        }, {
-            "y": "134",
-            "x": "2016-2-3 1:30"
-        }, {
-            "y": "176",
-            "x": "2016-2-3 1:40"
-        }];
-
-        _c.appendTo("chart");
-        _c.addData({
-            name: "bule",
-            id: "no.1",
-            data: data,
-            config: {
-                type: "line"
-            }
-        });
-        _c.addEventHandler("select", function(data) {
+        c1.appendTo("chart");
+        c1.on("select", function(data) {
             console.log(data)
         });
-        _c.addEventHandler("deSelect", function(data) {
+        c1.on("deSelect", function(data) {
             console.log( data)
         });
-         var c2 = SmartTrafficChart.create({
+        function addData(type) {
+            var _data = [],_d1=[];_dataNumber=[];
+            for (var i = 0; i < 30; ++i) {
+                _data.push({
+                    time: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
+                    num: 100 + 100 * Math.random()+i
+                });
+                _dataNumber.push({
+                    x: 5 * Math.floor(60 * Math.random()) % 60,
+                    num: 100 + 100 * Math.random()+i
+                });
+                var d =100 + 100 * Math.random()+i;
+
+                _d1.push({
+                      time: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
+                      d0:d+10+10*Math.random(),
+                      d1:d+5+5*Math.random(),
+                      d2:d,
+                      d3:d+Math.random(),
+                      d4:d-10-5*Math.random(),
+                      d5:d-15-10*Math.random()
+                })
+            }
+             _data.push({
+                    time: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
+                    num: "N"
+                });
+            var name = Math.floor(10 * Math.random());
+            if(type === "boxplot") {
+                   c1.addData({
+                        id: name,
+                        "name": "name" + name,
+                        "data": _d1.unique(),
+                        config: {
+                            type: type,
+                            y: "num",
+                            x:"time",
+                             ref: "y2"
+                        }
+            });
+            }else{
+                c1.addData({
+                            id: name,
+                            "name": "name" + name,
+                            "data": _data.unique(),
+                            config: {
+                                type: type,
+                                y: "num",
+                                x:"time",
+                               
+                                yHint:"数量"
+                            }
+                        });
+            }
+        };
+         
+
+////////////////////////////////////////////////////////////////////
+        var c2 = SmartTrafficChart.create({
+            "width": 1000,
+            "height": 800,
+            title: "D3测试",
+            type:"numberSeries",
+            labels:{
+                timeseries:{
+                    d0Label:"最大值",
+                    d1Label:"3/4分位值",
+                    d2Label:"中位值",
+                    d3Label:"平均数",
+                    d4Label:"1/4分位值",
+                    d5Label:"最小值",
+                    yLabel:"Num",
+                    y2Label:"Num2"
+                }
+            },
+            axis:{
+                timeseries:{
+                    yTitle: "Y轴标题",
+                    xTitle: "x轴标题",
+                    y2Title: "y2轴标题",
+                }
+            },
+            xValueFormat:function(v){
+                return v;
+            },
+            customeLine:true
+        });
+c2.appendTo("chart2");
+function addData2(type) {
+            var _data = [],_d1=[];_dataNumber=[];
+            for (var i = 0; i < 30; ++i) {
+                _dataNumber.push({
+                    num: 5 * Math.floor(60 * Math.random()) % 60,
+                    val: 100 + 100 * Math.random()+i
+                });
+                var d =100 + 100 * Math.random()+i;
+
+                _d1.push({
+                      num: 5 * Math.floor(60 * Math.random()) % 60,
+                      d0:d+10+10*Math.random(),
+                      d1:d+5+5*Math.random(),
+                      d2:d,
+                      d3:d+Math.random(),
+                      d4:d-10-5*Math.random(),
+                      d5:d-15-10*Math.random()
+                })
+            }
+            var name = Math.floor(10 * Math.random());
+            if(type === "boxplot") {
+                   c2.addData({
+                        id: name,
+                        "name": "name" + name,
+                        "data": _d1.numUnique(),
+                        config: {
+                            type: type,
+                            y: "val",
+                            ref: "y2",
+                            x:"num"
+                        }
+            });
+            }else{
+                c2.addData({
+                            id: name,
+                            "name": "name" + name,
+                            "data": _dataNumber.numUnique(),
+                            config: {
+                                type: type,
+                                y: "val",
+                                x:"num",
+                                
+                                yHint:"数量"
+                            }
+                        });
+            }
+        };
+///////////////////////////////////////////////////////////////////////
+    var c3 = SmartTrafficChart.create({
+            "width": 1000,
+            "height": 800,
+            title: "D3测试",
+            type:"stringSeries",
+            labels:{
+                timeseries:{
+                    d0Label:"最大值",
+                    d1Label:"3/4分位值",
+                    d2Label:"中位值",
+                    d3Label:"平均数",
+                    d4Label:"1/4分位值",
+                    d5Label:"最小值",
+                    yLabel:"Num",
+                    y2Label:"Num2"
+                }
+            },
+            axis:{
+                timeseries:{
+                    yTitle: "Y轴标题",
+                    xTitle: "x轴标题",
+                    y2Title: "y2轴标题",
+                }
+            },
+            xValueFormat:function(v){
+                return v;
+            },
+            customeLine:true
+        });
+    c3.appendTo("chart3");
+
+function addData3(type) {
+            var _data = [],_d1=[];_dataNumber=[];
+            for (var i = 0; i < 30; ++i) {
+                _data.push({
+                    name: "Name"+5 * Math.floor(60 * Math.random()) % 60,
+                    val: 100 + 100 * Math.random()+i
+                });
+                var d =100 + 100 * Math.random()+i;
+
+                _d1.push({
+                       name: "Name"+5 * Math.floor(60 * Math.random()) % 60,
+                      d0:d+10+10*Math.random(),
+                      d1:d+5+5*Math.random(),
+                      d2:d,
+                      d3:d+Math.random(),
+                      d4:d-10-5*Math.random(),
+                      d5:d-15-10*Math.random()
+                })
+            }
+            var name = Math.floor(10 * Math.random());
+            if(type === "boxplot") {
+                   c3.addData({
+                        id: name,
+                        "name": "name" + name,
+                        "data": _d1.nameUnique(),
+                        config: {
+                            type: type,
+                            y: "val",
+                            ref: "y2",
+                            x:"name"
+                        }
+            });
+            }else{
+                c3.addData({
+                            id: name,
+                            "name": "name" + name,
+                            "data": _data.nameUnique(),
+                            config: {
+                                type: type,
+                                y: "val",
+                                x:"name",
+                               
+                                yHint:"数量"
+                            }
+                        });
+            }
+        };
+//////////////////////////////////////////////////
+
+
+
+
+
+
+         var c4 = SmartTrafficChart.create({
             "width": 1000,
             "height": 800,
             title: "D3测试",
@@ -185,15 +344,25 @@
             }
         });
    
-        c2.appendTo("chart2");
-        c2.addData({
-            name:"x",
-            id:"no",
-            data:{ d0:1,d1:2,d3:5,d4:10},
-            config:{
-                type:"radar"
-            }
-        });
+        c4.appendTo("chart4");
+        function addData4() {
+            var _d1={
+                      d0:100*Math.random(),
+                      d1:100*Math.random(),
+                      d2:100*Math.random(),
+                      d3:100*Math.random(),
+                      d4:100*Math.random()
+                };
+            var name = Math.floor(10 * Math.random());
+                    c4.addData({
+                        name:name,
+                        id:name,
+                        data:_d1,
+                        config:{
+                            type:"radar"
+                        }
+                    });
+        };
         // var ws = new WebSocket("ws://127.0.0.1:8123");
         // ws.onopen = function(){ws.send("Test!"); };
 
