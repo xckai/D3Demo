@@ -481,13 +481,28 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
         })
         return find;
     },
+    _hasY1:function(){
+        var find  = false;
+        this.datas.forEach(function(d){
+            if(d.figureObj){
+                find =  !d.figureObj.y2 || find; 
+            }
+        })
+        return find;
+    },
     _getColor: function() {
         return colorManager.getColor();
     },
     _calculateMargin: function() {
         var $chart=this.$chart,width = $chart._figureWidth,height=$chart._figureHeight;
-        this._yTitleWidth = 20;
-        this._yAxisWidth = 40;
+        if(this._hasY1()){
+            this._yTitleWidth = 20;
+            this._yAxisWidth = 40;
+        }else{
+             this._yTitleWidth = 0;
+                this._yAxisWidth = 0;
+        }
+       
         this._figureWidth = Math.floor(width - this._yTitleWidth - this._yAxisWidth);
         if (this._hasY2()) {
             this._y2AxisWidth = 40;
@@ -535,7 +550,10 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
         if (this._hasY2()) {
             this.svg.y2TitleBar = this.svg.append("g").attr("transform", "translate(" + ($chart._figureWidth-this._y2TitleWidth) + "," + (this._titleHeight + this._figureHeight / 2) + ")").classed("titleBar", true).attr("text-anchor", "middle");
         }
-        this.svg.yTitleBar = this.svg.append("g").attr("transform", "translate(1," + (this._titleHeight + this._figureHeight / 2) + ")").classed("titleBar", true).attr("text-anchor", "middle");
+        if(this._hasY1()){
+            this.svg.yTitleBar = this.svg.append("g").attr("transform", "translate(1," + (this._titleHeight + this._figureHeight / 2) + ")").classed("titleBar", true).attr("text-anchor", "middle");
+        }
+        
         this.svg.titleBar = this.svg.append("g").attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth  + this._figureWidth / 2) + ",0)").attr("text-anchor", "middle");
         this.svg.xTitleBar = this.svg.append("g").attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth  + this._figureWidth / 2) + "," + ($chart._figureHeight) + ")").classed("titleBar", true).attr("text-anchor", "middle");
         this.zoom = d3.behavior.zoom()
@@ -583,17 +601,21 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
         this._xAxis.selectAll(".tick").selectAll("line").attr("fill","none").attr("stroke","black");
         this._xAxis.selectAll("path").attr("fill","none").attr("stroke","black");
         this._xAxis.selectAll(".tick").style("font-size","11px");
-        if (this._yAxis) this._yAxis.remove();
-        this._yAxis = this.svg.drawArea.y.append("svg:g")
-            .attr("class", "yaxis")
-            .call(d3.svg.axis().scale(this._getYScale()).orient("left"));
-   
-        this._yAxis.selectAll(".tick").selectAll("line").attr("fill","none").attr("stroke","black");
-        this._yAxis.selectAll("path").attr("fill","none").attr("stroke","black");
-        this._yAxis.selectAll(".tick").style("font-size","11px");
-        this._yAxis.selectAll("g")
-                .append("line").attr("x2", self._figureWidth).attr("x1", 0).attr("y1", 0).attr("y2", 0).attr("stroke-width", 1)
-                .attr("stroke", "black").attr("opacity", "0.2").attr("stroke-dasharray", "2,2").attr("class","yAxisGuideLine");
+        if(this._hasY1()){
+            if (this._yAxis) this._yAxis.remove();
+                    this._yAxis = this.svg.drawArea.y.append("svg:g")
+                        .attr("class", "yaxis")
+                        .call(d3.svg.axis().scale(this._getYScale()).orient("left"));
+            
+                    this._yAxis.selectAll(".tick").selectAll("line").attr("fill","none").attr("stroke","black");
+                    this._yAxis.selectAll("path").attr("fill","none").attr("stroke","black");
+                    this._yAxis.selectAll(".tick").style("font-size","11px");
+                    this._yAxis.selectAll("g")
+                            .append("line").attr("x2", self._figureWidth).attr("x1", 0).attr("y1", 0).attr("y2", 0).attr("stroke-width", 1)
+                            .attr("stroke", "black").attr("opacity", "0.2").attr("stroke-dasharray", "2,2").attr("class","yAxisGuideLine");
+
+        }
+        
         if (this._hasY2()) {
             if (this._y2Axis) this._y2Axis.remove();
             this._y2Axis = this.svg.drawArea.y.append("svg:g")
@@ -607,7 +629,8 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
     },
     _drawTitles: function() {
         this.svg.xTitleBar.append("text").text(this.xTitle).attr("dominant-baseline", "text-after-edge");
-        this.svg.yTitleBar.append("text").text(this.yTitle).attr("transform", "rotate(-90)").attr("dominant-baseline", "text-before-edge");
+        
+        if(this._hasY1()) this.svg.yTitleBar.append("text").text(this.yTitle).attr("transform", "rotate(-90)").attr("dominant-baseline", "text-before-edge");
         if (this._hasY2()) this.svg.y2TitleBar.append("text").text(this.y2Title).attr("transform", "rotate(-90)").attr("dominant-baseline", "text-before-edge");
         this.svg.titleBar.append("text").text(this.title).attr("dominant-baseline", "text-before-edge").classed("titleBar", true);
         this.svg.titleBar.append("text").text(this.secondTitle).attr("dominant-baseline", "text-before-edge").attr("dy", this._titleHeight / 2);

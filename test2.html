@@ -1,0 +1,134 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>D3 Test2</title>
+</head>
+<link rel="stylesheet" type="text/css" href="./SmartTrafficChart.css" />
+
+<body >
+    <!--<div id="chart" ></div>
+    <button onclick="addData('bar')">AddBar</button>
+    <button onclick="addData('line')">AddLine</button>
+     <button onclick="addData('area')">AddArea</button>
+    <button onclick="addData('dashline')">AddDashLine</button>
+    <button onclick="addData('boxplot')">AddBoxPlot</button>
+    <button onclick="capture()">Capture</button>
+    <div id="chart2" ></div>
+    <button onclick="addData2('bar')">AddBar</button>
+    <button onclick="addData2('line')">AddLine</button>
+    <button onclick="addData2('area')">AddArea</button>
+    <button onclick="addData2('dashline')">AddDashLine</button>
+    <button onclick="addData2('boxplot')">AddBoxPlot</button>
+    <div id="chart3" ></div>
+    <button onclick="addData3('bar')">AddBar</button>
+    <!--<button onclick="addData3('line')">AddLine</button>
+    <button onclick="addData3('area')">AddArea</button>
+    <button onclick="addData3('dashline')">AddDashLine</button>
+    <button onclick="addData3('boxplot')">AddBoxPlot</button>-->
+    <div id="chart4" ></div>
+    <button onclick="addData4()">AddRadar</button>
+     <button onclick="rendering4()">Rendering</button>
+    <button onclick="capture4()">Capture</button>
+    <script src="./lib/d3.js" charset="utf-8"></script>
+    <script src="./chart.js" charset="utf-8"></script>
+    <script>
+        function capture(){
+            c1.getPic();
+        }
+          function capture4(){
+            c4.getPic();
+        }
+        Array.prototype.unique = function(){
+            this.sort(function(v1,v2){return new Date(v1.time)- new Date(v2.time)});	//先排序
+            var res = [this[0]];
+            for(var i = 1; i < this.length; i++){
+                if(this[i].time !== res[res.length - 1].time){
+                    res.push(this[i]);
+                }
+            }
+            return res;
+        }
+        Array.prototype.numUnique = function(){
+            var res =[];
+            for(var i=0;i<this.length; ++i){
+                var val =this[i];
+                if(res.find(function(v){return  v.num == val.num})=== undefined){
+                    res.push(val);
+                }
+            }
+            return res;
+        }
+        Array.prototype.nameUnique = function(){
+            var res =[];
+            for(var i=0;i<this.length; ++i){
+                var val =this[i];
+                if(res.find(function(v){return  v.name == val.name})=== undefined){
+                    res.push(val);
+                }
+            }
+            return res;
+        }
+       
+ 
+   
+
+
+
+
+         var c4 = RadarChart.create({
+            "width": 1000,
+            "height": 800,
+            title: "Radar",
+            appendId:"chart4",
+            secondTitle: "二级标题测试",
+            type:"radar",
+            axis: [
+                    "time","w","e","i","g"
+                ]    
+            ,
+            radarValueFormater:function(v){
+               return  v.toFixed(2);
+            }
+        });
+
+   
+        function addData4() {
+            
+            var _d1={
+                      d0:100*Math.random(),
+                      d1:100*Math.random(),
+                      d2:100*Math.random(),
+                      d3:100*Math.random(),
+                      d4:100*Math.random()
+                };
+            var name = Math.floor(10 * Math.random());
+            var figure=new ChartFigure({
+                        name:name,
+                        id:name,
+                        data:_d1,
+                        
+                            type:"radar"
+                        
+                     });
+                    c4.addChartFigure(figure);
+        };
+        function rendering4(){
+            c4.rendering();
+        }
+        // var ws = new WebSocket("ws://127.0.0.1:8123");
+        // ws.onopen = function(){ws.send("Test!"); };
+
+        // ws.onmessage = function(evt){
+        //     console.log(evt.data);
+        //     var data = JSON.parse(evt.data);
+        //     _c.addFlowData("flow", {"x":data.time, "y": data.data},{"color":"blue"});
+        //     };
+
+        // ws.onclose = function(evt){console.log("WebSocketClosed!");};
+
+        // ws.onerror = function(evt){console.log("WebSocketError!");};
+    </script>
+</body>
+
+</html>
