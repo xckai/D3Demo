@@ -4,28 +4,23 @@
     <meta charset="utf-8">
     <title>D3 Test2</title>
 </head>
-<link rel="stylesheet" type="text/css" href="./SmartTrafficChart.css" />
+<link rel="stylesheet" type="text/css" href="./chart.css" />
 
 <body >
-    <!--<div id="chart" ></div>
+    <div id="chart" ></div>
     <button onclick="addData('bar')">AddBar</button>
     <button onclick="addData('line')">AddLine</button>
-     <button onclick="addData('area')">AddArea</button>
-    <button onclick="addData('dashline')">AddDashLine</button>
     <button onclick="addData('boxplot')">AddBoxPlot</button>
-    <button onclick="capture()">Capture</button>
+    <button onclick="rendering()">Rendering</button>
     <div id="chart2" ></div>
     <button onclick="addData2('bar')">AddBar</button>
     <button onclick="addData2('line')">AddLine</button>
-    <button onclick="addData2('area')">AddArea</button>
-    <button onclick="addData2('dashline')">AddDashLine</button>
     <button onclick="addData2('boxplot')">AddBoxPlot</button>
+     <button onclick="rendering2()">Rendering</button>
     <div id="chart3" ></div>
     <button onclick="addData3('bar')">AddBar</button>
-    <!--<button onclick="addData3('line')">AddLine</button>
-    <button onclick="addData3('area')">AddArea</button>
-    <button onclick="addData3('dashline')">AddDashLine</button>
-    <button onclick="addData3('boxplot')">AddBoxPlot</button>-->
+    <button onclick="addData3('boxplot')">AddBoxPlot</button>
+     <button onclick="rendering3()">Rendering</button>
     <div id="chart4" ></div>
     <button onclick="addData4()">AddRadar</button>
      <button onclick="rendering4()">Rendering</button>
@@ -70,12 +65,208 @@
             return res;
         }
        
- 
+ /////////////////////////////////
    
+  var c1 = CompareChart.create({
+            "width": 1000,
+            "height": 800,
+            title: "TimeSeries",
+            xType:"time",
+            xTitle:"x",
+            yTitle:"y",
+            xValueFormat:function(v){
+                return d3.time.format("%H:%M")(new Date(v));
+            },
+            showCustomeLine:true,
+            appendId:"chart"
+        });
+        function addData(type) {
+            var _data = [],_d1=[];_dataNumber=[];
+            for (var i = 0; i < 30; ++i) {
+                _data.push({
+                    time: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
+                    num: 100 + 100 * Math.random()+i
+                });
+                _dataNumber.push({
+                    x: 5 * Math.floor(60 * Math.random()) % 60,
+                    num: 100 + 100 * Math.random()+i
+                });
+                var d =100 + 100 * Math.random()+i;
 
-
-
-
+                _d1.push({
+                      time: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
+                      d0:d+10+10*Math.random(),
+                      d1:d+5+5*Math.random(),
+                      d2:d,
+                      d3:d+Math.random(),
+                      d4:d-10-5*Math.random(),
+                      d5:d-15-10*Math.random()
+                })
+            }
+             _data.push({
+                    time: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
+                    num: "N"
+                });
+            var name = Math.floor(10 * Math.random());
+            var chartFigure ;
+            if(type==="boxplot"){
+                chartFigure= new ChartFigure({
+                            id: name,
+                            "name": "name" + name,
+                            "data": _d1.unique(),
+                            type: type,
+                            y: "num",
+                            x:"time",
+                            legendIcon:"rect"
+                        }
+            );
+            }else{
+                chartFigure= new ChartFigure({
+                            id: name,
+                            "name": "name" + name,
+                            "data": _data.unique(),
+                            type: type,
+                            y: "num",
+                            x:"time",
+                            lineWidth:4,
+                            dashArray:"2,3"
+                        }
+            );
+            }
+           
+            c1.addChartFigure(chartFigure);
+        };
+        function rendering(){
+                c1.rendering();
+            }
+///////////////////////////
+ var c2 = CompareChart.create({
+            "width": 1000,
+            "height": 800,
+            title: "NumberSeries",
+            xType:"number",
+            xTitle:"x",
+            yTitle:"y",
+            xValueFormat:function(v){
+                return v.toFixed(2);
+            },
+            appendId:"chart2"
+        });
+        function addData2(type) {
+            var _data = [],_d1=[];_dataNumber=[];
+            for (var i = 0; i < 30; ++i) {
+                _data.push({
+                    num:  5 * Math.floor(60 * Math.random()) % 60,
+                    val: 100 + 100 * Math.random()+i
+                });
+                var d =100 + 100 * Math.random()+i;
+                _d1.push({
+                      num: 5 * Math.floor(60 * Math.random()) % 60,
+                      d0:d+10+10*Math.random(),
+                      d1:d+5+5*Math.random(),
+                      d2:d,
+                      d3:d+Math.random(),
+                      d4:d-10-5*Math.random(),
+                      d5:d-15-10*Math.random()
+                })
+            }
+             _data.push({
+                    num:  5 * Math.floor(60 * Math.random()) % 60,
+                    val: "N"
+                });
+            var name = Math.floor(10 * Math.random());
+            var chartFigure ;
+            if(type==="boxplot"){
+                chartFigure= new ChartFigure({
+                            id: name,
+                            name: "name" + name,
+                            data: _d1.numUnique(),
+                            type: type,
+                            x:"num"
+                        }
+            );
+            }else{
+                chartFigure= new ChartFigure({
+                            id: name,
+                            name: "name" + name,
+                            data: _data.numUnique(),
+                            type: type,
+                            y: "val",
+                            x:"num",
+                            lineWidth:4,
+                            dashArray:"2,3"
+                        }
+            );
+            }
+           
+            c2.addChartFigure(chartFigure);
+        };
+        function rendering2(){
+                c2.rendering();
+            }
+////////////////////////////
+ var c3 = CompareChart.create({
+            "width": 1000,
+            "height": 800,
+            title: "StringSeries",
+            xType:"string",
+            xTitle:"x",
+            yTitle:"y",
+            appendId:"chart3"
+        });
+        function addData3(type) {
+            var _data = [],_d1=[];_dataNumber=[];
+            for (var i = 0; i < 30; ++i) {
+                _data.push({
+                    name: "Name"+ 5 * Math.floor(60 * Math.random()) % 60,
+                    val: 100 + 100 * Math.random()+i
+                });
+                var d =100 + 100 * Math.random()+i;
+                _d1.push({
+                      name: 5 * Math.floor(60 * Math.random()) % 60,
+                      d0:d+10+10*Math.random(),
+                      d1:d+5+5*Math.random(),
+                      d2:d,
+                      d3:d+Math.random(),
+                      d4:d-10-5*Math.random(),
+                      d5:d-15-10*Math.random()
+                })
+            }
+             _data.push({
+                    name:  5 * Math.floor(60 * Math.random()) % 60,
+                    val: "N"
+                });
+            var name = Math.floor(10 * Math.random());
+            var chartFigure ;
+            if(type==="boxplot"){
+                chartFigure= new ChartFigure({
+                            id: name,
+                            name: "name" + name,
+                            data: _d1.nameUnique(),
+                            type: type,
+                            x:"name"
+                        }
+            );
+            }else{
+                chartFigure= new ChartFigure({
+                            id: name,
+                            name: "name" + name,
+                            data: _data.nameUnique(),
+                            type: type,
+                            y: "val",
+                            x:"name",
+                            lineWidth:4,
+                            dashArray:"2,3"
+                        }
+            );
+            }
+           
+            c3.addChartFigure(chartFigure);
+        };
+        function rendering3(){
+                c3.rendering();
+            }
+/////////////////////////
          var c4 = RadarChart.create({
             "width": 1000,
             "height": 800,
@@ -87,7 +278,7 @@
                     "time","w","e","i","g"
                 ]    
             ,
-            radarValueFormater:function(v){
+            valueFormater:function(v){
                return  v.toFixed(2);
             }
         });
@@ -107,9 +298,10 @@
                         name:name,
                         id:name,
                         data:_d1,
-                        
-                            type:"radar"
-                        
+                        type:"radar",
+                        valueFormater:function(v){
+                            return v.toFixed(3);
+                        }
                      });
                     c4.addChartFigure(figure);
         };

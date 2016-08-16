@@ -637,7 +637,6 @@ SmartTrafficTimeSeriesChart =  SmartTrafficChartClass.extend({
     },
     _drawEventRect: function() {
         var $figure = this;
-        if (this.svg.drawArea.eventRects) this.svg.drawArea.eventRects.remove();
         var self = this,
             set = this._getXset(),
             chart = this.svg.drawArea.figure,
