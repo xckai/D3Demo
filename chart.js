@@ -265,19 +265,15 @@ var RadarChart = SmartTrafficChartClass.extend({
         this.eventManager.on("deSelect",this.setSelectStyle,this)
         this.eventManager.on("legendmouseover",this.legendMouseOVer,this);
         this.eventManager.on("legendmouseout",this.legendMouseOut,this);
-        
-
     },
     calculateMargin:function(){
-        this._titleHeight =80;
-       
+        this._titleHeight =80; 
         if(this.showLegend){
             this._drawAreaWidth=Math.floor(this.width*0.8);
             this._legendWidth=Math.floor(this.width*0.2);
         }else{
             this._drawAreaWidth=this.width;
         }
-        
         this._drawAreaHeight=this.height-this._titleHeight;
     },
     initDraw:function(){
@@ -1041,24 +1037,27 @@ var CompareChart=SmartTrafficChartClass.extend({
         return this;
     },
     getXAxisHeight:function(){
-        if(this._figures.vals().length === 0) return 5;
-        var length =0,self =this;
-        this._figures.forEach(function(f){
-            f._d.forEach(function(d){
-                 if(self.xValueFormat){
-                       length=Math.max(length,self.xValueFormat(d.x).toString().length);
-                    }
-                else{
-                        length=Math.max(length,d.x.toString().length);
-                    }
+        return this.memory.cache("xAsisHeight",function(){
+            if(this._figures.vals().length === 0) return 5;
+            var length =0,self =this;
+            this._figures.forEach(function(f){
+                f._d.forEach(function(d){
+                    if(self.xValueFormat){
+                        length=Math.max(length,self.xValueFormat(d.x).toString().length);
+                        }
+                    else{
+                            length=Math.max(length,d.x.toString().length);
+                        }
+                })
             })
-        })
 
-        if(length>4)
-            return length * 8;
-        else{
-            return 25;
-        }
+            if(length>6)
+                return length * 8;
+            else{
+                return 25;
+            }
+        },this);
+        
     },
     drawTitle:function(){
         this.svg.title.selectAll("text").remove();
@@ -1165,7 +1164,7 @@ var CompareChart=SmartTrafficChartClass.extend({
             ctx.add("scales",this.getScale.bind(this));
             ctx.add("xcooridate",this.getXCoordinate());
             if(this.showToolTip){
-                var sharps = d3.selectAll(".event-comparechart-"+i);
+                var sharps = this.svg.selectAll(".event-comparechart-"+i);
                 var chartFigrues=[];
                 this.toolTip.setVisiable(false);
                 sharps.filter(function(d){
