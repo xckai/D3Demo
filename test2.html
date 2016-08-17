@@ -74,6 +74,7 @@
             xType:"time",
             xTitle:"x",
             yTitle:"y",
+            y2Title:"Y2",
             xValueFormat:function(v){
                 return d3.time.format("%m月 %d 日 %H:%M")(new Date(v));
             },
@@ -117,7 +118,13 @@
                             type: type,
                             y: "num",
                             x:"time",
-                            legendIcon:"rect"
+                            legendIcon:"rect",
+                            d0Label:"最大值",
+                            d1Label:"3/4分位值",
+                            d2Label:"中位数",
+                            d3Label:"平均值",
+                            d4Label:"1/4",
+                            d5Label:"最小值"
                         }
             );
             }else{
@@ -129,7 +136,8 @@
                             y: "num",
                             x:"time",
                             lineWidth:4,
-                            dashArray:"2,3"
+                            dashArray:"2,3",
+                            yLabel:"速度"
                         }
             );
             }
@@ -243,7 +251,13 @@
                             name: "name" + name,
                             data: _d1.nameUnique(),
                             type: type,
-                            x:"name"
+                            x:"name",
+                            d0Label:"最大值",
+                            d1Label:"3/4分位值",
+                            d2Label:"中位数",
+                            d3Label:"平均值",
+                            d4Label:"1/4",
+                            d5Label:"最小值"
                         }
             );
             }else{
@@ -302,6 +316,7 @@
                         valueFormater:function(v){
                             return v.toFixed(3);
                         }
+                        
                      });
                     c4.addMeasure(figure);
         };

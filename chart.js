@@ -221,7 +221,6 @@ var ChartToolTip=SmartTrafficChartClass.extend({
         if(this.toolTip) this.toolTip.html(content);
     },
     setPosition:function(x,y){
-        console.log(this.toolTip);
         var width =this.toolTip.node().offsetWidth;
         var height =this.toolTip.node().offsetHeight;
         var screenWidth=document.body.clientWidth || 800;
@@ -969,7 +968,13 @@ var CompareChart=SmartTrafficChartClass.extend({
                 .call(d3.svg.axis().scale(this.getScale("x")).orient("bottom").tickFormat(function(v){
                     if(Math.floor(v)!== Math.ceil(v)) return ;
                     if(v>-1 && v<Set.length)
+                    {
+                        if(this.xValueFormat){
+                            return this.xValueFormat(Set[v]);
+                        }
                         return Set[v];
+                    }
+                        
                 }).ticks([xtickNum]));
         }else{
             this._xAxis = this.svg.drawArea.append("svg:g")
@@ -1185,7 +1190,6 @@ var CompareChart=SmartTrafficChartClass.extend({
                         self.drawGuideLine(d);
                     });
                 if(chartFigrues.length>0){
-                    console.log(chartFigrues.length)
                     this.toolTip.setPosition(event.pageX , event.pageY);
                     this.toolTip.setContent(this.getToolTipContent(chartFigrues));
                     this.toolTip.setVisiable(true);
