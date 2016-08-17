@@ -45,7 +45,7 @@ var SmartTrafficChartClass = {
     },
     
 };
-var ChartFigure = function(config){
+var Measure = function(config){
         var self=this;
         Object.keys(config).forEach(function(k){
                 if(typeof config[k] ==="object"){
@@ -62,15 +62,15 @@ var ChartFigure = function(config){
             this.name = this.id;
         }
 };
-ChartFigure.setData=function(data){
+Measure.setData=function(data){
     this.data=data;
     return this;
 }
-ChartFigure.setColor=function(color){
+Measure.setColor=function(color){
     this.color = color;
     return this;
 }
-ChartFigure.setType=function(type){
+Measure.setType=function(type){
     this.type=type;
     return this;
 }
@@ -265,7 +265,7 @@ var RadarChart = SmartTrafficChartClass.extend({
         this.eventManager.on("select",this.setSelectStyle,this)
         this.eventManager.on("deSelect",this.setSelectStyle,this)
         this.eventManager.on("legendmouseover",this.legendMouseOVer,this);
-        this.eventManager.on("legendmouseout",this.showDetailMaxValue,this);
+        this.eventManager.on("legendmouseout",this.legendMouseOut,this);
         
 
     },
@@ -299,7 +299,7 @@ var RadarChart = SmartTrafficChartClass.extend({
             this.svg.drawArea.axis=this.svg.drawArea.selectAll("RadarChart-axis")
                                                     .append("svg:g").classed("RadarChart-axis",true);
             this.svg.drawArea.axisTicket= this.svg.drawArea.selectAll(".RadarChart-axis-tick")
-                                                                                .append("svg:g").classed("RadarChart-axis-tick",true);
+                                                                           .append("svg:g").classed("RadarChart-axis-tick",true);
             this.svg.drawArea.axisLabel= this.svg.drawArea.selectAll(".RadarChart-axis-label")
                                                                            .append("svg:g").classed("RadarChart-axis-label",true);  
             if(this.showLegend)   {
@@ -316,11 +316,11 @@ var RadarChart = SmartTrafficChartClass.extend({
     validateConfig:function(){
         return true;
     },
-    addChartFigure:function(_chartFigure){
+    addMeasure:function(_measure){
         var figureObj;
-        if(_chartFigure.type==="radar"){
-            figureObj=Radar.create(_chartFigure);
-            this.attachChartFigure(figureObj);
+        if(_measure.type==="radar"){
+            figureObj=Radar.create(_measure);
+            this.attachMeasure(figureObj);
             this._figures.add(figureObj);
             if(this.isInitDraw) this.reDraw();
             return true;
@@ -330,10 +330,10 @@ var RadarChart = SmartTrafficChartClass.extend({
         }
         
     },
-    attachChartFigure:function(_chartFigure){
-        _chartFigure.color=_chartFigure.color||this.colorManager.getColor();
-        _chartFigure.eventManager=this.eventManager;
-        _chartFigure.$chart=this;
+    attachMeasure:function(_measure){
+        _measure.color=_measure.color||this.colorManager.getColor();
+        _measure.eventManager=this.eventManager;
+        _measure.$chart=this;
     },
     rendering:function(){
         if(this.isInitDraw){
@@ -351,7 +351,7 @@ var RadarChart = SmartTrafficChartClass.extend({
         
     },
     draw:function(){
-        this.drawTitle().drawAxis().drawAxisLabel().drawAxisTicket().drawLegend().drawChartFigure().showDetailMaxValue();
+        this.drawTitle().drawAxis().drawAxisLabel().drawAxisTicket().drawLegend().drawMeasure().showDetailMaxValue();
     },
     drawTitle:function(){
         this.svg.title.append('svg:text').text(this.title)
@@ -410,7 +410,7 @@ var RadarChart = SmartTrafficChartClass.extend({
         }
         return this;
     },
-    drawChartFigure:function(){
+    drawMeasure:function(){
         var ctx = new context();
         ctx.add("svg",this.svg.drawArea).add("scales",this.getScale.bind(this)).add("coordinate",this.getCoordinate.bind(this));
         this._figures.forEach(function(v){
@@ -478,16 +478,16 @@ var RadarChart = SmartTrafficChartClass.extend({
         }
         this._figures.forEach(function(f){
             if(hasSelect){
-                    if(f.legendDom)  f.legendDom.classed("notSelected", !f.isSelected);
+                    if(f.legendDom)  f.legendDom.classed("legendNotSelected", !f.isSelected);
                     if(f.isSelected){
-                            f.figureDom.style("visibility","visible");
+                            f.figureDom.classed("radarNotSelect",false);
                             
                         }else{
-                            f.figureDom.style("visibility","hidden");
+                            f.figureDom.classed("radarNotSelect",true);
                         }
             }else{
-                f.figureDom.style("visibility","visible");
-                if(f.legendDom)  f.legendDom.classed("notSelected", false);
+                f.figureDom.classed("radarNotSelect",false);
+                if(f.legendDom)  f.legendDom.classed("legendNotSelected", false);
             }
            
         });
@@ -546,7 +546,7 @@ var RadarChart = SmartTrafficChartClass.extend({
             d.type=c._figureObj.type;
             d.data=c._figureObj._d;
             d.color=c._figureObj.color;
-            d.ChartFigure=c._figureObj;
+            d.Measure=c._figureObj;
             d.i=c.i;
             return d;
         });
@@ -558,7 +558,7 @@ var RadarChart = SmartTrafficChartClass.extend({
                 datas.forEach(function(data) {
                     var ctx=new context();
                     ctx.add("i",data.i);
-                    text += data.ChartFigure.toHtml(ctx);
+                    text += data.Measure.toHtml(ctx);
                 });
                 return text += "</tbody><table>";
         }
@@ -643,7 +643,18 @@ var RadarChart = SmartTrafficChartClass.extend({
                     datas.push({i:i,data:d._d[key]});
                 }
             });
+            this._figures.forEach(function(f){
+                if(f.id !==  d.id){
+                    f.figureDom.classed("radarNotSelect",true);
+                }else{
+                    f.figureDom.classed("radarNotSelect",false);
+                }
+            })
             this.showDetailValue(datas);
+      },
+      legendMouseOut:function(d){
+          this.showDetailMaxValue();
+          this.setSelectStyle();
       }
 })
 
@@ -761,12 +772,13 @@ var Legend=SmartTrafficChartClass.extend({
                                     .attr("dominant-baseline", "middle");
             d.legendDom=g;
             g.on("mouseover", function(d) {
-                d3.select(this).select("rect").attr("fill", "rgb(240,240,240)");
+                d3.select(this).select("rect").classed("legendMouseOver",true);
                 self.eventManager.call("legendmouseover", d);
             })
             .on("mouseout", function(d) {
+                d3.select(this).select("rect").classed("legendMouseOver",false);
                 self.eventManager.call( "legendmouseout", d);
-                d3.select(this).select("rect").attr("fill", "transparent");
+               
             });
             g.on("click", function() {
             if (d.isSelected) {
@@ -804,6 +816,11 @@ var CompareChart=SmartTrafficChartClass.extend({
         })
         this.yLabel=this.yLabel||this.yTitle;
         this.y2Label=this.y2Label || this.y2Title;
+        this.registerEvent();
+    },
+    registerEvent:function(){
+        this.eventManager.on("select",this.setSelectStyle,this)
+        this.eventManager.on("deSelect",this.setSelectStyle,this)
     },
     calculateMargin:function(){
         this._titleHeight=80;
@@ -831,7 +848,7 @@ var CompareChart=SmartTrafficChartClass.extend({
             this._y2AxisWidth =0;
             this._y2TitleWidth=0;   
         }
-        this._xTitleHeight=40;
+        this._xTitleHeight=20;
         this._xAxisHeight=25;
         this._figureHeight=this._drawAreaHeight - this._xTitleHeight -this._xAxisHeight;
         this._figureWidth = this._drawAreaWidth - this._y2AxisWidth - this._y2TitleWidth -this._yAxisWidth - this._yTitleWidth;
@@ -840,25 +857,25 @@ var CompareChart=SmartTrafficChartClass.extend({
     validateConfig:function(){
         return true;
     },
-    addChartFigure:function(_chartFigure){
+    addMeasure:function(_measure){
         var figureObj;
-        switch(_chartFigure.type){
+        switch(_measure.type){
             case "line":
-                figureObj=Line.create(_chartFigure);
-                this.attachChartFigure(figureObj);
-                this._figures.add(this.preHandleChartFigure(figureObj));
+                figureObj=Line.create(_measure);
+                this.attachMeasure(figureObj);
+                this._figures.add(this.preHandleMeasure(figureObj));
                 if(this.isInitDraw) this.reDraw();
                 return true;
             case "bar":
-                figureObj=Bar.create(_chartFigure);
-                this.attachChartFigure(figureObj);
-                this._figures.add(this.preHandleChartFigure(figureObj));
+                figureObj=Bar.create(_measure);
+                this.attachMeasure(figureObj);
+                this._figures.add(this.preHandleMeasure(figureObj));
                 if(this.isInitDraw) this.reDraw();
                 return true;
             case "boxplot":
-                figureObj=BoxPlot.create(_chartFigure);
-                this.attachChartFigure(figureObj);
-                this._figures.add(this.preHandleChartFigure(figureObj));
+                figureObj=BoxPlot.create(_measure);
+                this.attachMeasure(figureObj);
+                this._figures.add(this.preHandleMeasure(figureObj));
                 if(this.isInitDraw) this.reDraw();
                 return true;
             default:
@@ -866,12 +883,12 @@ var CompareChart=SmartTrafficChartClass.extend({
                 return false;
         }
     },
-    attachChartFigure:function(_chartFigure){
-        _chartFigure.color=_chartFigure.color||this.colorManager.getColor();
-        _chartFigure.eventManager=this.eventManager;
-        _chartFigure.$chart=this;
+    attachMeasure:function(_measure){
+        _measure.color=_measure.color||this.colorManager.getColor();
+        _measure.eventManager=this.eventManager;
+        _measure.$chart=this;
     },
-    preHandleChartFigure:function(obj){
+    preHandleMeasure:function(obj){
         var self = this;
         obj._d.forEach(function(d) {
                 if(self.xType ==="time"){
@@ -903,7 +920,7 @@ var CompareChart=SmartTrafficChartClass.extend({
                                                         .attr("width", this.width)
                                                         .attr("height",this.height);
             this.svg.append("defs").append("clipPath")
-                .attr("id", "clip")
+                .attr("id", this.appendId+"clip")
                 .append("rect")
                 .attr("width", this._figureWidth)
                 .attr("height", this._figureHeight);
@@ -913,7 +930,7 @@ var CompareChart=SmartTrafficChartClass.extend({
                                         .attr("transform","translate(0,"+this._titleHeight+")"); 
             this.svg.drawArea.figureArea=this.svg.drawArea.append("svg:g").classed("CompareChart-figure",true)
                                           .attr("transform","translate("+(this._yTitleWidth+this._yAxisWidth)+",0)")
-                                          .attr("clip-path", "url(#clip)");
+                                          .attr("clip-path", "url(#"+this.appendId+"clip)");
             this.svg.drawArea.figureRect=this.svg.drawArea.figureArea
                                           .append("svg:rect")
                                           .attr("width", this._figureWidth)
@@ -931,13 +948,13 @@ var CompareChart=SmartTrafficChartClass.extend({
                 .scaleExtent([0.5, 8])
                 .on("zoom", self.zoomFunction.bind(self));
             this.svg.drawArea.call(this.zoom).on("dblclick.zoom", null);
-            this.svg.drawArea.on("click",self.getLinePosition.bind(this));
+            this.svg.drawArea.figureArea.on("click",self.getLinePosition.bind(this));
             this.isInitDraw=true;                                     
         }
         return this;
     },
     draw:function(){
-        this.drawTitle().drawAxis().drawYTicketLine().drawChartFigure().drawLegend().drawEventZone();
+        this.drawTitle().drawAxis().drawYTicketLine().drawMeasure().drawLegend().drawEventZone();
     },
     drawAxis:function(){
         var self = this;
@@ -946,7 +963,7 @@ var CompareChart=SmartTrafficChartClass.extend({
             var ticksValues=[] , Set = self.getXset();
             for(var i =0 ;i <Set.length;++i) ticksValues.push(i);
             this._xAxis = this.svg.drawArea.append("svg:g")
-                .attr("transform", "translate("+(this._yTitleWidth+this._y2AxisWidth)+"," + (this._drawAreaHeight-this._xTitleHeight-this._xAxisHeight) + ")")
+                .attr("transform", "translate("+(this._yTitleWidth+this._yAxisWidth)+"," + (this._drawAreaHeight-this._xTitleHeight-this._xAxisHeight) + ")")
                 .attr("class", "CompareChart-xaxis")
                 .call(d3.svg.axis().scale(this.getScale("x")).orient("bottom").tickFormat(function(v){
                     if(Math.floor(v)!== Math.ceil(v)) return ;
@@ -974,7 +991,7 @@ var CompareChart=SmartTrafficChartClass.extend({
             if (this._y2Axis) this._y2Axis.remove();
             this._y2Axis = this.svg.drawArea.append("svg:g")
                 .attr("class", "CompareChart-y2axis")
-                .attr("transform", "translate(" + this._figureWidth + ",0)")
+                .attr("transform", "translate(" + (this._figureWidth+this._yTitleWidth+this._yAxisWidth) + ",0)")
                 .call(d3.svg.axis().scale(this.getScale("y2")).orient("right"));
         }
         
@@ -1001,7 +1018,7 @@ var CompareChart=SmartTrafficChartClass.extend({
                 }
                 else if(this.hasY2()){
                 this._ticketLine=this._y2Axis.selectAll("g")
-                                .append("line").attr("x2", self._figureWidth).attr("x1", 0).attr("y1", 0).attr("y2", 0).attr("stroke-width", 1)
+                                .append("line").attr("x2", -self._figureWidth).attr("x1", 0).attr("y1", 0).attr("y2", 0).attr("stroke-width", 1)
                                 .attr("stroke", "black").attr("opacity", "0.2").attr("stroke-dasharray", "2,2");
                 }
           }
@@ -1009,11 +1026,12 @@ var CompareChart=SmartTrafficChartClass.extend({
         return this;
     },
     drawTitle:function(){
+        this.svg.title.selectAll("text").remove();
         this.svg.title.append("text").text(this.title).attr("text-anchor", "middle")
                                             .attr("font-size","22px")
                                             .attr("dominant-baseline", "text-before-edge");
         if(this.hasY1()){
-            this.svg.drawArea.append("g").attr("transform", "translate(1," + (this._titleHeight + this._figureHeight / 2) + ")")
+            this.svg.drawArea.append("g").attr("transform", "translate(1," + ( this._figureHeight / 2) + ")")
             .classed("CompareChart-yTitleBar", true)
             .attr("text-anchor", "middle")
             .append("text").text(this.yTitle)
@@ -1021,7 +1039,7 @@ var CompareChart=SmartTrafficChartClass.extend({
             .attr("dominant-baseline", "text-before-edge");
         }
         if(this.hasY2()){
-             this.svg.drawArea.append("g").attr("transform", "translate(" + (this._figureWidth-this._yTitleWidth) + "," + (this._titleHeight + this._figureHeight / 2) + ")")
+             this.svg.drawArea.append("g").attr("transform", "translate(" + (this._figureWidth-this._yTitleWidth) + "," + ( this._figureHeight / 2) + ")")
              .classed("CompareChart-y2TitleBar", true).attr("text-anchor", "middle")
              .append("text").text(this.y2Title)
              .attr("transform", "rotate(-90)")
@@ -1042,7 +1060,7 @@ var CompareChart=SmartTrafficChartClass.extend({
         }
         return this;
     },
-    drawChartFigure:function(){
+    drawMeasure:function(){
         var ctx = new context();
         var self =this;
         ctx.add("svg",this.svg.drawArea.figureArea)
@@ -1116,8 +1134,21 @@ var CompareChart=SmartTrafficChartClass.extend({
                 var chartFigrues=[];
                 this.toolTip.setVisiable(false);
                 sharps.filter(function(d){
-                    //var ctx =new context();
-                   // ctx.add("svg",self.svg.drawArea.figureArea).add("sharp",this);
+                    //only show selected item
+                    var isAllSelect = true,hasSelect=false;
+                    self._figures.forEach(function(f){
+                        if(f.isSelected) {hasSelect=true}
+                        else {isAllSelect=false}
+                    })
+                    if(isAllSelect){
+                        self._figures.forEach(function(f){
+                            f.isSelected = false;
+                        })
+                        hasSelect=false;
+                    }
+                    return (!hasSelect || d._figureObj.isSelected);
+                }).filter(function(d){
+                    //show insharp item
                     return d._figureObj.isInSharp(self.svg.drawArea.figureArea,this,ctx);
                     }).each(function(d){
                         chartFigrues.push(d);
@@ -1139,7 +1170,7 @@ var CompareChart=SmartTrafficChartClass.extend({
             d.type=c._figureObj.type;
             d.data=c;
             d.color=c._figureObj.color;
-            d.ChartFigure=c._figureObj;
+            d.Measure=c._figureObj;
             return d;
         });
         
@@ -1151,7 +1182,7 @@ var CompareChart=SmartTrafficChartClass.extend({
                 datas.forEach(function(d) {
                     var ctx=new context();
                     ctx.add("d",d.data);
-                    text += d.ChartFigure.toHtml(ctx);
+                    text += d.Measure.toHtml(ctx);
                 });
                 return text += "</tbody><table>";
         }
@@ -1244,10 +1275,10 @@ var CompareChart=SmartTrafficChartClass.extend({
         }
         if(key ==="y" || key ==="y2"){
             return this.memory.cache(key+"scale",function(key){
-                var span = (this.getMaxData(key) - this.getMinData(key)) / 10;
+                var span = (this.getMaxData(key) - this.getMinData(key)) / 12;
                 return  d3.scale.linear()
                         .range([0, this._figureHeight])
-                        .domain([this.getMaxData(key) + span, this.getMinData(key) - 3 * span]);
+                        .domain([this.getMaxData(key) + span, this.getMinData(key) - span]);
             },this,arguments);
         }
     },
@@ -1266,24 +1297,29 @@ var CompareChart=SmartTrafficChartClass.extend({
             },this);
     },
     getMaxData:function(key){
-        var datas= this._figures;
-        var _num = Number.MIN_VALUE;
-        datas.forEach(function(d){
-            if(d.getMax){
-                _num=Math.max(d.getMax(key),_num);
-            }
-        })
-        return _num;
+        return this.memory.cache("max"+key,function(key){
+            var datas= this._figures;
+            var _num = Number.MIN_VALUE;
+            datas.forEach(function(d){
+                if(d.getMax()!== null){
+                    _num=Math.max(d.getMax(key),_num);
+                }
+            })
+            return _num;
+        },this,arguments)
+       
     },
     getMinData:function(key){
-        var datas =this._figures;
-        var _num =Number.MAX_VALUE;
-        datas.forEach(function(d){
-            if(d.getMin){
-                _num=Math.min(d.getMin(key),_num);
-            }
-        })
-        return _num;
+        return this.memory.cache("min"+key,function(key){
+            var datas =this._figures;
+            var _num =Number.MAX_VALUE;
+            datas.forEach(function(d){
+                if(d.getMin(key)!== null){
+                    _num=Math.min(d.getMin(key),_num);
+                }
+            })
+            return _num;
+        },this,arguments);
     },
     zoomFunction:function(){
         var max,min;
@@ -1301,18 +1337,18 @@ var CompareChart=SmartTrafficChartClass.extend({
                                         .attr("transform","translate(0,"+this._titleHeight+")");  
         this.svg.drawArea.figureArea=this.svg.drawArea.append("svg:g").classed("CompareChart-figure",true)
                                           .attr("transform","translate("+(this._yTitleWidth+this._yAxisWidth)+",0)")
-                                          .attr("clip-path", "url(#clip)");
+                                          .attr("clip-path", "url(#"+this.appendId+"clip)");
         this.svg.drawArea.figureRect=this.svg.drawArea.figureArea
                                           .append("svg:rect")
                                           .attr("width", this._figureWidth)
                                           .attr("height", this._figureHeight)
                                           .attr("fill-opacity", 0);
         this.svg.drawArea.call(this.zoom).on("dblclick.zoom", null);
-        this.svg.drawArea.on("click",self.getLinePosition.bind(this));
+        this.svg.drawArea.figureArea.on("click",self.getLinePosition.bind(this));
         if(!this.p2){
             this.p1=null;
         }
-        this.drawAxis().drawYTicketLine().drawChartFigure().drawEventZone();
+        this.drawAxis().drawYTicketLine().drawTitle().drawMeasure().drawEventZone().setSelectStyle();
         this.drawCustomeLine(this.p1,this.p2);
     },
     drawGuideLine:function(point){
@@ -1463,6 +1499,36 @@ var CompareChart=SmartTrafficChartClass.extend({
                                                 .attr("stroke-width", 2)
                                                 .attr("stroke-dasharray", "3,3");
         }
+    },
+    setSelectStyle:function(){
+        var isAllSelect = true,hasSelect=false;
+        this._figures.forEach(function(f){
+            if(f.isSelected) {hasSelect=true}
+            else {isAllSelect=false}
+        })
+        if(isAllSelect){
+            this._figures.forEach(function(f){
+                f.isSelected = false;
+            })
+            hasSelect=false;
+        }
+        this._figures.forEach(function(f){
+            if(hasSelect){
+                    if(f.legendDom)  f.legendDom.classed("legendNotSelected", !f.isSelected);
+                    if(f.isSelected){
+                            f.figureDom.classed("compareChartNotSelected",false);
+                            
+                        }else{
+                            f.figureDom.classed("compareChartNotSelected",true);
+                        }
+            }else{
+                f.figureDom.classed("compareChartNotSelected",false);
+                if(f.legendDom)  f.legendDom.classed("legendNotSelected", false);
+            }
+           
+        });
+      
+        return this;
     }
 })
 var Line=SmartTrafficChartClass.extend({
@@ -1588,7 +1654,6 @@ var Line=SmartTrafficChartClass.extend({
     isInSharp: function(svg,_sharp) {
         
         _sharp=d3.select(_sharp);
-     
         if (_sharp.node().nodeName === "circle") {
             var mouse = d3.mouse(svg.node());
 

@@ -52,3 +52,15 @@
   height: 10px;
   margin-right: 6px;
 }
+.legendNotSelected{
+ opacity: 0.2 !important;
+}
+.compareChartNotSelected{
+    opacity:0.2
+}
+.radarNotSelect{
+    opacity:0.2
+}
+.legendMouseOver{
+    fill:rgb(240,240,240)
+}

@@ -110,7 +110,7 @@
             var name = Math.floor(10 * Math.random());
             var chartFigure ;
             if(type==="boxplot"){
-                chartFigure= new ChartFigure({
+                chartFigure= new Measure({
                             id: name,
                             "name": "name" + name,
                             "data": _d1.unique(),
@@ -121,7 +121,7 @@
                         }
             );
             }else{
-                chartFigure= new ChartFigure({
+                chartFigure= new Measure({
                             id: name,
                             "name": "name" + name,
                             "data": _data.unique(),
@@ -134,7 +134,7 @@
             );
             }
            
-            c1.addChartFigure(chartFigure);
+            c1.addMeasure(chartFigure);
         };
         function rendering(){
                 c1.rendering();
@@ -177,7 +177,7 @@
             var name = Math.floor(10 * Math.random());
             var chartFigure ;
             if(type==="boxplot"){
-                chartFigure= new ChartFigure({
+                chartFigure= new Measure({
                             id: name,
                             name: "name" + name,
                             data: _d1.numUnique(),
@@ -186,20 +186,18 @@
                         }
             );
             }else{
-                chartFigure= new ChartFigure({
+                chartFigure= new Measure({
                             id: name,
                             name: "name" + name,
                             data: _data.numUnique(),
                             type: type,
                             y: "val",
-                            x:"num",
-                            lineWidth:4,
-                            dashArray:"2,3"
+                            x:"num"
                         }
             );
             }
            
-            c2.addChartFigure(chartFigure);
+            c2.addMeasure(chartFigure);
         };
         function rendering2(){
                 c2.rendering();
@@ -212,14 +210,15 @@
             xType:"string",
             xTitle:"x",
             yTitle:"y",
-            appendId:"chart3"
+            appendId:"chart3",
+            showLegend:false
         });
         function addData3(type) {
             var _data = [],_d1=[];_dataNumber=[];
             for (var i = 0; i < 30; ++i) {
                 _data.push({
                     name: "Name"+ 5 * Math.floor(60 * Math.random()) % 60,
-                    val: 100 + 100 * Math.random()+i
+                    val: 1000 + 100 * Math.random()+i
                 });
                 var d =100 + 100 * Math.random()+i;
                 _d1.push({
@@ -239,7 +238,7 @@
             var name = Math.floor(10 * Math.random());
             var chartFigure ;
             if(type==="boxplot"){
-                chartFigure= new ChartFigure({
+                chartFigure= new Measure({
                             id: name,
                             name: "name" + name,
                             data: _d1.nameUnique(),
@@ -248,20 +247,21 @@
                         }
             );
             }else{
-                chartFigure= new ChartFigure({
+                chartFigure= new Measure({
                             id: name,
                             name: "name" + name,
                             data: _data.nameUnique(),
                             type: type,
                             y: "val",
                             x:"name",
+                            ref:"y2",
                             lineWidth:4,
                             dashArray:"2,3"
                         }
             );
             }
            
-            c3.addChartFigure(chartFigure);
+            c3.addMeasure(chartFigure);
         };
         function rendering3(){
                 c3.rendering();
@@ -294,7 +294,7 @@
                       d4:100*Math.random()
                 };
             var name = Math.floor(10 * Math.random());
-            var figure=new ChartFigure({
+            var figure=new Measure({
                         name:name,
                         id:name,
                         data:_d1,
@@ -303,7 +303,7 @@
                             return v.toFixed(3);
                         }
                      });
-                    c4.addChartFigure(figure);
+                    c4.addMeasure(figure);
         };
         function rendering4(){
             c4.rendering();
