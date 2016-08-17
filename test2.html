@@ -75,9 +75,9 @@
             xTitle:"x",
             yTitle:"y",
             xValueFormat:function(v){
-                return d3.time.format("%H:%M")(new Date(v));
+                return d3.time.format("%m月 %d 日 %H:%M")(new Date(v));
             },
-            showCustomeLine:true,
+            showCustomLine:true,
             appendId:"chart"
         });
         function addData(type) {
@@ -108,9 +108,9 @@
                     num: "N"
                 });
             var name = Math.floor(10 * Math.random());
-            var chartFigure ;
+            var measure ;
             if(type==="boxplot"){
-                chartFigure= new Measure({
+                measure= new Measure({
                             id: name,
                             "name": "name" + name,
                             "data": _d1.unique(),
@@ -121,7 +121,7 @@
                         }
             );
             }else{
-                chartFigure= new Measure({
+                measure= new Measure({
                             id: name,
                             "name": "name" + name,
                             "data": _data.unique(),
@@ -134,7 +134,7 @@
             );
             }
            
-            c1.addMeasure(chartFigure);
+            c1.addMeasure(measure);
         };
         function rendering(){
                 c1.rendering();
@@ -175,9 +175,9 @@
                     val: "N"
                 });
             var name = Math.floor(10 * Math.random());
-            var chartFigure ;
+            var measure ;
             if(type==="boxplot"){
-                chartFigure= new Measure({
+                measure= new Measure({
                             id: name,
                             name: "name" + name,
                             data: _d1.numUnique(),
@@ -186,7 +186,7 @@
                         }
             );
             }else{
-                chartFigure= new Measure({
+                measure= new Measure({
                             id: name,
                             name: "name" + name,
                             data: _data.numUnique(),
@@ -197,7 +197,7 @@
             );
             }
            
-            c2.addMeasure(chartFigure);
+            c2.addMeasure(measure);
         };
         function rendering2(){
                 c2.rendering();
@@ -236,9 +236,9 @@
                     val: "N"
                 });
             var name = Math.floor(10 * Math.random());
-            var chartFigure ;
+            var measure ;
             if(type==="boxplot"){
-                chartFigure= new Measure({
+                measure= new Measure({
                             id: name,
                             name: "name" + name,
                             data: _d1.nameUnique(),
@@ -247,7 +247,7 @@
                         }
             );
             }else{
-                chartFigure= new Measure({
+                measure= new Measure({
                             id: name,
                             name: "name" + name,
                             data: _data.nameUnique(),
@@ -261,7 +261,7 @@
             );
             }
            
-            c3.addMeasure(chartFigure);
+            c3.addMeasure(measure);
         };
         function rendering3(){
                 c3.rendering();

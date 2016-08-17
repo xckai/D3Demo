@@ -849,7 +849,7 @@ var CompareChart=SmartTrafficChartClass.extend({
             this._y2TitleWidth=0;   
         }
         this._xTitleHeight=20;
-        this._xAxisHeight=25;
+        this._xAxisHeight=this.getXAxisHeight();
         this._figureHeight=this._drawAreaHeight - this._xTitleHeight -this._xAxisHeight;
         this._figureWidth = this._drawAreaWidth - this._y2AxisWidth - this._y2TitleWidth -this._yAxisWidth - this._yTitleWidth;
         return this;
@@ -958,6 +958,7 @@ var CompareChart=SmartTrafficChartClass.extend({
     },
     drawAxis:function(){
         var self = this;
+        var xtickNum = Math.floor(this._figureWidth/70);
         if(this._xAxis) this._xAxis.remove();
         if(this.xType ==="string"){
             var ticksValues=[] , Set = self.getXset();
@@ -969,12 +970,12 @@ var CompareChart=SmartTrafficChartClass.extend({
                     if(Math.floor(v)!== Math.ceil(v)) return ;
                     if(v>-1 && v<Set.length)
                         return Set[v];
-                }));
+                }).ticks([xtickNum]));
         }else{
             this._xAxis = this.svg.drawArea.append("svg:g")
                 .attr("transform", "translate("+(this._yTitleWidth+this._yAxisWidth)+"," + (this._drawAreaHeight-this._xTitleHeight-this._xAxisHeight) + ")")
                 .attr("class", "CompareChart-xaxis")
-                .call(d3.svg.axis().scale(this.getScale("x")).orient("bottom").tickFormat(this.xValueFormat));
+                .call(d3.svg.axis().scale(this.getScale("x")).orient("bottom").tickFormat(this.xValueFormat).ticks([xtickNum]));
         }
 
         /////draw y1
@@ -994,6 +995,15 @@ var CompareChart=SmartTrafficChartClass.extend({
                 .attr("transform", "translate(" + (this._figureWidth+this._yTitleWidth+this._yAxisWidth) + ",0)")
                 .call(d3.svg.axis().scale(this.getScale("y2")).orient("right"));
         }
+        if(this._xAxisHeight > 25){
+            this._xAxis.selectAll("text").style("text-anchor", "end")
+                .attr("dx", "-4")
+                .attr("dy", "8")
+                .attr("transform", function(d) {
+                    return "rotate(-45)" 
+                    });
+        }
+        
         
         return this;
     },
@@ -1025,6 +1035,26 @@ var CompareChart=SmartTrafficChartClass.extend({
         }
         return this;
     },
+    getXAxisHeight:function(){
+        if(this._figures.vals().length === 0) return 5;
+        var length =0,self =this;
+        this._figures.forEach(function(f){
+            f._d.forEach(function(d){
+                 if(self.xValueFormat){
+                       length=Math.max(length,self.xValueFormat(d.x).toString().length);
+                    }
+                else{
+                        length=Math.max(length,d.x.toString().length);
+                    }
+            })
+        })
+
+        if(length>4)
+            return length * 8;
+        else{
+            return 25;
+        }
+    },
     drawTitle:function(){
         this.svg.title.selectAll("text").remove();
         this.svg.title.append("text").text(this.title).attr("text-anchor", "middle")
@@ -1045,11 +1075,11 @@ var CompareChart=SmartTrafficChartClass.extend({
              .attr("transform", "rotate(-90)")
              .attr("dominant-baseline", "text-before-edge");
         }
-        this.svg.drawArea.append("g").attr("transform", "translate(" + (this._drawAreaWidth / 2) + "," + (this._drawAreaHeight) + ")")
+        this.svg.drawArea.append("g").attr("transform", "translate(" + (this._drawAreaWidth / 2) + "," + (this._drawAreaHeight-this._xTitleHeight) + ")")
             .classed("CompareChart-xTitleBar", true).attr("text-anchor", "middle")
             .append("text")
             .text(this.xTitle)
-            .attr("dominant-baseline", "text-after-edge");
+            .attr("dominant-baseline", "text-before-edge");
         return this;
     },
     drawLegend:function(){
@@ -1415,7 +1445,7 @@ var CompareChart=SmartTrafficChartClass.extend({
         }
     },
     getLinePosition:function(){
-        if(!this.showCustomeLine) return;
+        if(!this.showCustomLine) return;
         if(d3.event.defaultPrevented) return;
         if(this.p1 &&  this.p2)
         {
