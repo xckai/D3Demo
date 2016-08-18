@@ -67,7 +67,7 @@
        
  /////////////////////////////////
    
-  var c1 = CompareChart.create({
+  var c1 = SmartCompareChart.create({
             "width": 1000,
             "height": 800,
             title: "TimeSeries",
@@ -111,7 +111,7 @@
             var name = Math.floor(10 * Math.random());
             var measure ;
             if(type==="boxplot"){
-                measure= new Measure({
+                measure= new SmartMeasure({
                             id: name,
                             "name": "name" + name,
                             "data": _d1.unique(),
@@ -128,7 +128,7 @@
                         }
             );
             }else{
-                measure= new Measure({
+                measure= new SmartMeasure({
                             id: name,
                             "name": "name" + name,
                             "data": _data.unique(),
@@ -148,7 +148,7 @@
                 c1.rendering();
             }
 ///////////////////////////
- var c2 = CompareChart.create({
+ var c2 = SmartCompareChart.create({
             "width": 1000,
             "height": 800,
             title: "NumberSeries",
@@ -185,7 +185,7 @@
             var name = Math.floor(10 * Math.random());
             var measure ;
             if(type==="boxplot"){
-                measure= new Measure({
+                measure= new SmartMeasure({
                             id: name,
                             name: "name" + name,
                             data: _d1.numUnique(),
@@ -194,7 +194,7 @@
                         }
             );
             }else{
-                measure= new Measure({
+                measure= new SmartMeasure({
                             id: name,
                             name: "name" + name,
                             data: _data.numUnique(),
@@ -211,7 +211,7 @@
                 c2.rendering();
             }
 ////////////////////////////
- var c3 = CompareChart.create({
+ var c3 = SmartCompareChart.create({
             "width": 1000,
             "height": 800,
             title: "StringSeries",
@@ -246,7 +246,7 @@
             var name = Math.floor(10 * Math.random());
             var measure ;
             if(type==="boxplot"){
-                measure= new Measure({
+                measure= new SmartMeasure({
                             id: name,
                             name: "name" + name,
                             data: _d1.nameUnique(),
@@ -261,7 +261,7 @@
                         }
             );
             }else{
-                measure= new Measure({
+                measure= new SmartMeasure({
                             id: name,
                             name: "name" + name,
                             data: _data.nameUnique(),
@@ -281,7 +281,7 @@
                 c3.rendering();
             }
 /////////////////////////
-         var c4 = RadarChart.create({
+         var c4 = SmartRadarChart.create({
             "width": 1000,
             "height": 800,
             title: "Radar",
@@ -308,7 +308,7 @@
                       d4:100*Math.random()
                 };
             var name = Math.floor(10 * Math.random());
-            var figure=new Measure({
+            var figure=new SmartMeasure({
                         name:name,
                         id:name,
                         data:_d1,

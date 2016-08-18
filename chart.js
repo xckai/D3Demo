@@ -1,3 +1,4 @@
+!function(){
 var SmartTrafficChartClass = {
     extend: function(prop) {
         var subClass = Object.create(this);
@@ -2019,3 +2020,9 @@ var BoxPlot = Line.extend({
         return text;
     }
 })
+window.SmartCompareChart=CompareChart;
+window.SmartMeasure=Measure;
+window.SmartRadarChart=RadarChart;
+}();
+
+
