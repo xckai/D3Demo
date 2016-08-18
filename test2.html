@@ -11,6 +11,7 @@
     <button onclick="addData('bar')">AddBar</button>
     <button onclick="addData('line')">AddLine</button>
     <button onclick="addData('boxplot')">AddBoxPlot</button>
+    <button onclick="removeData()">Remove id 1</button>
     <button onclick="rendering()">Rendering</button>
     <div id="chart2" ></div>
     <button onclick="addData2('bar')">AddBar</button>
@@ -67,7 +68,8 @@
        
  /////////////////////////////////
    
-  var c1 = SmartCompareChart.create({
+  var c1 = SmartCompareChart.create();
+            c1.setConfig({
             "width": 1000,
             "height": 800,
             title: "TimeSeries",
@@ -78,9 +80,9 @@
             xValueFormat:function(v){
                 return d3.time.format("%m月 %d 日 %H:%M")(new Date(v));
             },
-            showCustomLine:true,
-            appendId:"chart"
+            showCustomLine:true
         });
+        c1.appendTo("chart");
         function addData(type) {
             var _data = [],_d1=[];_dataNumber=[];
             for (var i = 0; i < 30; ++i) {
@@ -144,6 +146,9 @@
            
             c1.addMeasure(measure);
         };
+        function removeData(){
+            c1.removeMeasureById("1");
+        }
         function rendering(){
                 c1.rendering();
             }

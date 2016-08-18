@@ -48,14 +48,7 @@ var SmartTrafficChartClass = {
 };
 var Measure = function(config){
         var self=this;
-        Object.keys(config).forEach(function(k){
-                if(typeof config[k] ==="object"){
-                    self[k] = JSON.parse(JSON.stringify(config[k]));
-                }else{
-                    self[k]=config[k]; 
-                }
-                     
-        })
+        this.setConfig(config);
         if(this.id ===undefined ||this.id ===null){
             throw new Error("Please assign data id");
         }
@@ -63,18 +56,30 @@ var Measure = function(config){
             this.name = this.id;
         }
 };
-Measure.setData=function(data){
+Measure.prototype.setData=function(data){
     this.data=data;
     return this;
 }
-Measure.setColor=function(color){
+Measure.prototype.setColor=function(color){
     this.color = color;
     return this;
 }
-Measure.setType=function(type){
+Measure.prototype.setType=function(type){
     this.type=type;
     return this;
 }
+Measure.prototype.setConfig=function(config){
+    var self =this;
+    Object.keys(config).forEach(function(k){
+                if(typeof config[k] ==="object"){
+                    self[k] = JSON.parse(JSON.stringify(config[k]));
+                }else{
+                    self[k]=config[k]; 
+                }
+                     
+    })
+}
+Measure.prototype.constructor=Measure;
 var eventManager = SmartTrafficChartClass.extend({
     on: function(type, callback,self) {
         if (!this._events) this._events = {};
@@ -173,7 +178,7 @@ Set.prototype.forEach=function(){
    
 }
 Set.prototype.del=function(v){
-    var del=null;
+    var del=null,i=-1;
     for(var _i in this._vals){
         if(this.compareFunction(this._vals[_i],v)){
             i=_i;
@@ -244,22 +249,35 @@ var ChartToolTip=SmartTrafficChartClass.extend({
 var RadarChart = SmartTrafficChartClass.extend({
     mapkey:["d0","d1","d2","d3","d4","d5","d6","d7","d8","d9"],
     init:function(config){
-        this.setOption(config);
-        this.axisNum = config.axis.length;
+        this.setConfig(config);
         this.eventManager=eventManager.create();
-        this.axises = config.axis;
-        this.isInitDraw = false;
         this.scales={};
-        this.showToolTip = config.showToolTip ===false? false:true;
-        if(this.showToolTip){
-            this.toolTip=ChartToolTip.create();
-        }
+        this.toolTip=ChartToolTip.create();
         this.colorManager=colorManager.create();
-        this._figures=new Set(function(v1,v2){return v1.id === v2.id});
-        this.showLegend=config.showLegend === false ? false:true;
+        this._measures=new Set(function(v1,v2){  return String(v1.id) === String(v2.id)});
         this.legend=Legend.create(this.eventManager);
+        this.memory=new Memory();
         this.calculateMargin();
         this.registerEvent();
+    },
+    setConfig:function(config,val){
+        if(config === undefined|| config ===null) return this;
+        if(typeof config ==="object"){
+            var self= this;
+            this.setOption(config);
+            this.axises = config.axis;
+            this.axisNum = config.axis.length;
+            this.showToolTip = config.showToolTip ===false? false :true;
+            this.showLegend=config.showLegend === false ? false:true;
+            this.showLegend=config.showLegend === false ? false:true;            
+            this.isInitDraw=false;
+        }else{
+            this[config] = val;
+        }   
+        return this;
+    },
+    appendTo:function(id){
+        this.appendId = id;
     },
     registerEvent:function(){
         this.eventManager.on("select",this.setSelectStyle,this)
@@ -310,14 +328,22 @@ var RadarChart = SmartTrafficChartClass.extend({
         return this;
     },
     validateConfig:function(){
+        if(this.appendId===undefined || this.appendId ===null){
+                console.error("please assign chart container ID");
+                return false; 
+        }
+        if(this._drawAreaHeight * this._drawAreaWidth <0){
+                console.error("Wrong chart height and width");
+                return false;
+        }
         return true;
     },
     addMeasure:function(_measure){
-        var figureObj;
+        var measureObj;
         if(_measure.type==="radar"){
-            figureObj=Radar.create(_measure);
-            this.attachMeasure(figureObj);
-            this._figures.add(figureObj);
+            measureObj=Radar.create(_measure);
+            this.attachMeasure(measureObj);
+            this._measures.add(measureObj);
             if(this.isInitDraw) this.reDraw();
             return true;
         }else{
@@ -325,6 +351,16 @@ var RadarChart = SmartTrafficChartClass.extend({
             return false;
         }
         
+    },
+    removeMeasureById:function(id){
+        this._measures.del({id:id});
+        if(this.isInitDraw) this.reDraw();
+        return this;
+    },
+    removeMeasure:function(mesure){
+        this._measures.del(mesure);
+        if(this.isInitDraw) this.reDraw();
+        return this;
     },
     attachMeasure:function(_measure){
         _measure.color=_measure.color||this.colorManager.getColor();
@@ -402,18 +438,19 @@ var RadarChart = SmartTrafficChartClass.extend({
         if(this.showLegend){
             var ctx = new context();
             ctx.add("svg",this.svg.legend).add("legendWidth",this._legendWidth);
-            this.legend.draw(ctx,this._figures);
+            this.legend.draw(ctx,this._measures);
         }
         return this;
     },
     drawMeasure:function(){
         var ctx = new context();
         ctx.add("svg",this.svg.drawArea).add("scales",this.getScale.bind(this)).add("coordinate",this.getCoordinate.bind(this));
-        this._figures.forEach(function(v){
+        this._measures.forEach(function(v){
             v.draw(ctx);
         })
         return this;
     },
+    
     getScale:function(key){
         if(!this.scales[key]){
             var span, max,min;
@@ -440,7 +477,7 @@ var RadarChart = SmartTrafficChartClass.extend({
     },
     getMaxData:function(key){
         var d= Number.MIN_VALUE;
-         this._figures.forEach(function(v){
+         this._measures.forEach(function(v){
              if(v._d){
                  if(v._d[key] !==undefined){
                      d=Math.max(d,v._d[key]);
@@ -451,7 +488,7 @@ var RadarChart = SmartTrafficChartClass.extend({
     },
     getMinData:function(key){
         var d= Number.MAX_VALUE;
-         this._figures.forEach(function(v){
+         this._measures.forEach(function(v){
              if(v._d){
                  if(v._d[key] !==undefined){
                      d=Math.min(d,v._d[key]);
@@ -462,27 +499,27 @@ var RadarChart = SmartTrafficChartClass.extend({
     },
     setSelectStyle:function(){
         var isAllSelect = true,hasSelect=false;
-        this._figures.forEach(function(f){
+        this._measures.forEach(function(f){
             if(f.isSelected) {hasSelect=true}
             else {isAllSelect=false}
         })
         if(isAllSelect){
-            this._figures.forEach(function(f){
+            this._measures.forEach(function(f){
                 f.isSelected = false;
             })
             hasSelect=false;
         }
-        this._figures.forEach(function(f){
+        this._measures.forEach(function(f){
             if(hasSelect){
                     if(f.legendDom)  f.legendDom.classed("legendNotSelected", !f.isSelected);
                     if(f.isSelected){
-                            f.figureDom.classed("radarNotSelect",false);
+                            f.measureDom.classed("radarNotSelect",false);
                             
                         }else{
-                            f.figureDom.classed("radarNotSelect",true);
+                            f.measureDom.classed("radarNotSelect",true);
                         }
             }else{
-                f.figureDom.classed("radarNotSelect",false);
+                f.measureDom.classed("radarNotSelect",false);
                 if(f.legendDom)  f.legendDom.classed("legendNotSelected", false);
             }
            
@@ -594,13 +631,13 @@ var RadarChart = SmartTrafficChartClass.extend({
       showDetailMaxValue:function(){
             var datas=[],self=this;
             var hasSelect 
-            this._figures.forEach(function(f){
+            this._measures.forEach(function(f){
                 if(f.isSelected) {hasSelect=true}
             })
             if(hasSelect){
                 this.mapkey.forEach(function(k,i){
                 var data= Number.MIN_VALUE;
-                    self._figures.forEach(function(v){
+                    self._measures.forEach(function(v){
                         if(v._d&&v.isSelected){
                             if(v._d[k] !==undefined){
                                 data=Math.max(data,v._d[k]);
@@ -615,7 +652,7 @@ var RadarChart = SmartTrafficChartClass.extend({
             }else{
             this.mapkey.forEach(function(k,i){
                 var data= Number.MIN_VALUE;
-                    self._figures.forEach(function(v){
+                    self._measures.forEach(function(v){
                         if(v._d ){
                             if(v._d[k] !==undefined){
                                 data=Math.max(data,v._d[k]);
@@ -639,11 +676,11 @@ var RadarChart = SmartTrafficChartClass.extend({
                     datas.push({i:i,data:d._d[key]});
                 }
             });
-            this._figures.forEach(function(f){
+            this._measures.forEach(function(f){
                 if(f.id !==  d.id){
-                    f.figureDom.classed("radarNotSelect",true);
+                    f.measureDom.classed("radarNotSelect",true);
                 }else{
-                    f.figureDom.classed("radarNotSelect",false);
+                    f.measureDom.classed("radarNotSelect",false);
                 }
             })
             this.showDetailValue(datas);
@@ -716,10 +753,10 @@ var Radar=SmartTrafficChartClass.extend({
                         .attr("fill",this.color)
                         .attr("class",function(d,i){return "event-radar-"+d.i});
   
-    if(!this.figureDom){
+    if(!this.measureDom){
         p.call(tFunction);
     }
-       this.figureDom=area;
+       this.measureDom=area;
     },
     toHtml:function(ctx){
         var i = ctx.get("i");
@@ -738,10 +775,10 @@ var Legend=SmartTrafficChartClass.extend({
     init:function(eventManager){
         this.eventManager =eventManager;
     },
-    draw:function(ctx,_figures){
+    draw:function(ctx,_measures){
         var svg=ctx.get("svg"),legendWidth=ctx.get("legendWidth"),self=this;
         svg.selectAll(".RadarChart-legend")
-                            .data(_figures.vals()).enter()
+                            .data(_measures.vals()).enter()
                             .append("g").classed("RadarChart-legend",true);
         svg.selectAll(".RadarChart-legend").each(function(d,i){
             var g=d3.select(this);
@@ -794,29 +831,47 @@ var CompareChart=SmartTrafficChartClass.extend({
     mapkey:["x","y"],
     init:function(config){
         var self= this;
-	    this.setOption(config);
-	    this.eventManager=eventManager.create();
+        this.isInitDraw=false;
+        this.setConfig(config);
+        this.eventManager=eventManager.create();
 	    this.colorManager=colorManager.create();
-	    this.inInitDraw=false;
-	    this.showToolTip = config.showToolTip ===false? false:true;
-        this.toolTip=ChartToolTip.create();
-        this._figures=new Set(function(v1,v2){return v1.id === v2.id});
-        this.showLegend=config.showLegend === false ? false:true;
         this.legend=Legend.create(this.eventManager);
-        this.memory=new Memory();   
-        this._xSet=new Set(function(v1,v2){if(self.xType ==="time"|| self.xType==="number") {
-             return v1-v2 ===0;
-         }else{
-             return v1 ===v2;
-         }
+        this.toolTip=ChartToolTip.create();
+        this._measures=new Set(function(v1,v2){
+            return String(v1.id) === String(v2.id)});
+        this.memory=new Memory(); 
+        this._xSet =new Set(function(v1,v2){
+            if(self.xType==="time"|| self.xType==="number"){
+                return v1 -v2 === 0;
+            }else{
+                return v1 === v2;
+            }
         })
-        this.yLabel=this.yLabel||this.yTitle;
-        this.y2Label=this.y2Label || this.y2Title;
         this.registerEvent();
+    },
+    setConfig:function(config,val){
+        if(config === undefined|| config ===null) return this;
+        if(typeof config ==="object"){
+            var self= this;
+            this.setOption(config);
+            this.showToolTip = config.showToolTip ===false? false :true;
+            this.showLegend=config.showLegend === false ? false:true;
+            this.yLabel=this.yLabel||this.yTitle;
+            this.y2Label=this.y2Label || this.y2Title;
+            
+            this.isInitDraw=false;
+        }else{
+            this[config] = val;
+        }   
+        return this;
     },
     registerEvent:function(){
         this.eventManager.on("select",this.setSelectStyle,this)
         this.eventManager.on("deSelect",this.setSelectStyle,this)
+    },
+    appendTo:function(id){
+        this.appendId = id;
+        return this;
     },
     calculateMargin:function(){
         this._titleHeight=80;
@@ -851,41 +906,53 @@ var CompareChart=SmartTrafficChartClass.extend({
         return this;
     },
     validateConfig:function(){
+        if(this.appendId===undefined || this.appendId ===null){
+                throw new Error("please assign chart container ID");
+        }
+        if(this._drawAreaHeight * this._drawAreaWidth <0 || this._figureHeight* this._figureWidth<0){
+               throw new Error("Wrong chart height and width");
+        }
         return true;
     },
     addMeasure:function(_measure){
-        var figureObj;
+        var measureObj;
         switch(_measure.type){
             case "line":
-                figureObj=Line.create(_measure);
-                this.attachMeasure(figureObj);
-                this._figures.add(this.preHandleMeasure(figureObj));
-                if(this.isInitDraw) this.reDraw();
-                return true;
+                measureObj=Line.create(_measure);
+               // this.attachMeasure(measureObj);
+               
+                break;
             case "bar":
-                figureObj=Bar.create(_measure);
-                this.attachMeasure(figureObj);
-                this._figures.add(this.preHandleMeasure(figureObj));
-                if(this.isInitDraw) this.reDraw();
-                return true;
+                measureObj=Bar.create(_measure);
+                //this.attachMeasure(measureObj);
+               break;
             case "boxplot":
-                figureObj=BoxPlot.create(_measure);
-                this.attachMeasure(figureObj);
-                this._figures.add(this.preHandleMeasure(figureObj));
-                if(this.isInitDraw) this.reDraw();
-                return true;
+                measureObj=BoxPlot.create(_measure);
+                //this.attachMeasure(measureObj);
+                break;
             default:
                 console.error("Error figure type !");
                 return false;
         }
+        this._measures.add(this.preHandleMeasure(measureObj));
+        if(this.isInitDraw) this.reDraw();
+        return true;
     },
-    attachMeasure:function(_measure){
-        _measure.color=_measure.color||this.colorManager.getColor();
-        _measure.eventManager=this.eventManager;
-        _measure.$chart=this;
+    removeMeasureById:function(id){
+        this._measures.del({id:id});
+        if(this.isInitDraw) this.reDraw();
+        return this;
+    },
+    removeMeasure:function(mesure){
+        this._measures.del(mesure);
+        if(this.isInitDraw) this.reDraw();
+        return this;
     },
     preHandleMeasure:function(obj){
         var self = this;
+        obj.color=obj.color||this.colorManager.getColor();
+        obj.eventManager=this.eventManager;
+        obj.$chart=this;
         obj._d.forEach(function(d) {
                 if(self.xType ==="time"){
                      if (typeof d.x !== "time") d.x = new Date(d.x);
@@ -902,6 +969,9 @@ var CompareChart=SmartTrafficChartClass.extend({
             return v1.x - v2.x;
         });
         return obj;
+    },
+    validateMeasure:function(measure){
+
     },
     initDraw:function(){
         if(this.isInitDraw) return this;
@@ -941,7 +1011,7 @@ var CompareChart=SmartTrafficChartClass.extend({
             //this.drawEventZone(this.svg.drawArea);
             this.zoom = d3.behavior.zoom()
                 .x(self.getScale("x"))
-                .scaleExtent([0.5, 8])
+                .scaleExtent([0.8, 8])
                 .on("zoom", self.zoomFunction.bind(self));
             this.svg.drawArea.call(this.zoom).on("dblclick.zoom", null);
             this.svg.drawArea.figureArea.on("click",self.getLinePosition.bind(this));
@@ -1039,9 +1109,9 @@ var CompareChart=SmartTrafficChartClass.extend({
     },
     getXAxisHeight:function(){
         return this.memory.cache("xAsisHeight",function(){
-            if(this._figures.vals().length === 0) return 5;
+            if(this._measures.vals().length === 0) return 5;
             var length =0,self =this;
-            this._figures.forEach(function(f){
+            this._measures.forEach(function(f){
                 f._d.forEach(function(d){
                     if(self.xValueFormat){
                         length=Math.max(length,self.xValueFormat(d.x).toString().length);
@@ -1091,7 +1161,7 @@ var CompareChart=SmartTrafficChartClass.extend({
         if(this.showLegend){
             var ctx = new context();
             ctx.add("svg",this.svg.legend).add("legendWidth",this._legendWidth);
-            this.legend.draw(ctx,this._figures);
+            this.legend.draw(ctx,this._measures);
         }
         return this;
     },
@@ -1102,21 +1172,21 @@ var CompareChart=SmartTrafficChartClass.extend({
             .add("scales",this.getScale.bind(this))
             .add("xsetIndex",this.getXsetIndex.bind(this))
             .add("xcooridate",this.getXCoordinate());
-        ctx.add("bars",this._figures.vals().filter(function(v){return v.type ==="bar"}))
+        ctx.add("bars",this._measures.vals().filter(function(v){return v.type ==="bar"}))
             .add("xset",this.getXset.bind(this))
             .add("barMaxHeight",this._figureHeight)
             .add("zoomScale",this._zoomScale || 1);
-        this._figures.forEach(function(f){
+        this._measures.forEach(function(f){
             if(f.type==="bar"){
                  f.draw(ctx);
             }
         })
-        this._figures.forEach(function(f){
+        this._measures.forEach(function(f){
             if(f.type==="boxplot"){
                  f.draw(ctx);
             }
         })
-        this._figures.forEach(function(f){
+        this._measures.forEach(function(f){
             if(f.type==="line" &&self.xType !== "string"){
                  f.draw(ctx);
             }
@@ -1171,12 +1241,12 @@ var CompareChart=SmartTrafficChartClass.extend({
                 sharps.filter(function(d){
                     //only show selected item
                     var isAllSelect = true,hasSelect=false;
-                    self._figures.forEach(function(f){
+                    self._measures.forEach(function(f){
                         if(f.isSelected) {hasSelect=true}
                         else {isAllSelect=false}
                     })
                     if(isAllSelect){
-                        self._figures.forEach(function(f){
+                        self._measures.forEach(function(f){
                             f.isSelected = false;
                         })
                         hasSelect=false;
@@ -1230,7 +1300,7 @@ var CompareChart=SmartTrafficChartClass.extend({
     getXset:function(){
         return this.memory.cache("xset",function(){
             var self = this;
-            this._figures.forEach(function(ds){
+            this._measures.forEach(function(ds){
                ds._d.forEach(function(d){
                     self._xSet.add(d.x);
                })
@@ -1261,7 +1331,7 @@ var CompareChart=SmartTrafficChartClass.extend({
     hasY1:function(){
        return this.memory.cache("hasy1",function(){
             var find =false;
-            this._figures.forEach(function(d){
+            this._measures.forEach(function(d){
                 find = !d.y2 || find;
             })
             return find;
@@ -1270,7 +1340,7 @@ var CompareChart=SmartTrafficChartClass.extend({
     hasY2:function(){
        return this.memory.cache("hasy2",function(){
             var find = false;
-            this._figures.forEach(function(d){
+            this._measures.forEach(function(d){
                 find = d.y2 || find;
             })
              return find;
@@ -1332,7 +1402,7 @@ var CompareChart=SmartTrafficChartClass.extend({
     },
     getMaxData:function(key){
         return this.memory.cache("max"+key,function(key){
-            var datas= this._figures;
+            var datas= this._measures;
             var _num = Number.MIN_VALUE;
             datas.forEach(function(d){
                 if(d.getMax()!== null){
@@ -1345,7 +1415,7 @@ var CompareChart=SmartTrafficChartClass.extend({
     },
     getMinData:function(key){
         return this.memory.cache("min"+key,function(key){
-            var datas =this._figures;
+            var datas =this._measures;
             var _num =Number.MAX_VALUE;
             datas.forEach(function(d){
                 if(d.getMin(key)!== null){
@@ -1536,27 +1606,27 @@ var CompareChart=SmartTrafficChartClass.extend({
     },
     setSelectStyle:function(){
         var isAllSelect = true,hasSelect=false;
-        this._figures.forEach(function(f){
+        this._measures.forEach(function(f){
             if(f.isSelected) {hasSelect=true}
             else {isAllSelect=false}
         })
         if(isAllSelect){
-            this._figures.forEach(function(f){
+            this._measures.forEach(function(f){
                 f.isSelected = false;
             })
             hasSelect=false;
         }
-        this._figures.forEach(function(f){
+        this._measures.forEach(function(f){
             if(hasSelect){
                     if(f.legendDom)  f.legendDom.classed("legendNotSelected", !f.isSelected);
                     if(f.isSelected){
-                            f.figureDom.classed("compareChartNotSelected",false);
+                            f.measureDom.classed("compareChartNotSelected",false);
                             
                         }else{
-                            f.figureDom.classed("compareChartNotSelected",true);
+                            f.measureDom.classed("compareChartNotSelected",true);
                         }
             }else{
-                f.figureDom.classed("compareChartNotSelected",false);
+                f.measureDom.classed("compareChartNotSelected",false);
                 if(f.legendDom)  f.legendDom.classed("legendNotSelected", false);
             }
            
@@ -1765,11 +1835,11 @@ var Line=SmartTrafficChartClass.extend({
             .attr("class",function(d,i){
                 return "event-comparechart-"+xSetIndex(d.x);
             })
-        if(!this.figureDom){
+        if(!this.measureDom){
             _line.call(lineTransition);
             _circle.call(circleTransition);
         }  
-        this.figureDom =line;
+        this.measureDom =line;
     },
     smartLineGen: function(xScale,yScale,isHandleNaN,ds){
             if (ds.length<1) return "M0,0"; 
@@ -1876,10 +1946,10 @@ var Bar =Line.extend({
                 .attr("class", function(d, i) {
                     return "event-comparechart-" + xSetIndex(d.x);
                 });
-        if(!this.figureDom){
+        if(!this.measureDom){
             bars.call(transitionFunction);
         }
-        this.figureDom=bargroup;
+        this.measureDom=bargroup;
     },
     isInSharp: function(svg,_sharp) {
         _sharp = d3.select(_sharp);
@@ -1960,10 +2030,10 @@ var BoxPlot = Line.extend({
                 .attr("transform","translate(0,+"+0+")");
             })
         }
-        if(!this.figureDom){
+        if(!this.measureDom){
             boxGroup.call(tFunction);
         }
-        this.figureDom=boxGroup;
+        this.measureDom=boxGroup;
     },
     getY:function(point){
        return [point.d0,point.d1,point.d2,point.d3,point.d4];
