@@ -257,7 +257,6 @@ var RadarChart = SmartTrafficChartClass.extend({
         this._measures=new Set(function(v1,v2){  return String(v1.id) === String(v2.id)});
         this.legend=Legend.create(this.eventManager);
         this.memory=new Memory();
-        this.calculateMargin();
         this.registerEvent();
     },
     setConfig:function(config,val){
@@ -294,12 +293,11 @@ var RadarChart = SmartTrafficChartClass.extend({
             this._drawAreaWidth=this.width;
         }
         this._drawAreaHeight=this.height-this._titleHeight;
+        return this;
     },
     initDraw:function(){
         if(this.isInitDraw) return this;
         if(this.validateConfig()){
-            d3.select("#" + this.appendId).style("width", this.width)
-                .style("height", this.height);
             this.svgContainer = d3.select("#"+this.appendId).append("div").classed("RadarChart",true)
                                     .style("width", this.width)
                                     .style("height", this.height);
@@ -371,16 +369,20 @@ var RadarChart = SmartTrafficChartClass.extend({
         if(this.isInitDraw){
             this.reDraw();
         }else{
-            this.initDraw().draw();
+            this.calculateMargin().initDraw().draw();
         }
     },
     reDraw:function(){
         this.svgContainer.remove();
         this.isInitDraw=false;
         this.scales={};
-        this.rendering();
         this.memory.flush();
+        this.rendering();
         
+    },
+    remove:function(){
+        this.svgContainer.remove();
+        this.init();
     },
     draw:function(){
         this.drawTitle().drawAxis().drawAxisLabel().drawAxisTicket().drawLegend().drawMeasure().showDetailMaxValue();
@@ -977,8 +979,6 @@ var CompareChart=SmartTrafficChartClass.extend({
         if(this.isInitDraw) return this;
         if(this.validateConfig()){
             var self=this;
-            d3.select("#" + this.appendId).style("width", this.width)
-                .style("height", this.height);
             this.svgContainer = d3.select("#"+this.appendId).append("div").classed("CompareChart",true)
                                     .style("width", this.width)
                                     .style("height", this.height);
@@ -1359,6 +1359,10 @@ var CompareChart=SmartTrafficChartClass.extend({
         this.memory.flush();
         this._zoomScale=1;
         this.rendering();
+    },
+    remove:function(){
+        this.svgContainer.remove();
+        this.init();
     },
     getScale:function(key){
         if(key ==="x"){

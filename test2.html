@@ -12,6 +12,7 @@
     <button onclick="addData('line')">AddLine</button>
     <button onclick="addData('boxplot')">AddBoxPlot</button>
     <button onclick="removeData()">Remove id 1</button>
+    <button onclick="remove()">Remove Chart</button>
     <button onclick="rendering()">Rendering</button>
     <div id="chart2" ></div>
     <button onclick="addData2('bar')">AddBar</button>
@@ -152,6 +153,9 @@
         function rendering(){
                 c1.rendering();
             }
+        function remove(){
+            c1.remove();
+        }
 ///////////////////////////
  var c2 = SmartCompareChart.create({
             "width": 1000,
