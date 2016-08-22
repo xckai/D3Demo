@@ -44,6 +44,17 @@ var SmartTrafficChartClass = {
             f(k,option[k]);
         });
     },
+    mergeFunction:function(obj){
+        var self = this;
+        Object.keys(obj).forEach(
+            function(k){
+                if(typeof obj[k]==="function"){
+                    self[k]=obj[k]
+                }
+            }
+        )
+        return this;
+    }
     
 };
 var Measure = function(config){
@@ -300,7 +311,8 @@ var RadarChart = SmartTrafficChartClass.extend({
         if(this.validateConfig()){
             this.svgContainer = d3.select("#"+this.appendId).append("div").classed("RadarChart",true)
                                     .style("width", this.width)
-                                    .style("height", this.height);
+                                    .style("height", this.height)
+                                    .style("position","relative");
             this.svg=this.svgContainer.append("svg").classed("RadarChart-svg",true)
                                                         .attr("width", this.width)
                                                         .attr("height",this.height);
@@ -564,7 +576,8 @@ var RadarChart = SmartTrafficChartClass.extend({
                     chartFigrues.push(d);
                 });
             if(chartFigrues.length>0){
-                this.toolTip.setPosition(event.pageX , event.pageY);
+                var position = d3.mouse(this.svg.node());
+                this.toolTip.setPosition(position[0] ,position[1]);
                 this.toolTip.setContent(this.getToolTipContent(chartFigrues));
                 this.toolTip.setVisiable(true);
             }
@@ -981,7 +994,8 @@ var CompareChart=SmartTrafficChartClass.extend({
             var self=this;
             this.svgContainer = d3.select("#"+this.appendId).append("div").classed("CompareChart",true)
                                     .style("width", this.width)
-                                    .style("height", this.height);
+                                    .style("height", this.height)
+                                    .style("position","relative");
             this.svg=this.svgContainer.append("svg").classed("CompareChart-svg",true)
                                                         .attr("width", this.width)
                                                         .attr("height",this.height);
@@ -1260,7 +1274,9 @@ var CompareChart=SmartTrafficChartClass.extend({
                         self.drawGuideLine(d);
                     });
                 if(chartFigrues.length>0){
-                    this.toolTip.setPosition(event.pageX , event.pageY);
+                    var position = d3.mouse(this.svg.node());
+                    this.toolTip.setPosition(position[0] ,position[1]);
+                    //this.toolTip.setPosition(event.pageX , event.pageY);
                     this.toolTip.setContent(this.getToolTipContent(chartFigrues));
                     this.toolTip.setVisiable(true);
                 }
@@ -2094,6 +2110,28 @@ var BoxPlot = Line.extend({
         return text;
     }
 })
+var commentFunction={
+    on:function(key, callback,self){
+        this.eventManager.on(key, callback,self);
+        return this;
+    },
+    off:function(key, callback,self){
+         this.eventManager.off(key, callback,self);
+         return this;
+    },
+    setHeight:function(height){
+        this.height=height;
+        if(this.isInitDraw) this.reDraw();
+        return this;       
+    },
+    setWidth:function(width){
+        this.width=width;
+        if(this.isInitDraw) this.reDraw();
+        return this;
+    }
+}
+CompareChart.mergeFunction(commentFunction);
+RadarChart.mergeFunction(commentFunction);
 window.SmartCompareChart=CompareChart;
 window.SmartMeasure=Measure;
 window.SmartRadarChart=RadarChart;
