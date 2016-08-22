@@ -84,6 +84,9 @@
             showCustomLine:true
         });
         c1.appendTo("chart");
+        c1.on("select",function(d){
+            console.log(d);
+        },this);
         function addData(type) {
             var _data = [],_d1=[];_dataNumber=[];
             for (var i = 0; i < 30; ++i) {
