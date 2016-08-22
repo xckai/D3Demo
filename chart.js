@@ -1158,11 +1158,11 @@ var CompareChart=SmartTrafficChartClass.extend({
             .attr("dominant-baseline", "text-before-edge");
         }
         if(this.hasY2()){
-             this.svg.drawArea.append("g").attr("transform", "translate(" + (this._figureWidth-this._yTitleWidth) + "," + ( this._figureHeight / 2) + ")")
+             this.svg.drawArea.append("g").attr("transform", "translate(" + (this._figureWidth+this._yTitleWidth+this._yAxisWidth+this._y2AxisWidth+this._y2TitleWidth) + "," + ( this._figureHeight / 2) + ")")
              .classed("CompareChart-y2TitleBar", true).attr("text-anchor", "middle")
              .append("text").text(this.y2Title)
              .attr("transform", "rotate(-90)")
-             .attr("dominant-baseline", "text-before-edge");
+             .attr("dominant-baseline", "text-after-edge");
         }
         this.svg.drawArea.append("g").attr("transform", "translate(" + (this._drawAreaWidth / 2) + "," + (this._drawAreaHeight-this._xTitleHeight) + ")")
             .classed("CompareChart-xTitleBar", true).attr("text-anchor", "middle")
@@ -1492,7 +1492,7 @@ var CompareChart=SmartTrafficChartClass.extend({
                     .attr("stroke-width", 1)
                     .attr("stroke-dasharray", "3,3");
                 self._guideLineGroup.append("circle")
-                                    .attr("cx",self._figureWidth)
+                                    .attr("cx",self._figureWidth-4)
                                     .attr("cy", yScale(v))
                                     .attr("r",4);
             } else {
@@ -1507,7 +1507,7 @@ var CompareChart=SmartTrafficChartClass.extend({
                     .attr("stroke-width", 1)
                     .attr("stroke-dasharray", "3,3");
                 self._guideLineGroup.append("circle")
-                                    .attr("cx",0)
+                                    .attr("cx",4)
                                     .attr("cy", yScale(v))
                                     .attr("r",4);
             }
