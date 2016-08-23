@@ -156,7 +156,7 @@ Memory.prototype.cache=function(_key,f,that,args){
         if(that){
                 mem[_key]=f.apply(that,args);
             }else{
-                mem[_key] = f.apply(base,args);
+                mem[_key] = f.apply(null,args);
           }
     }
     return mem[_key];
@@ -722,7 +722,7 @@ var Radar=SmartTrafficChartClass.extend({
         });
         Object.keys(this._d).forEach(function(k){
              if(self.mapkey.indexOf(k)===-1){
-                    delete this._d[k];
+                    delete self._d[k];
                 }
         })
         this._d._figureObj=self;
@@ -847,7 +847,39 @@ var CompareChart=SmartTrafficChartClass.extend({
     init:function(config){
         var self= this;
         this.isInitDraw=false;
-        this.setConfig(config);
+
+        this.yValueFormat=function(v){
+            var max=this.getMaxData("y"),min=this.getMinData("y");
+            var span = (max-min)/10;
+            if(span>1){
+                return v.toFixed(0);
+            }
+            if(span <1 ){
+                var num = 1;
+                for(var i =0;i<span.toString().length;++i){
+                    if(span.toString()[i]!== 0 && span.toString()[i]!="."){
+                        num = i;
+                    }
+                }
+                return v.toFixed(i);
+            }            
+        }
+        this.y2ValueFormat = function(v){
+             var max=this.getMaxData("y2"),min=this.getMinData("y2");
+            var span = (max-min)/10;
+            if(span>1){
+                return v.toFixed(0);
+            }
+            if(span <1 ){
+                var num = 1;
+                for(var i =0;i<span.toString().length;++i){
+                    if(span.toString()[i]!== 0 && span.toString()[i]!="."){
+                        num = i;
+                    }
+                }
+                return v.toFixed(i);
+            }            
+        }
         this.eventManager=eventManager.create();
 	    this.colorManager=colorManager.create();
         this.legend=Legend.create(this.eventManager);
@@ -861,7 +893,8 @@ var CompareChart=SmartTrafficChartClass.extend({
             }else{
                 return v1 === v2;
             }
-        })
+        });
+        this.setConfig(config);
         this.registerEvent();
     },
     setConfig:function(config,val){
@@ -900,7 +933,7 @@ var CompareChart=SmartTrafficChartClass.extend({
         }
         if(this.hasY1()){
             // has y1  
-            this._yAxisWidth=20;
+            this._yAxisWidth=this.getYAxisWidth("y");
             this._yTitleWidth=40;
         }else{
             this._yAxisWidth=0;
@@ -908,7 +941,7 @@ var CompareChart=SmartTrafficChartClass.extend({
         }
         if(this.hasY2()){
             //y2
-            this._y2AxisWidth =20;
+            this._y2AxisWidth =this.getYAxisWidth("y2");
             this._y2TitleWidth=40;        
         }else{
             this._y2AxisWidth =0;
@@ -1026,9 +1059,9 @@ var CompareChart=SmartTrafficChartClass.extend({
             this.zoom = d3.behavior.zoom()
                 .x(self.getScale("x"))
                 .scaleExtent([0.8, 8])
-                .on("zoom", self.zoomFunction.bind(self));
-            this.svg.drawArea.call(this.zoom).on("dblclick.zoom", null);
-            this.svg.drawArea.figureArea.on("click",self.getLinePosition.bind(this));
+                .on("zoom", self.zoomFunction.bind(self),false);
+            this.svg.drawArea.call(this.zoom).on("dblclick.zoom", null,false);
+            this.svg.drawArea.figureArea.on("click",self.getLinePosition.bind(this),false);
             this.isInitDraw=true;                                     
         }
         return this;
@@ -1061,7 +1094,7 @@ var CompareChart=SmartTrafficChartClass.extend({
             this._xAxis = this.svg.drawArea.append("svg:g")
                 .attr("transform", "translate("+(this._yTitleWidth+this._yAxisWidth)+"," + (this._drawAreaHeight-this._xTitleHeight-this._xAxisHeight) + ")")
                 .attr("class", "CompareChart-xaxis")
-                .call(d3.svg.axis().scale(this.getScale("x")).orient("bottom").tickFormat(this.xValueFormat).ticks([xtickNum]));
+                .call(d3.svg.axis().scale(this.getScale("x")).orient("bottom").tickFormat(this.xValueFormat.bind(this)).ticks([xtickNum]));
         }
 
         /////draw y1
@@ -1070,7 +1103,7 @@ var CompareChart=SmartTrafficChartClass.extend({
             this._yAxis = this.svg.drawArea.append("svg:g")
                         .attr("class", "CompareChart-yaxis")
                         .attr("transform","translate("+(this._yTitleWidth+this._yAxisWidth)+",0)")
-                        .call(d3.svg.axis().scale(this.getScale("y")).orient("left"));
+                        .call(d3.svg.axis().scale(this.getScale("y")).orient("left").tickFormat(this.yValueFormat.bind(this)));
         }
 
         /// draw y2
@@ -1079,7 +1112,7 @@ var CompareChart=SmartTrafficChartClass.extend({
             this._y2Axis = this.svg.drawArea.append("svg:g")
                 .attr("class", "CompareChart-y2axis")
                 .attr("transform", "translate(" + (this._figureWidth+this._yTitleWidth+this._yAxisWidth) + ",0)")
-                .call(d3.svg.axis().scale(this.getScale("y2")).orient("right"));
+                .call(d3.svg.axis().scale(this.getScale("y2")).orient("right").tickFormat(this.y2ValueFormat.bind(this)));
         }
         if(this._xAxisHeight > 25){
             this._xAxis.selectAll("text").style("text-anchor", "end")
@@ -1143,6 +1176,37 @@ var CompareChart=SmartTrafficChartClass.extend({
             }
         },this);
         
+    },
+    getYAxisWidth:function(y){
+        if(y==="y2"){
+            return this.memory.cache("y2AxisWidth",function(){
+                var length=0,self=this;
+                this._measures.vals().filter(function(f) {return f.y2}).forEach(function(f){
+                    f.getAllY().filter(function(d){return !isNaN(d)}).forEach(function(d){
+                        if(self.y2ValueFormat){
+                            length = Math.max(length,self.y2ValueFormat(d).toString().length);
+                        }else{
+                            length = Math.max(length,d.toString().length);
+                        }
+                    })
+                })
+                return length *7;
+            },this)
+        }else{
+            return this.memory.cache("yAxisWidth",function(){
+                var length=0,self=this;
+                this._measures.vals().filter(function(f) {return !f.y2}).forEach(function(f){
+                    f.getAllY().filter(function(d){return !isNaN(d)}).forEach(function(d){
+                        if(self.yValueFormat){
+                            length = Math.max(length,self.yValueFormat(d).toString().length);
+                        }else{
+                            length = Math.max(length,d.toString().length);
+                        }
+                    })
+                })
+                return length *7;
+            },this)
+        }
     },
     drawTitle:function(){
         this.svg.title.selectAll("text").remove();
@@ -1791,7 +1855,7 @@ var Line=SmartTrafficChartClass.extend({
         var xcooridate=ctx.get("xcooridate");
         var scales = ctx.get("scales");
         var xSetIndex=ctx.get("xsetIndex");
-        var isHandleNaN=ctx.get("isHandleNaN");
+        var isHandleNaN=this.isHandleNaN;
         var line = svg.append("g").attr("class", "CompareChart-line").attr("pointer-events", "none");
         var self = this,yScale, _line, lineGen, _circle, xScale;
         yScale = this.y2 ? scales("y2") : scales("y");
@@ -1998,7 +2062,7 @@ var Bar =Line.extend({
 })
 var BoxPlot = Line.extend({
     type:"boxplot",
-    mapkey:["x", "d0", "d1", "d2", "d3", "d4"],
+    mapkey:["x", "d0", "d1", "d2", "d3", "d4","d5"],
     init:function(oData){
         Line.init.call(this,oData);
         this.rectWidth=oData.rectWidth||18;
