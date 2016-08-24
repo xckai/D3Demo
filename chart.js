@@ -1535,7 +1535,7 @@ var CompareChart=SmartTrafficChartClass.extend({
         var defaultTooltipGen=function(datas){
             var text = "",
             self = this;
-                var title = datas[0].data.x ;
+                var title = this.xValueFormat?this.xValueFormat(datas[0].data.x ): datas[0].data.x ;
                 text = "<table class='tool-tip-table' ><tbody><tr><th class = 'tooltip-title' colspan='3'>" + title + "</th></tr>";
                 datas.forEach(function(d) {
                     var ctx=new context();
