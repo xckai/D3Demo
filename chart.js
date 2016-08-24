@@ -227,7 +227,8 @@ var ChartToolTip=SmartTrafficChartClass.extend({
                     .style("position", "absolute")
                     .style("z-index", "10")
                     .attr("id","SmartChart-ToolTip-Id")
-                    .style("visibility", "hidden");
+                    .style("visibility", "hidden")
+                    .classed("notextselect",true);
         return this.toolTip;
     },
     setVisiable:function(isVisiable){
@@ -311,7 +312,8 @@ var RadarChart = SmartTrafficChartClass.extend({
             this.svgContainer = d3.select("#"+this.appendId).append("div").classed("RadarChart",true)
                                     .style("width", this.width)
                                     .style("height", this.height)
-                                    .style("position","relative");
+                                    .style("position","relative")
+                                    .classed("notextselect",true);
             this.svg=this.svgContainer.append("svg").classed("RadarChart-svg",true)
                                                         .attr("width", this.width)
                                                         .attr("height",this.height);
@@ -840,9 +842,10 @@ var Scroll=function(type,svgheight,svgWidth,fullheight,fullwidth,svgContainer,sc
             svgGroup.attr("transform","translate(0,"+(-offset)+")");
             scroll.attr("transform","translate(0,"+scrollOffset+")");
            
-            event.stopPropagation();
+            //event.stopPropagation();
+            event.preventDefault();
 
-        })
+        });
         drag.on("drag",function(){
            var _offset= d3.event.dy;
             scrollOffset+=_offset;
@@ -855,7 +858,7 @@ var Scroll=function(type,svgheight,svgWidth,fullheight,fullwidth,svgContainer,sc
             offset = scrollOffset*fullheight/svgheight;
             svgGroup.attr("transform","translate(0,"+(-offset)+")");
             scroll.attr("transform","translate(0,"+scrollOffset+")");
-            event.stopPropagation();
+             event.preventDefault();
         })
     }
     if(type==="horizontal"){
@@ -1180,7 +1183,8 @@ var CompareChart=SmartTrafficChartClass.extend({
             this.svgContainer = d3.select("#"+this.appendId).append("div").classed("CompareChart",true)
                                     .style("width", this.width)
                                     .style("height", this.height)
-                                    .style("position","relative");
+                                    .style("position","relative")
+                                    .classed("notextselect",true);
             this.svg=this.svgContainer.append("svg").classed("CompareChart-svg",true)
                                                         .attr("width", this.width)
                                                         .attr("height",this.height);
