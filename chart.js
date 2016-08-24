@@ -1018,7 +1018,7 @@ var CompareChart=SmartTrafficChartClass.extend({
             }else{
                 var self=this;
                 return span>1? function(v){
-                    var _v =v.toFixed();
+                    var _v =Number(v).toFixed();
                         return self.yValueFormat? self.yValueFormat(_v):_v;
                     }(v)
                     :
@@ -1029,7 +1029,7 @@ var CompareChart=SmartTrafficChartClass.extend({
                                 num = i;
                             }
                         }
-                        _v=v.toFixed(i);
+                        _v=Number(v).toFixed(i);
                         return self.yValueFormat? self.yValueFormat(_v):_v;
                     }
             }
@@ -1042,7 +1042,7 @@ var CompareChart=SmartTrafficChartClass.extend({
             }else{
                 var self=this;
                 return span>1? function(v){
-                    var _v =v.toFixed();
+                    var _v =Number(v).toFixed();
                         return self.y2ValueFormat? self.y2ValueFormat(_v):_v;
                     }(v)
                     :
@@ -1053,7 +1053,7 @@ var CompareChart=SmartTrafficChartClass.extend({
                                 num = i;
                             }
                         }
-                        _v=v.toFixed(i);
+                        _v=Number(v).toFixed(i);
                         return self.y2ValueFormat? self.y2ValueFormat(_v):_v;
                     }
             }
