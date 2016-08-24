@@ -118,11 +118,23 @@ var eventManager = SmartTrafficChartClass.extend({
 });
 var colorManager =  SmartTrafficChartClass.extend({
     getColor: function(i) {
-        if (!this._colors) this.init();
+        if (!this._colors) this.init();  
+        if(i!== undefined)
+        {
+            return this._colors(i);
+        }
+        else{
+                  
         return this._colors(this._colorIndex++);
+        }
+
     },
     init: function() {
-        this._colors = d3.scale.category10();
+        this._colors=d3.scale.category10();
+        // this._colors=function(i){
+        //     var colorScale= ["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477", "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc", "#e67300", "#8b0707", "#651067", "#329262", "#5574a6", "#3b3eac"];
+        //      return colorScale[i%colorScale.length];
+        // }
         this._colorIndex = 0;
     },
     reset: function() {
@@ -1255,7 +1267,7 @@ var CompareChart=SmartTrafficChartClass.extend({
             this._xAxis = this.svg.drawArea.append("svg:g")
                 .attr("transform", "translate("+(this._yTitleWidth+this._yAxisWidth)+"," + (this._drawAreaHeight-this._xTitleHeight-this._xAxisHeight) + ")")
                 .attr("class", "CompareChart-xaxis")
-                .call(d3.svg.axis().scale(this.getScale("x")).orient("bottom").tickFormat(this.xValueFormat.bind(this)).ticks([xtickNum]));
+                .call(d3.svg.axis().scale(this.getScale("x")).orient("bottom").tickFormat(this.xValueFormat.bind(this)).ticks([10]));
         }
 
         /////draw y1
@@ -2173,22 +2185,28 @@ var Bar =Line.extend({
         }
         barWidth=barWidth/barAcc * zoomScale;
         barWidth=Math.min(barWidth,25);
-        var getBarIndex=function(bars,bar){
+        var getBarIndex=function(bars,bar,x){
             var i =-1;
-            for(var j=0;j<bars.length;++j){
-                if(bar.id === bars[j].id){
+            bars.filter(function(b){
+                return b.getAllX().find(function(b){ return b-x=== 0 || b===x})!== undefined;
+            }).forEach(function(b,j){
+                if(b.id === bar.id){
                     i=j;
-                    break;
                 }
-            }
+            })
             return i;
+        }
+        var getBarXAcc = function(bars,x){
+            return bars.filter(function(b){
+                return b.getAllX().find(function(b){ return b-x=== 0 || b===x })!== undefined;
+            }).length;
         }
         var self=this;
         var bars=bargroup.selectAll("rect").data(this._d.filter(function(v){return !isNaN(v.y)}))
                 .enter()
                 .append("rect")
                 .attr("x", function(d) {
-                    return xScale(d.x) - (barAcc) / 2 * barWidth + getBarIndex(bars,self) * barWidth;
+                    return xScale(d.x) - (getBarXAcc(bars,d.x)) / 2 * barWidth + getBarIndex(bars,self,d.x) * barWidth;
                 })
                 .attr("y", function(d) {
                     return yScale(d.y);
