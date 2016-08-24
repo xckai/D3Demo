@@ -119,12 +119,10 @@ var eventManager = SmartTrafficChartClass.extend({
 var colorManager =  SmartTrafficChartClass.extend({
     getColor: function(i) {
         if (!this._colors) this.init();
-
-        this._colorIndex %= this._colors.length;
-        return this._colors[this._colorIndex++];
+        return this._colors(this._colorIndex++);
     },
     init: function() {
-        this._colors = ["#FFCC66", "#5CBAE6", "#993366", "#669966", "#CCC5A8", "#D998CB", "#660066", "#FAC364", "#CC3300", "#66CC00", "#000066", "#00FF00", "#FF0066"];
+        this._colors = d3.scale.category10();
         this._colorIndex = 0;
     },
     reset: function() {
@@ -466,7 +464,13 @@ var RadarChart = SmartTrafficChartClass.extend({
         })
         return this;
     },
-    
+    bringToFront:function(f){
+        var ctx = new context();
+        ctx.add("svg",this.svg.drawArea).add("scales",this.getScale.bind(this)).add("coordinate",this.getCoordinate.bind(this));
+        f.measureDom.remove();
+        f.draw(ctx);
+    }
+    ,
     getScale:function(key){
         if(!this.scales[key]){
             var span, max,min;
@@ -697,7 +701,8 @@ var RadarChart = SmartTrafficChartClass.extend({
                 if(f.id !==  d.id){
                     f.measureDom.classed("radarNotSelect",true);
                 }else{
-                    f.measureDom.classed("radarNotSelect",false);
+                    self.bringToFront(f)
+                    //f.measureDom.classed("radarNotSelect",false);
                 }
             })
             this.showDetailValue(datas);
