@@ -327,7 +327,7 @@ var RadarChart = SmartTrafficChartClass.extend({
             this.svg.drawArea.axisLabel= this.svg.drawArea.selectAll(".RadarChart-axis-label")
                                                                            .append("svg:g").classed("RadarChart-axis-label",true);  
             if(this.showLegend)   {
-               this.svg.legend= this.svg.append("g").attr("transform", "translate(" + (this._drawAreaWidth+5) + "," +this._titleHeight + ")").classed("RadarChart-Legend-Container", true);
+               this.svg.legend= this.svg.append("g").attr("transform", "translate(" + (this._drawAreaWidth+10) + "," +this._titleHeight + ")").classed("RadarChart-Legend-Container", true);
             }
             if(this.showToolTip){
                this.svg.toolTip=this.toolTip.initDraw(this.svgContainer);
@@ -451,7 +451,8 @@ var RadarChart = SmartTrafficChartClass.extend({
     drawLegend:function(){
         if(this.showLegend){
             var ctx = new context();
-            ctx.add("svg",this.svg.legend).add("legendWidth",this._legendWidth);
+            ctx.add("svg",this.svg.legend).add("legendWidth",this._legendWidth).add("legendHeight",this._figureHeight)
+                .add("guid",this.appendId);
             this.legend.draw(ctx,this._measures);
         }
         return this;
@@ -786,19 +787,124 @@ var Radar=SmartTrafficChartClass.extend({
     }
    
 });
+var Scroll=function(type,svgheight,svgWidth,fullheight,guid,svgContainer,scrollContainer,svgGroup){
+    var offset=0,scrollOffset =0,scrollheght=svgheight*Math.min(svgheight/fullheight,1);
+        var rectGen=function(x, y, w, h, r, tl, tr, bl, br) {
+                // x: x-coordinate
+                // y: y-coordinate
+                // w: width
+                // h: height
+                // r: corner radius
+                // tl: top_left rounded?
+                // tr: top_right rounded?
+                // bl: bottom_left rounded?
+                // br: bottom_right rounded?
+                var path;
+                path  = "M" + (x + r) + "," + y;
+                path += "h" + (w - 2*r);
+                if (tr) { path += "a" + r + "," + r + " 0 0 1 " + r + "," + r; }
+                else { path += "h" + r; path += "v" + r; }
+                path += "v" + (h - 2*r);
+                if (br) { path += "a" + r + "," + r + " 0 0 1 " + -r + "," + r; }
+                else { path += "v" + r; path += "h" + -r; }
+                path += "h" + (2*r - w);
+                if (bl) { path += "a" + r + "," + r + " 0 0 1 " + -r + "," + -r; }
+                else { path += "h" + -r; path += "v" + -r; }
+                path += "v" + (2*r - h);
+                if (tl) { path += "a" + r + "," + r + " 0 0 1 " + r + "," + -r; }
+                else { path += "v" + -r; path += "h" + r; }
+                path += "z";
+                return path;
+            }
+    if(type==="vertical"){
+       if(svgheight>fullheight) return;
+        
+        svgContainer.append("defs").append("clipPath")
+                .attr("id", guid+"legendclip")
+                .append("rect")
+                .attr("x",-10)
+                .attr("y",-2)
+                .attr("width", svgWidth+20)
+                .attr("height", svgheight+4);
+        svgContainer.attr("clip-path", "url(#"+guid+"legendclip");
+        //legendGroup.append("rect").attr("height",svgheight).attr("width",svgWidth).attr("fill-opacity", 0);
+        var scrollBackground=scrollContainer.append("path").attr("d",rectGen(-5,0,8,svgheight,3,true,true,true,true))
+                                    .attr("fill","#BBB")                             
+                                    .style("opacity",0.4);
+        var scroll=scrollContainer.append("path").attr("d",rectGen(-4,0,6,scrollheght,3,true,true,true,true))
+                                    .attr("fill","#AAA")                             
+                                    .style("opacity",0.6);
+        svgContainer.on("mousewheel",function(){
+            var _offset= d3.event.deltaY;
+            scrollOffset = (offset+_offset)*svgheight/fullheight;
+            if(scrollOffset<0){
+                scrollOffset=0;
+            }
+            if(scrollOffset+scrollheght>svgheight){
+                scrollOffset=svgheight- scrollheght;
+            }
+            offset = scrollOffset*fullheight/svgheight;
+            svgGroup.attr("transform","translate(0,"+(-offset)+")");
+            scroll.attr("transform","translate(0,"+scrollOffset+")");
+           
+            event.stopPropagation();
+
+        })
+        var drag = d3.behavior.drag();
+         drag.on("drag",function(){
+           var _offset= d3.event.dy;
+            scrollOffset+=_offset;
+            if(scrollOffset<0){
+                scrollOffset=0;
+            }
+            if(scrollOffset+scrollheght>svgheight){
+                scrollOffset=svgheight- scrollheght;
+            }
+            offset = scrollOffset*fullheight/svgheight;
+            svgGroup.attr("transform","translate(0,"+(-offset)+")");
+            scroll.attr("transform","translate(0,"+scrollOffset+")");
+           
+            event.stopPropagation();
+        })
+        drag.on("dragstart",function(){
+            scroll.style("opacity",1);
+        })
+        drag.on("dragend",function(){
+             scroll.style("opacity",0.6);
+        })
+        scroll.call(drag);
+        scroll.on("mousemove",function(){
+            scroll.style("opacity",1);
+        })
+        scroll.on("mouseout",function(){
+            scroll.style("opacity",0.6);
+        })
+    }
+    if(type==="horizontal "){
+
+    }
+}
+var scrolls = Curry(Scroll);
+var verticalScrolls=scrolls("vertical");
 var Legend=SmartTrafficChartClass.extend({
     init:function(eventManager){
         this.eventManager =eventManager;
     },
     draw:function(ctx,_measures){
-        var svg=ctx.get("svg"),legendWidth=ctx.get("legendWidth"),self=this;
-        svg.selectAll(".RadarChart-legend")
+        var svg=ctx.get("svg"),legendWidth=ctx.get("legendWidth")-10,self=this,legendHeight =ctx.get("legendHeight");
+        var legendGroup =svg.append("svg:g").classed("legendGroup",true)
+        legendGroup.append("rect").attr("height",legendHeight).attr("width",legendWidth).attr("fill-opacity", 0);
+        var legends=legendGroup.append("svg:g");
+
+        legends.selectAll(".legend")
                             .data(_measures.vals()).enter()
-                            .append("g").classed("RadarChart-legend",true);
-        svg.selectAll(".RadarChart-legend").each(function(d,i){
+                            .append("g").classed("legend",true);
+        var scrollContainer=svg.append("g").attr("transform","translate("+(legendWidth-10)+",0)");
+        verticalScrolls(legendHeight,legendWidth,_measures.vals().length*32,ctx.get("guid"),svg,scrollContainer,legends);
+        legends.selectAll(".legend").each(function(d,i){
             var g=d3.select(this);
             g.append("svg:rect").attr("height", 26)
-                                    .attr("width", legendWidth)
+                                    .attr("width", legendWidth-10)
                                     .attr("y", i * 32 )
                                     .attr("x", -10)
                                     .attr("fill", "transparent");
@@ -839,6 +945,7 @@ var Legend=SmartTrafficChartClass.extend({
             event.stopPropagation();
         });
         })
+       
                                                      
     }
 })
@@ -852,16 +959,25 @@ var CompareChart=SmartTrafficChartClass.extend({
             var max=this.getMaxData("y"),min=this.getMinData("y");
             var span = (max-min)/10;
             if(span>1){
-                return v.toFixed(0);
+                if(isNaN){
+                    return v;
+                }else{
+                    return v.toFixed(0);
+                }
+
             }
             if(span <1 ){
-                var num = 1;
-                for(var i =0;i<span.toString().length;++i){
-                    if(span.toString()[i]!== 0 && span.toString()[i]!="."){
-                        num = i;
+                  if(isNaN){
+                    return v;
+                }else{
+                    var num = 1;
+                    for(var i =0;i<span.toString().length;++i){
+                        if(span.toString()[i]!== 0 && span.toString()[i]!="."){
+                            num = i;
+                        }
                     }
-                }
                 return v.toFixed(i);
+                }
             }            
         }
         this.y2ValueFormat = function(v){
@@ -1238,7 +1354,8 @@ var CompareChart=SmartTrafficChartClass.extend({
     drawLegend:function(){
         if(this.showLegend){
             var ctx = new context();
-            ctx.add("svg",this.svg.legend).add("legendWidth",this._legendWidth);
+            ctx.add("svg",this.svg.legend).add("legendWidth",this._legendWidth).add("legendHeight",this._figureHeight)
+                .add("guid",this.appendId);
             this.legend.draw(ctx,this._measures);
         }
         return this;
