@@ -81,7 +81,12 @@
             xValueFormat:function(v){
                 return d3.time.format("%m月 %d 日 %H:%M")(new Date(v));
             },
-            showCustomLine:true
+            showCustomLine:false,
+            yValueFormat:function(v){
+                if(v>1000){
+                    return Math.floor(v/1000)+","+v%1000;
+                }
+            }
         });
         c1.appendTo("chart");
         c1.on("select",function(d){

@@ -17,8 +17,8 @@
      opacity: 0.8
 }
 .RadarChart-svg{
-    background-color: black;
-    fill:red;
+    /*background-color: black;
+    fill:red;*/
 }
 .tool-tip-table{
     border-collapse:collapse;

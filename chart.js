@@ -277,9 +277,8 @@ var RadarChart = SmartTrafficChartClass.extend({
             this.setOption(config);
             this.axises = config.axis;
             this.axisNum = config.axis.length;
-            this.showToolTip = config.showToolTip ===false? false :true;
+            this.showToolTip = config.showToolTip === false? false :true;
             this.showLegend=config.showLegend === false ? false:true;
-            this.showLegend=config.showLegend === false ? false:true;            
             this.isInitDraw=false;
         }else{
             this[config] = val;
@@ -451,7 +450,7 @@ var RadarChart = SmartTrafficChartClass.extend({
     drawLegend:function(){
         if(this.showLegend){
             var ctx = new context();
-            ctx.add("svg",this.svg.legend).add("legendWidth",this._legendWidth).add("legendHeight",this._figureHeight)
+            ctx.add("svg",this.svg.legend).add("legendWidth",this._legendWidth).add("legendHeight",this._drawAreaHeight)
                 .add("guid",this.appendId);
             this.legend.draw(ctx,this._measures);
         }
@@ -787,9 +786,9 @@ var Radar=SmartTrafficChartClass.extend({
     }
    
 });
-var Scroll=function(type,svgheight,svgWidth,fullheight,guid,svgContainer,scrollContainer,svgGroup){
-    var offset=0,scrollOffset =0,scrollheght=svgheight*Math.min(svgheight/fullheight,1);
-        var rectGen=function(x, y, w, h, r, tl, tr, bl, br) {
+var Scroll=function(type,svgheight,svgWidth,fullheight,fullwidth,svgContainer,scrollContainer,svgGroup){
+    var offset=0,scrollOffset =0,scrollbarlength=svgheight*Math.min(svgheight/fullheight,1);
+    var rectGen=function(x, y, w, h, r, tl, tr, bl, br) {
                 // x: x-coordinate
                 // y: y-coordinate
                 // w: width
@@ -816,22 +815,16 @@ var Scroll=function(type,svgheight,svgWidth,fullheight,guid,svgContainer,scrollC
                 path += "z";
                 return path;
             }
+    var drag = d3.behavior.drag();
     if(type==="vertical"){
        if(svgheight>fullheight) return;
         
-        svgContainer.append("defs").append("clipPath")
-                .attr("id", guid+"legendclip")
-                .append("rect")
-                .attr("x",-10)
-                .attr("y",-2)
-                .attr("width", svgWidth+20)
-                .attr("height", svgheight+4);
-        svgContainer.attr("clip-path", "url(#"+guid+"legendclip");
+       
         //legendGroup.append("rect").attr("height",svgheight).attr("width",svgWidth).attr("fill-opacity", 0);
         var scrollBackground=scrollContainer.append("path").attr("d",rectGen(-5,0,8,svgheight,3,true,true,true,true))
                                     .attr("fill","#BBB")                             
                                     .style("opacity",0.4);
-        var scroll=scrollContainer.append("path").attr("d",rectGen(-4,0,6,scrollheght,3,true,true,true,true))
+        var scroll=scrollContainer.append("path").attr("d",rectGen(-4,0,6,scrollbarlength,3,true,true,true,true))
                                     .attr("fill","#AAA")                             
                                     .style("opacity",0.6);
         svgContainer.on("mousewheel",function(){
@@ -840,8 +833,8 @@ var Scroll=function(type,svgheight,svgWidth,fullheight,guid,svgContainer,scrollC
             if(scrollOffset<0){
                 scrollOffset=0;
             }
-            if(scrollOffset+scrollheght>svgheight){
-                scrollOffset=svgheight- scrollheght;
+            if(scrollOffset+scrollbarlength>svgheight){
+                scrollOffset=svgheight- scrollbarlength;
             }
             offset = scrollOffset*fullheight/svgheight;
             svgGroup.attr("transform","translate(0,"+(-offset)+")");
@@ -850,23 +843,62 @@ var Scroll=function(type,svgheight,svgWidth,fullheight,guid,svgContainer,scrollC
             event.stopPropagation();
 
         })
-        var drag = d3.behavior.drag();
-         drag.on("drag",function(){
+        drag.on("drag",function(){
            var _offset= d3.event.dy;
             scrollOffset+=_offset;
             if(scrollOffset<0){
                 scrollOffset=0;
             }
-            if(scrollOffset+scrollheght>svgheight){
-                scrollOffset=svgheight- scrollheght;
+            if(scrollOffset+scrollbarlength>svgheight){
+                scrollOffset=svgheight- scrollbarlength;
             }
             offset = scrollOffset*fullheight/svgheight;
             svgGroup.attr("transform","translate(0,"+(-offset)+")");
             scroll.attr("transform","translate(0,"+scrollOffset+")");
+            event.stopPropagation();
+        })
+    }
+    if(type==="horizontal"){
+        var scrollBackground=scrollContainer.append("path").attr("d",rectGen(0,-5,svgWidth,8,3,true,true,true,true))
+                                    .attr("fill","#BBB")                             
+                                    .style("opacity",0.4);
+        var scroll=scrollContainer.append("path").attr("d",rectGen(0,-4,scrollbarlength,6,3,true,true,true,true))
+                                    .attr("fill","#AAA")                             
+                                    .style("opacity",0.6);
+        svgContainer.on("mousewheel",function(){
+            var _offset= d3.event.deltaX;
+            scrollOffset = (offset+_offset)*svgWidth/fullwidth;
+            if(scrollOffset<0){
+                scrollOffset=0;
+            }
+            if(scrollOffset+scrollbarlength>svgWidth){
+                scrollOffset=svgWidth- scrollbarlength;
+            }
+            offset = scrollOffset*fullwidth/svgWidth;
+            svgGroup.attr("transform","translate("+(-offset)+",0)");
+            scroll.attr("transform","translate("+scrollOffset+",0)");
+           
+            event.stopPropagation();
+
+        })
+        
+        drag.on("drag",function(){
+           var _offset= d3.event.dx;
+            scrollOffset+=_offset;
+            if(scrollOffset<0){
+                scrollOffset=0;
+            }
+            if(scrollOffset+scrollbarlength>svgWidth){
+                scrollOffset=svgWidth- scrollbarlength;
+            }
+            offset = scrollOffset*fullwidth/svgWidth;
+            svgGroup.attr("transform","translate("+(-offset)+",0)");
+            scroll.attr("transform","translate("+scrollOffset+",0)");
            
             event.stopPropagation();
         })
-        drag.on("dragstart",function(){
+    }
+    drag.on("dragstart",function(){
             scroll.style("opacity",1);
         })
         drag.on("dragend",function(){
@@ -879,10 +911,6 @@ var Scroll=function(type,svgheight,svgWidth,fullheight,guid,svgContainer,scrollC
         scroll.on("mouseout",function(){
             scroll.style("opacity",0.6);
         })
-    }
-    if(type==="horizontal "){
-
-    }
 }
 var scrolls = Curry(Scroll);
 var verticalScrolls=scrolls("vertical");
@@ -891,16 +919,23 @@ var Legend=SmartTrafficChartClass.extend({
         this.eventManager =eventManager;
     },
     draw:function(ctx,_measures){
-        var svg=ctx.get("svg"),legendWidth=ctx.get("legendWidth")-10,self=this,legendHeight =ctx.get("legendHeight");
+        var svg=ctx.get("svg"),legendWidth=ctx.get("legendWidth")-10,self=this,legendHeight =ctx.get("legendHeight"),guid=ctx.get("guid");
         var legendGroup =svg.append("svg:g").classed("legendGroup",true)
         legendGroup.append("rect").attr("height",legendHeight).attr("width",legendWidth).attr("fill-opacity", 0);
         var legends=legendGroup.append("svg:g");
-
+        svg.append("defs").append("clipPath")
+                        .attr("id", guid+"legendclip")
+                        .append("rect")
+                        .attr("x",-10)
+                        .attr("y",-2)
+                        .attr("width", legendWidth+20)
+                        .attr("height", legendHeight+4);
+        svg.attr("clip-path", "url(#"+guid+"legendclip");
         legends.selectAll(".legend")
                             .data(_measures.vals()).enter()
                             .append("g").classed("legend",true);
         var scrollContainer=svg.append("g").attr("transform","translate("+(legendWidth-10)+",0)");
-        verticalScrolls(legendHeight,legendWidth,_measures.vals().length*32,ctx.get("guid"),svg,scrollContainer,legends);
+        verticalScrolls(legendHeight,legendWidth,_measures.vals().length*32,0,svg,scrollContainer,legends);
         legends.selectAll(".legend").each(function(d,i){
             var g=d3.select(this);
             g.append("svg:rect").attr("height", 26)
@@ -955,46 +990,53 @@ var CompareChart=SmartTrafficChartClass.extend({
         var self= this;
         this.isInitDraw=false;
 
-        this.yValueFormat=function(v){
+        this._yValueFormat=function(v){
             var max=this.getMaxData("y"),min=this.getMinData("y");
             var span = (max-min)/10;
-            if(span>1){
-                if(isNaN){
-                    return v;
-                }else{
-                    return v.toFixed(0);
-                }
-
-            }
-            if(span <1 ){
-                  if(isNaN){
-                    return v;
-                }else{
-                    var num = 1;
-                    for(var i =0;i<span.toString().length;++i){
-                        if(span.toString()[i]!== 0 && span.toString()[i]!="."){
-                            num = i;
+            if(isNaN(v)){
+                return this.yValueFormat? this.yValueFormat(v):v;
+            }else{
+                var self=this;
+                return span>1? function(v){
+                    var _v =v.toFixed();
+                        return self.yValueFormat? self.yValueFormat(_v):_v;
+                    }(v)
+                    :
+                    function(v){
+                        var num = 1,_v;
+                        for(var i =0;i<span.toString().length;++i){
+                            if(span.toString()[i]!== 0 && span.toString()[i]!="."){
+                                num = i;
+                            }
                         }
+                        _v=v.toFixed(i);
+                        return self.yValueFormat? self.yValueFormat(_v):_v;
                     }
-                return v.toFixed(i);
-                }
-            }            
-        }
-        this.y2ValueFormat = function(v){
-             var max=this.getMaxData("y2"),min=this.getMinData("y2");
-            var span = (max-min)/10;
-            if(span>1){
-                return v.toFixed(0);
             }
-            if(span <1 ){
-                var num = 1;
-                for(var i =0;i<span.toString().length;++i){
-                    if(span.toString()[i]!== 0 && span.toString()[i]!="."){
-                        num = i;
+        }
+        this._y2ValueFormat = function(v){
+            var max=this.getMaxData("y2"),min=this.getMinData("y2");
+            var span = (max-min)/10;
+            if(isNaN(v)){
+                return this.y2ValueFormat? this.y2ValueFormat(v):v;
+            }else{
+                var self=this;
+                return span>1? function(v){
+                    var _v =v.toFixed();
+                        return self.y2ValueFormat? self.y2ValueFormat(_v):_v;
+                    }(v)
+                    :
+                    function(v){
+                        var num = 1,_v;
+                        for(var i =0;i<span.toString().length;++i){
+                            if(span.toString()[i]!== 0 && span.toString()[i]!="."){
+                                num = i;
+                            }
+                        }
+                        _v=v.toFixed(i);
+                        return self.y2ValueFormat? self.y2ValueFormat(_v):_v;
                     }
-                }
-                return v.toFixed(i);
-            }            
+            }
         }
         this.eventManager=eventManager.create();
 	    this.colorManager=colorManager.create();
@@ -1003,13 +1045,7 @@ var CompareChart=SmartTrafficChartClass.extend({
         this._measures=new Set(function(v1,v2){
             return String(v1.id) === String(v2.id)});
         this.memory=new Memory(); 
-        this._xSet =new Set(function(v1,v2){
-            if(self.xType==="time"|| self.xType==="number"){
-                return v1 -v2 === 0;
-            }else{
-                return v1 === v2;
-            }
-        });
+       
         this.setConfig(config);
         this.registerEvent();
     },
@@ -1219,7 +1255,7 @@ var CompareChart=SmartTrafficChartClass.extend({
             this._yAxis = this.svg.drawArea.append("svg:g")
                         .attr("class", "CompareChart-yaxis")
                         .attr("transform","translate("+(this._yTitleWidth+this._yAxisWidth)+",0)")
-                        .call(d3.svg.axis().scale(this.getScale("y")).orient("left").tickFormat(this.yValueFormat.bind(this)));
+                        .call(d3.svg.axis().scale(this.getScale("y")).orient("left").tickFormat(this._yValueFormat.bind(this)));
         }
 
         /// draw y2
@@ -1228,7 +1264,7 @@ var CompareChart=SmartTrafficChartClass.extend({
             this._y2Axis = this.svg.drawArea.append("svg:g")
                 .attr("class", "CompareChart-y2axis")
                 .attr("transform", "translate(" + (this._figureWidth+this._yTitleWidth+this._yAxisWidth) + ",0)")
-                .call(d3.svg.axis().scale(this.getScale("y2")).orient("right").tickFormat(this.y2ValueFormat.bind(this)));
+                .call(d3.svg.axis().scale(this.getScale("y2")).orient("right").tickFormat(this._y2ValueFormat.bind(this)));
         }
         if(this._xAxisHeight > 25){
             this._xAxis.selectAll("text").style("text-anchor", "end")
@@ -1299,8 +1335,8 @@ var CompareChart=SmartTrafficChartClass.extend({
                 var length=0,self=this;
                 this._measures.vals().filter(function(f) {return f.y2}).forEach(function(f){
                     f.getAllY().filter(function(d){return !isNaN(d)}).forEach(function(d){
-                        if(self.y2ValueFormat){
-                            length = Math.max(length,self.y2ValueFormat(d).toString().length);
+                        if(self._y2ValueFormat){
+                            length = Math.max(length,self._y2ValueFormat(d).toString().length);
                         }else{
                             length = Math.max(length,d.toString().length);
                         }
@@ -1313,8 +1349,8 @@ var CompareChart=SmartTrafficChartClass.extend({
                 var length=0,self=this;
                 this._measures.vals().filter(function(f) {return !f.y2}).forEach(function(f){
                     f.getAllY().filter(function(d){return !isNaN(d)}).forEach(function(d){
-                        if(self.yValueFormat){
-                            length = Math.max(length,self.yValueFormat(d).toString().length);
+                        if(self._yValueFormat){
+                            length = Math.max(length,self._yValueFormat(d).toString().length);
                         }else{
                             length = Math.max(length,d.toString().length);
                         }
@@ -1497,6 +1533,13 @@ var CompareChart=SmartTrafficChartClass.extend({
     getXset:function(){
         return this.memory.cache("xset",function(){
             var self = this;
+            self._xSet =new Set(function(v1,v2){
+                    if(self.xType==="time"|| self.xType==="number"){
+                        return v1 -v2 === 0;
+                    }else{
+                        return v1 === v2;
+                    }
+                });
             this._measures.forEach(function(ds){
                ds._d.forEach(function(d){
                     self._xSet.add(d.x);
