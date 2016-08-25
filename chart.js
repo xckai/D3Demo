@@ -317,7 +317,6 @@ var RadarChart = SmartTrafficChartClass.extend({
         return this;
     },
     initDraw:function(){
-        if(this.isInitDraw) return this;
         if(this.validateConfig()){
             this.svgContainer = d3.select("#"+this.appendId).append("div").classed("RadarChart",true)
                                     .style("width", this.width)
@@ -1266,12 +1265,13 @@ var CompareChart=SmartTrafficChartClass.extend({
                         return Set[v];
                     }
                         
-                }).ticks([xtickNum]));
+                }).ticks(Set.length));
+                //tickValues(d3.range(Set.length)));
         }else{
             this._xAxis = this.svg.drawArea.append("svg:g")
                 .attr("transform", "translate("+(this._yTitleWidth+this._yAxisWidth)+"," + (this._drawAreaHeight-this._xTitleHeight-this._xAxisHeight) + ")")
                 .attr("class", "CompareChart-xaxis")
-                .call(d3.svg.axis().scale(this.getScale("x")).orient("bottom").tickFormat(this.xValueFormat.bind(this)).ticks([10]));
+                .call(d3.svg.axis().scale(this.getScale("x")).orient("bottom").tickFormat(this.xValueFormat.bind(this)).ticks([xtickNum]));
         }
 
         /////draw y1
@@ -1347,9 +1347,9 @@ var CompareChart=SmartTrafficChartClass.extend({
             })
 
             if(length>6)
-                return length * 8;
+                return length * 8/Math.min(1,self._zoomScale);
             else{
-                return 25;
+                return 25/Math.min(1,self._zoomScale);
             }
         },this);
         
