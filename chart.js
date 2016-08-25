@@ -1027,6 +1027,7 @@ var CompareChart=SmartTrafficChartClass.extend({
                         for(var i =0;i<span.toString().length;++i){
                             if(span.toString()[i]!== 0 && span.toString()[i]!="."){
                                 num = i;
+                                break;
                             }
                         }
                         _v=Number(v).toFixed(i);
@@ -1065,7 +1066,8 @@ var CompareChart=SmartTrafficChartClass.extend({
         this._measures=new Set(function(v1,v2){
             return String(v1.id) === String(v2.id)});
         this.memory=new Memory(); 
-       
+        this.translate=[0,0];
+        this._zoomScale=1;
         this.setConfig(config);
         this.registerEvent();
     },
@@ -1621,6 +1623,7 @@ var CompareChart=SmartTrafficChartClass.extend({
         this.isInitDraw =false;
         this.memory.flush();
         this._zoomScale=1;
+        this.translate=[0,0];
         this.rendering();
     },
     remove:function(){
@@ -1646,10 +1649,18 @@ var CompareChart=SmartTrafficChartClass.extend({
         }
         if(key ==="y" || key ==="y2"){
             return this.memory.cache(key+"scale",function(key){
-                var span = (this.getMaxData(key) - this.getMinData(key)) / 12;
+                var span, max,min;
+                max = this.getMaxData(key);
+                min =this.getMinData(key);
+                if(min === max){
+                    min /=2 ;
+                    if(max === 0)   max +=10;
+                }
+                span = (max-min)/12;
+                max+=span;min-=span;
                 return  d3.scale.linear()
                         .range([0, this._figureHeight])
-                        .domain([this.getMaxData(key) + span, this.getMinData(key) - span]);
+                        .domain([max, min]);
             },this,arguments);
         }
     },
