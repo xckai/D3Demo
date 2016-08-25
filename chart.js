@@ -1031,7 +1031,7 @@ var CompareChart=SmartTrafficChartClass.extend({
                         }
                         _v=Number(v).toFixed(i);
                         return self.yValueFormat? self.yValueFormat(_v):_v;
-                    }
+                    }(v)
             }
         }
         this._y2ValueFormat = function(v){
@@ -1055,7 +1055,7 @@ var CompareChart=SmartTrafficChartClass.extend({
                         }
                         _v=Number(v).toFixed(i);
                         return self.y2ValueFormat? self.y2ValueFormat(_v):_v;
-                    }
+                    }(v)
             }
         }
         this.eventManager=eventManager.create();
@@ -1127,10 +1127,12 @@ var CompareChart=SmartTrafficChartClass.extend({
     },
     validateConfig:function(){
         if(this.appendId===undefined || this.appendId ===null){
-                throw new Error("please assign chart container ID");
+                console.error("please assign chart container ID");
+                return false;
         }
         if(this._drawAreaHeight * this._drawAreaWidth <0 || this._figureHeight* this._figureWidth<0){
-               throw new Error("Wrong chart height and width");
+              console.error("Wrong chart height and width");
+              return false;
         }
         return true;
     },
