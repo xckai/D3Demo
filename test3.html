@@ -1,0 +1,168 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Scroll Bar</title>
+</head>
+
+
+
+<body>
+</body>
+<script src="http://d3js.org/d3.v3.min.js" type="text/javascript"></script>
+<script>
+    var ScrollBar = function() {
+        var self = this,
+            offset = 0,
+            accLength = 0,
+            length = 10,
+            height=10;
+            width = 10;
+        var scrollBarLength = length * Math.min(length / accLength, 1);
+        var scrollBarOffset = offset * Math.min(length / accLength, 1);
+        var _scrollBackground, _scrollBar, _svg, _drag = d3.behavior.drag(),_orient="vertical";
+        var getOffset=function(e,isDrag){
+            return isDrag? (_orient==="vertical"? e.dy : e.dx):e.deltaY;
+        }
+        _drag.on("drag", function() {;
+           
+            var _offset = getOffset(d3.event,true);
+            scrollBarOffset = scrollBarOffset + _offset;
+            if (scrollBarOffset < 0) {
+                scrollBarOffset = 0;
+            }
+            if (scrollBarOffset + scrollBarLength > length) {
+                scrollBarOffset = length - scrollBarLength;
+            }
+            offset = scrollBarOffset * accLength / length;
+            scrollBar.rendering();
+        });
+        var scrollBar = function(container) {
+            var scrollBars = container.append("g")
+                .on("mousewheel", function() {
+                    var _offset = getOffset(d3.event);
+                    scrollBarOffset = (offset + _offset) * length / accLength;
+                    if (scrollBarOffset < 0) {
+                        scrollBarOffset = 0;
+                    }
+                    if (scrollBarOffset + scrollBarLength > length) {
+                        scrollBarOffset = length - scrollBarLength;
+                    }
+                    offset = scrollBarOffset * accLength / length;
+                    event.preventDefault();
+                    scrollBar.rendering();
+                })
+            _scrollBackground = scrollBars.append("rect");
+
+            _scrollBar = scrollBars.append("rect").call(_drag);
+
+            scrollBar.rendering();
+        }
+        scrollBar.setAccLength = function(l) {
+            accLength = l;
+            return scrollBar;
+        }
+        scrollBar.setBarlength = function(l) {
+            length = l;
+            return scrollBar;
+        };
+        scrollBar.setOffSet = function(o) {
+            offset = o;
+            scrollBarOffset = offset * length / accLength;
+            if (scrollBarOffset < 0) {
+                 scrollBarOffset = 0;
+             }
+            if (scrollBarOffset + scrollBarLength > length) {
+                scrollBarOffset = length - scrollBarLength;
+             }
+            offset = scrollBarOffset * accLength / length;
+            scrollBar.rendering();
+            return offset;
+        }
+        scrollBar.on = function(s) {
+            _svg = s;
+        }
+        scrollBar.orient=function(_){
+            _orient=_;
+        }
+        scrollBar.rendering = function() {
+            if(length / accLength >1) return ;
+            scrollBarLength = length * Math.min(length / accLength, 1);
+            scrollBarOffset = offset * Math.min(length / accLength, 1);
+            var _scrollBarHeight,_scrollBarWidth,_scrollBackgroundHeight,_scrollBackgroundWidth,_scrollBarTranslate,_svgTranslate;
+            if(_orient === "vertical"){
+                _scrollBarHeight=scrollBarLength;
+                _scrollBarWidth = width;
+                _scrollBackgroundHeight=length;
+                _scrollBackgroundWidth=width;
+                _scrollBarTranslate="translate(0," + scrollBarOffset + ")";
+                _svgTranslate="translate(0," + (-offset) + ")";
+            }else{
+                _scrollBarHeight=height;
+                _scrollBarWidth =scrollBarLength;
+                _scrollBackgroundHeight=height;
+                _scrollBackgroundWidth=length;
+                _scrollBarTranslate="translate(" + scrollBarOffset + ",0)";
+                _svgTranslate="translate(" + (-offset) + ",0)";
+            }
+            if (_scrollBar) {
+                _scrollBar.attr("height", _scrollBarHeight)
+                    .attr("width", _scrollBarWidth )
+                    .attr("fill", "#AAA")
+                    .style("opacity", 0.6)
+                    .attr("transform", _scrollBarTranslate);
+            }
+            if (_scrollBackground) {
+                _scrollBackground.attr("height", _scrollBackgroundHeight)
+                    .attr("width", _scrollBackgroundWidth)
+                    .attr("fill", "#BBB")
+                    .style("opacity", 0.4);
+            }
+            if (_svg) {
+                _svg.attr("transform",_svgTranslate);
+            }
+            return scrollBar;
+        }
+        return scrollBar;
+
+    }
+    window.onload = function() {
+        var scrollVer = ScrollBar();
+        var svgVer = d3.select("body").append("svg").attr("height", 200);
+        var textVer = svgVer.append("g");
+        textVer.selectAll("text").data(d3.range(30))
+            .enter()
+            .append("text")
+            .attr("x", 0)
+            .attr("y", function(d, i) {
+                return i * 30
+            })
+            .attr("dominant-baseline", "text-before-edge")
+            .text(function(d) {
+                return d;
+            });
+        scrollVer.setAccLength(900).setBarlength(200);
+        svgVer.append("g").attr("transform", "translate(20,0)").call(scrollVer);
+        scrollVer.on(textVer);
+
+
+        var scrollHor = ScrollBar();
+        var svgHor = d3.select("body").append("svg").attr("width", 200);
+        var textHor = svgHor.append("g");
+        textHor.selectAll("text").data(d3.range(30))
+            .enter()
+            .append("text")
+            .attr("x", function(d,i){return i*30})
+            .attr("y",0)
+            .attr("dominant-baseline", "text-before-edge")
+            .text(function(d) {
+                return d;
+            });
+        scrollHor.setAccLength(900).setBarlength(200).orient("horizontal")
+        svgHor.append("g").attr("transform", "translate(0,20)").call(scrollHor);
+        scrollHor.on(textHor);
+
+    }
+</script>
+
+</html>
