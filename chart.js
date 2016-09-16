@@ -939,7 +939,51 @@ var Legend=SmartTrafficChartClass.extend({
     },
     draw:function(ctx,_measures){
         var svg=ctx.get("svg"),legendWidth=ctx.get("legendWidth")-10,self=this,legendHeight =ctx.get("legendHeight"),guid=ctx.get("guid");
-        var legendGroup =svg.append("svg:g").classed("legendGroup",true)
+        var _a=svg.append("a").attr("xlink:href","javascript:void(0)").attr("name","legend")
+        var legendGroup =_a.append("svg:g").classed("legendGroup",true);
+        var i =-1;
+        _a.on("keydown",function(){
+            switch(event.code){
+                case "ArrowDown":
+               	     i=(i+1+_measures.vals().length)%_measures.vals().length;
+                     legends.selectAll(".legend").each(function(_d,_i){
+                            if(i===_i){
+                                var evt = new MouseEvent("mouseover");
+                                    d3.select(this).node().dispatchEvent(evt);
+                            
+                            }else{
+                                var evt = new MouseEvent("mouseout");
+                                    d3.select(this).node().dispatchEvent(evt);
+                            }
+                        })
+                        event.preventDefault();
+                        break;
+                case "ArrowUp":
+                     i=(i-1+_measures.vals().length)%_measures.vals().length;
+                     legends.selectAll(".legend").each(function(_d,_i){
+                            if(i===_i){
+                                var evt = new MouseEvent("mouseover");
+                                    d3.select(this).node().dispatchEvent(evt);
+                            
+                            }else{
+                                var evt = new MouseEvent("mouseout");
+                                    d3.select(this).node().dispatchEvent(evt);
+                            }
+                        })
+                        event.preventDefault();  
+                        break;
+                case "Enter":
+                      legends.selectAll(".legend").each(function(_d,_i){
+                            if(i===_i){
+                                var evt = new MouseEvent("click");
+                                    d3.select(this).node().dispatchEvent(evt);
+                            
+                            }
+                        })
+                       event.preventDefault();
+                       break;
+         }
+        })
         legendGroup.append("rect").attr("height",legendHeight).attr("width",legendWidth).attr("fill-opacity", 0);
         var legends=legendGroup.append("svg:g");
         svg.append("defs").append("clipPath")
@@ -1217,7 +1261,9 @@ var CompareChart=SmartTrafficChartClass.extend({
                                                       .attr("transform","translate("+(this._drawAreaWidth/2)+",5)");
             this.svg.drawArea =this.svg.append("svg:g").classed("CompareChart-drawArea",true)
                                         .attr("transform","translate(0,"+this._titleHeight+")"); 
-            this.svg.drawArea.figureArea=this.svg.drawArea.append("svg:g").classed("CompareChart-figure",true)
+            var _a=this.svg.drawArea.append("a").attr("xlink:href","javascript:void(0)").attr("name","legend");
+            this.keyboardHandle(_a);
+            this.svg.drawArea.figureArea=_a.append("svg:g").classed("CompareChart-figure",true)
                                           .attr("transform","translate("+(this._yTitleWidth+this._yAxisWidth)+",0)")
                                           .attr("clip-path", "url(#"+this.appendId+"clip)");
             this.svg.drawArea.figureRect=this.svg.drawArea.figureArea
@@ -1241,6 +1287,49 @@ var CompareChart=SmartTrafficChartClass.extend({
             this.isInitDraw=true;                                     
         }
         return this;
+    },
+    keyboardHandle:function(_a){
+        var i =-1,self=this;
+            _a.on("keydown",function(){
+                console.log(self._measures.vals().map(function(m){
+                return m.getObjForAccessiability();
+            }).reduce(function(v1,v2){
+                return v1.concat(v2);
+            }))
+            var objs= self._measures.vals().map(function(m){
+                return m.getObjForAccessiability();
+            }).reduce(function(v1,v2){
+                return v1.concat(v2);
+            })
+            switch(event.code){
+                case "ArrowLeft":
+               	    i=(i-1+objs.length)%objs.length;
+                    var _ = d3.select(objs[i]);
+                    self.toolTip.setVisiable(false);
+                    var position = _.datum()._figureObj.getRelativePoint(_)
+                    self.toolTip.setPosition(+position[0]+self._yTitleWidth+self._yAxisWidth ,+position[1]+self._titleHeight);
+                    //self.toolTip.setPosition(event.pageX , event.pageY);
+                    self.toolTip.setContent(self.getToolTipContent([_.datum()]));
+                    self.removeGuideLine();
+                    self.drawGuideLine(_.datum())
+                    self.toolTip.setVisiable(true);
+                      
+                        break;
+                case "ArrowRight":
+                     i=(i+1+objs.length)%objs.length;
+                    var _ = d3.select(objs[i]);
+                    self.toolTip.setVisiable(false);
+                    var position = _.datum()._figureObj.getRelativePoint(_)
+                    self.toolTip.setPosition(+position[0]+self._yTitleWidth+self._yAxisWidth ,+position[1]+self._titleHeight);
+                    //self.toolTip.setPosition(event.pageX , event.pageY);
+                    self.toolTip.setContent(self.getToolTipContent([_.datum()]));
+                    self.removeGuideLine();
+                    self.drawGuideLine(_.datum())
+                    self.toolTip.setVisiable(true);
+                        break;
+         }
+        })
+
     },
     draw:function(){
         this.drawTitle().drawAxis().drawYTicketLine().drawMeasure().drawLegend().drawEventZone();
@@ -1716,8 +1805,10 @@ var CompareChart=SmartTrafficChartClass.extend({
         this.toolTip.setVisiable(false);
         this.svg.drawArea.remove();
         this.svg.drawArea =this.svg.append("svg:g").classed("CompareChart-drawArea",true)
-                                        .attr("transform","translate(0,"+this._titleHeight+")");  
-        this.svg.drawArea.figureArea=this.svg.drawArea.append("svg:g").classed("CompareChart-figure",true)
+                                        .attr("transform","translate(0,"+this._titleHeight+")");
+        var _a=this.svg.drawArea.append("a").attr("xlink:href","javascript:void(0)").attr("name","legend");
+        this.keyboardHandle(_a);  
+        this.svg.drawArea.figureArea=_a.append("svg:g").classed("CompareChart-figure",true)
                                           .attr("transform","translate("+(this._yTitleWidth+this._yAxisWidth)+",0)")
                                           .attr("clip-path", "url(#"+this.appendId+"clip)");
         this.svg.drawArea.figureRect=this.svg.drawArea.figureArea
@@ -1957,6 +2048,12 @@ var Line=SmartTrafficChartClass.extend({
     getAllY:function(){
         return this._d.map(function(v){ return v.y});
     },
+    getObjForAccessiability:function(){
+        return this.measureDom.selectAll("circle")[0];
+    },
+    getRelativePoint:function(point){
+        return [point.attr("cx"),point.attr("cy")];
+    },
     getMax:function(key){
         if(key ==="x"){
             if(this._maxx) return this._maxx;
@@ -2168,6 +2265,12 @@ var Line=SmartTrafficChartClass.extend({
 })
 var Bar =Line.extend({
     type:"bar",
+     getObjForAccessiability:function(){
+        return this.measureDom.selectAll("rect")[0];
+    },
+    getRelativePoint:function(point){
+        return [point.attr("x"),point.attr("y")];
+    },
     draw:function(ctx){
         var bars=ctx.get("bars");
         var scales=ctx.get("scales");
@@ -2263,6 +2366,12 @@ var Bar =Line.extend({
 var BoxPlot = Line.extend({
     type:"boxplot",
     mapkey:["x", "d0", "d1", "d2", "d3", "d4","d5"],
+    getObjForAccessiability:function(){
+        return this.measureDom.selectAll(".boxplot")[0];
+    },
+    getRelativePoint:function(point){
+        return [point.select("line").attr("x1"),point.select("line").attr("y1")];
+    },
     init:function(oData){
         Line.init.call(this,oData);
         this.rectWidth=oData.rectWidth||18;
@@ -2279,7 +2388,7 @@ var BoxPlot = Line.extend({
         var xScale =xcooridate,yScale=this.y2?scales("y2"):scales("y"),lineWidth=this.lineWidth,rectWidth=this.rectWidth,self=this;
         var boxGroup=svg.append("g").attr("class","CompareChart-boxplot").attr("pointer-events", "none");
         this._d.forEach(function(d){
-                var boxplot =boxGroup.append("g").attr("class","event-comparechart-" + xSetIndex(d.x)).datum(d);
+                var boxplot =boxGroup.append("g").attr("class","event-comparechart-" + xSetIndex(d.x)).datum(d).classed("boxplot",true);
                 boxplot.append("line").attr("x1", xScale(d.x)-lineWidth/2).attr("y1", yScale(d.d0))
                                                                     .attr("x2",  xScale(d.x)+lineWidth/2 ).attr("y2", yScale(d.d0))
                                                                     .attr("stroke","black").attr("stroke-width","2");
