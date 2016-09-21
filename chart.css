@@ -6,6 +6,10 @@
     -ms-user-select: none;
     user-select: none;
 }
+.datamousehover{
+    stroke: black;
+    stroke-width: 2px;
+}
 .CompareChart-xaxis  .tick line ,.CompareChart-yaxis .tick line ,.CompareChart-y2axis  .tick line{
     fill:none;
     stroke: black;
