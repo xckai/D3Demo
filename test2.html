@@ -80,9 +80,18 @@
             "height": 800,
             title: "TimeSeries",
             xType:"time",
-            xTitle:"我是x轴",
-            yTitle:"y",
-            y2Title:"Y2",
+            xTitle:{
+                    location:"end",
+                    value:"这是x轴"
+            },
+            yTitle:{
+                    location:"start",
+                    value:"这是y轴"
+            },
+            y2Title:{
+                    location:"end",
+                    value:"这是y2轴"
+            },
             xValueFormat:function(v){
                 return d3.time.format("%m月 %d 日 %H:%M")(new Date(v));
             },

@@ -78,12 +78,12 @@ var Legend=SmartChartBaseClass.extend({
                                         .attr("y",i * 32+5)
                                         .attr("width",16)
                                         .attr("height",16)
-                                        .attr("fill",d.style.color);
+                                        .attr("fill",d.style_color);
             }else{
                 g.append("svg:circle").attr("cx",0)
                                     .attr("cy",  i * 32+13)
                                     .attr("r",8)
-                                    .attr("fill", d.style.color );
+                                    .attr("fill", d.style_color );
             }
             g.append("svg:text").attr("x", 12)
                                     .attr("y",(i * 32) + 14)

@@ -89,6 +89,15 @@ var CompareChart=SmartChartBaseClass.extend({
     registerEvent:function(){
         this.eventManager.on("select",this.setSelectStyle,this)
         this.eventManager.on("deSelect",this.setSelectStyle,this)
+        this.eventManager.on("xtitleclick",function(){
+            console.log("xtitleclick")
+        },this)
+        this.eventManager.on("ytitleclick",function(){
+            console.log("ytitleclick")
+        },this)
+        this.eventManager.on("y2titleclick",function(){
+            console.log("y2titleclick")
+        },this)
     },
     appendTo:function(id){
         this.appendId = id;
@@ -173,7 +182,7 @@ var CompareChart=SmartChartBaseClass.extend({
     },
     preHandleMeasure:function(obj){
         var self = this;
-        obj.style.color=obj.style.color||this.colorManager.getColor();
+        obj.style_color=obj.style_color||this.colorManager.getColor();
         obj.eventManager=this.eventManager;
         obj.$chart=this;
         obj._d.forEach(function(d) {
@@ -438,30 +447,118 @@ var CompareChart=SmartChartBaseClass.extend({
         }
     },
     drawTitle:function(){
+        var self =this;
         this.svg.title.selectAll("text").remove();
         this.svg.title.append("text").text(this.title).attr("text-anchor", "middle")
                                             .attr("font-size","22px")
                                             .attr("dominant-baseline", "text-before-edge");
         if(this.hasY1()){
-            this.svg.drawArea.append("g").attr("transform", "translate(1," + ( this._figureHeight / 2) + ")")
-            .classed("CompareChart-yTitleBar", true)
-            .attr("text-anchor", "middle")
-            .append("text").text(this.yTitle)
-            .attr("transform", "rotate(-90)")
-            .attr("dominant-baseline", "text-before-edge");
+            var _titleRect=this.svg.drawArea.append("rect")
+                .attr("x",0)
+                .attr("height",this._figureHeight).attr("width",this._yTitleWidth)
+                .attr("fill-opacity", "0")
+                .on("click",function(){self.eventManager.call("ytitleclick")});
+            switch(this.yTitle_location){
+                case "start":
+                    this.svg.drawArea.append("g").attr("transform", "translate(1, 0)")
+                        .classed("CompareChart-yTitleBar", true)
+                        .attr("text-anchor", "end")
+                        .append("text").text(this.yTitle_value)
+                        .attr("transform", "rotate(-90)")
+                        .attr("dominant-baseline", "text-before-edge")
+                        .attr("pointer-events", "none");
+                        break;
+                case "middle":
+                    this.svg.drawArea.append("g").attr("transform", "translate(1," + ( this._figureHeight / 2) + ")")
+                        .classed("CompareChart-yTitleBar", true)
+                        .attr("text-anchor", "middle")
+                        .append("text").text(this.yTitle_value)
+                        .attr("transform", "rotate(-90)")
+                        .attr("dominant-baseline", "text-before-edge")
+                        .attr("pointer-events", "none");
+                        break;
+                case "end":              
+                    this.svg.drawArea.append("g").attr("transform", "translate(1," + ( this._figureHeight ) + ")")
+                        .classed("CompareChart-yTitleBar", true)
+                        .attr("text-anchor", "start")
+                        .append("text").text(this.yTitle_value)
+                        .attr("transform", "rotate(-90)")
+                        .attr("dominant-baseline", "text-before-edge")
+                        .attr("pointer-events", "none");
+                        break;
+            }
         }
         if(this.hasY2()){
-             this.svg.drawArea.append("g").attr("transform", "translate(" + (this._figureWidth+this._yTitleWidth+this._yAxisWidth+this._y2AxisWidth+this._y2TitleWidth) + "," + ( this._figureHeight / 2) + ")")
-             .classed("CompareChart-y2TitleBar", true).attr("text-anchor", "middle")
-             .append("text").text(this.y2Title)
-             .attr("transform", "rotate(-90)")
-             .attr("dominant-baseline", "text-after-edge");
+            var _titleRect=this.svg.drawArea.append("rect")
+                .attr("x",this._figureWidth+this._yTitleWidth+this._yAxisWidth+this._y2AxisWidth)
+                .attr("height",this._figureHeight).attr("width",this._y2TitleWidth)
+                .attr("fill-opacity", "0")
+                .on("click",function(){
+                    self.eventManager.call("y2titleclick")
+                });
+             switch(this.y2Title_location){ 
+                case "start":
+                   this.svg.drawArea.append("g").attr("transform", "translate(" + (this._figureWidth+this._yTitleWidth+this._yAxisWidth+this._y2AxisWidth+this._y2TitleWidth) + ",0)")
+                    .classed("CompareChart-y2TitleBar", true).attr("text-anchor", "end")
+                    .append("text").text(this.y2Title_value)
+                    .attr("transform", "rotate(-90)")
+                    .attr("dominant-baseline", "text-after-edge")
+                     .attr("pointer-events", "none");
+                        break;
+                case "middle":
+                    this.svg.drawArea.append("g").attr("transform", "translate(" + (this._figureWidth+this._yTitleWidth+this._yAxisWidth+this._y2AxisWidth+this._y2TitleWidth) + "," + ( this._figureHeight / 2) + ")")
+                    .classed("CompareChart-y2TitleBar", true).attr("text-anchor", "middle")
+                    .append("text").text(this.y2Title_value)
+                    .attr("transform", "rotate(-90)")
+                    .attr("dominant-baseline", "text-after-edge")
+                     .attr("pointer-events", "none");
+                        break;
+                case "end":              
+                    this.svg.drawArea.append("g").attr("transform", "translate(" + (this._figureWidth+this._yTitleWidth+this._yAxisWidth+this._y2AxisWidth+this._y2TitleWidth) + "," + ( this._figureHeight) + ")")
+                    .classed("CompareChart-y2TitleBar", true).attr("text-anchor", "start")
+                    .append("text").text(this.y2Title_value)
+                    .attr("transform", "rotate(-90)")
+                    .attr("dominant-baseline", "text-after-edge")
+                     .attr("pointer-events", "none");
+                        break;
+            }
         }
-        this.svg.drawArea.append("g").attr("transform", "translate(" + (this._drawAreaWidth / 2) + "," + (this._drawAreaHeight-this._xTitleHeight) + ")")
-            .classed("CompareChart-xTitleBar", true).attr("text-anchor", "middle")
-            .append("text")
-            .text(this.xTitle)
-            .attr("dominant-baseline", "text-before-edge");
+        ////////////////////////x title
+         var _titleRect=this.svg.drawArea.append("rect")
+                .attr("x",this._yTitleWidth+this._yAxisWidth)
+                .attr("y",this._drawAreaHeight-this._xTitleHeight)
+                .attr("height",this._xTitleHeight).attr("width",this._figureWidth)
+                .attr("fill-opacity", "0")
+                .on("click",function(){
+                    self.eventManager.call("xtitleclick")
+                });
+        switch(this.xTitle_location){
+           
+            case "start":
+                this.svg.drawArea.append("g").attr("transform", "translate(" + (0) + "," + (this._drawAreaHeight-this._xTitleHeight) + ")")
+                    .classed("CompareChart-xTitleBar", true).attr("text-anchor", "start")
+                    .append("text")
+                    .text(this.xTitle_value)
+                    .attr("dominant-baseline", "text-before-edge")
+                    .attr("pointer-events", "none");
+                    break;
+            case "middle":
+                this.svg.drawArea.append("g").attr("transform", "translate(" + (this._drawAreaWidth / 2) + "," + (this._drawAreaHeight-this._xTitleHeight) + ")")
+                    .classed("CompareChart-xTitleBar", true).attr("text-anchor", "middle")
+                    .append("text")
+                    .text(this.xTitle_value)
+                    .attr("dominant-baseline", "text-before-edge")
+                    .attr("pointer-events", "none");
+                    break;
+            case "end":
+                this.svg.drawArea.append("g").attr("transform", "translate(" + (this._drawAreaWidth-this._y2TitleWidth-this._y2AxisWidth) + "," + (this._drawAreaHeight-this._xTitleHeight) + ")")
+                    .classed("CompareChart-xTitleBar", true).attr("text-anchor", "end")
+                    .append("text")
+                    .text(this.xTitle_value)
+                    .attr("dominant-baseline", "text-before-edge")
+                    .attr("pointer-events", "none");
+                    break;
+        }
         return this;
     },
     drawLegend:function(){
@@ -975,6 +1072,7 @@ var Line=SmartChartBaseClass.extend({
     init: function(measure) {
         var self=this;
         this.measure=measure;
+        this.setOption(measure);
         this.id=measure.id;
         this.name=measure.name;
         this._d = JSON.parse(JSON.stringify(measure.data));
@@ -1150,14 +1248,14 @@ var Line=SmartChartBaseClass.extend({
         xScale =xcooridate;
         var lineTransition = function(l){
              var totalLength = l.node().getTotalLength();
-             if(self.style.dasharray){
+             if(self.style_dasharray){
                 l.attr("stroke-dasharray", totalLength + "," + totalLength)
                                 .attr("stroke-dashoffset", totalLength)
                                 .transition()
                                     .duration(transitionTime)
                                     .ease("linear")
                                     .attr("stroke-dashoffset", 0)
-                    .transition().duration(0).attr("stroke-dasharray",self.style.dasharray);
+                    .transition().duration(0).attr("stroke-dasharray",self.style_dasharray);
              }else{
                 l.attr("stroke-dasharray", totalLength + "," + totalLength)
                     .attr("stroke-dashoffset", totalLength)
@@ -1182,19 +1280,19 @@ var Line=SmartChartBaseClass.extend({
         //         return yScale(d.y);
         //     });
         _line = line.append("path")
-            .attr('stroke', this.style.color)
-            .attr('stroke-width', this.style.linewidth||defaultStyle.linewidth)
+            .attr('stroke', this.style_color)
+            .attr('stroke-width', this.style_linewidth||defaultStyle.linewidth)
             .attr('fill', 'none')
             .attr('d', this.smartLineGen(xScale,yScale,isHandleNaN,this._d));
-        if(this.style.dasharray){
-           _line.attr("stroke-dasharray",this.style.dasharray); 
+        if(this.style_dasharray){
+           _line.attr("stroke-dasharray",this.style_dasharray); 
         } 
         _circle =
             line.selectAll("linepoint")
             .data(this._d.filter(function(v){return !isNaN(v.y)}))
             .enter()
             .append("circle")
-            .attr("fill", this.style.color)
+            .attr("fill", this.style_color)
             .attr("cx", function(d) {
                 return xScale(d.x);
             })
@@ -1202,14 +1300,14 @@ var Line=SmartChartBaseClass.extend({
                 return yScale(d.y);
             })
             .attr("r", function(d) {
-                return this.style.circleradius||defaultStyle.circleradius;
+                return this.style_circleradius||defaultStyle.circleradius;
             })
             .attr("class",function(d,i){
                 return "event-comparechart-"+xSetIndex(d.x);
             })
-        if(!isNaN(this.style.opacity)){
-           _line.attr("opacity",+this.style.opacity);
-           _circle.attr("opacity",+this.style.opacity);
+        if(!isNaN(this.style_opacity)){
+           _line.attr("opacity",+this.style_opacity);
+           _circle.attr("opacity",+this.style_opacity);
         }
         if(!this.measureDom){
             _line.call(lineTransition);
@@ -1257,8 +1355,8 @@ var Line=SmartChartBaseClass.extend({
                 yTitle =" ";
             }
             text += "<tr>";
-            text += "<td class='tooltip-name'><span style=' background-color:" + this.style.color + "'></span>" + this.name + "</td>";
-            text += "<td class='tooltip-value'>" + (this.config.yLabel ||yTitle ) + "</td>";
+            text += "<td class='tooltip-name'><span style=' background-color:" + this.style_color + "'></span>" + this.name + "</td>";
+            text += "<td class='tooltip-value'>" + (this.config_yLabel ||yTitle ) + "</td>";
             text += "<td class='tooltip-value'>" + data.y + "</td>";
             text += "</tr>";
             return text;
@@ -1331,12 +1429,12 @@ var Bar =Line.extend({
                 })
                 .attr("width", barWidth)
                 .attr("height",barMaxHeight )
-                .attr("fill", this.style.color)
+                .attr("fill", this.style_color)
                 .attr("class", function(d, i) {
                     return "event-comparechart-" + xSetIndex(d.x);
                 });
-        if(!isNaN(this.style.opacity)){
-            bars.selectAll("rect").attr("opacity",+this.style.opacity);
+        if(!isNaN(this.style_opacity)){
+            bars.selectAll("rect").attr("opacity",+this.style_opacity);
         }
         if(!this.measureDom){
             bars.call(transitionFunction);
@@ -1361,8 +1459,8 @@ var Bar =Line.extend({
                 yTitle =" ";
             }
             text += "<tr>";
-            text += "<td class='tooltip-name'><span style=' background-color:" + this.style.color + "'></span>" + this.name + "</td>";
-            text += "<td class='tooltip-value'>" + (this.config.yLabel ||yTitle ) + "</td>";
+            text += "<td class='tooltip-name'><span style=' background-color:" + this.style_color + "'></span>" + this.name + "</td>";
+            text += "<td class='tooltip-value'>" + (this.config_yLabel ||yTitle ) + "</td>";
             text += "<td class='tooltip-value'>" + data.y + "</td>";
             text += "</tr>";
             return text;
@@ -1379,7 +1477,7 @@ var BoxPlot = Line.extend({
     },
     init:function(measure){
         Line.init.call(this,measure);
-        this.rectwidth=this.style.rectwidth||defaultStyle.rectwidth;
+        this.rectwidth=this.style_rectwidth||defaultStyle.rectwidth;
         this.linelength=this.rectwidth+4;
     },
     draw:function(ctx){
@@ -1403,7 +1501,7 @@ var BoxPlot = Line.extend({
                                                                     .attr("stroke","black").attr("stroke-width","1.5px").attr("stroke-dasharray", "2,2");
                 boxplot.append("rect").attr("x", xScale(d.x)-rectwidth/2).attr("y", yScale(d.d1))
                                                                     .attr("width",rectwidth).attr("height", yScale(d.d4)- yScale(d.d1))
-                                                                    .attr("fill",self.style.color);
+                                                                    .attr("fill",self.style_color);
                 boxplot.append("line").attr("x1", xScale(d.x)-rectwidth/2).attr("y1", yScale(d.d2))
                                                                     .attr("x2",  xScale(d.x)+rectwidth/2 ).attr("y2", yScale(d.d2))
                                                                     .attr("stroke","black").attr("stroke-width","2");
@@ -1458,32 +1556,32 @@ var BoxPlot = Line.extend({
         var text="";
         var data =ctx.get("d");
         text += "<tr>";
-            text += "<td class='tooltip-name' rowspan='6'><span style=' background-color:" + this.style.color + "'></span>" + this.name + "</td>";
-            text+= "<td class='tooltip-value'>" +(this.config.d0Label || "Data 0") + "</td>";
+            text += "<td class='tooltip-name' rowspan='6'><span style=' background-color:" + this.style_color + "'></span>" + this.name + "</td>";
+            text+= "<td class='tooltip-value'>" +(this.config_d0Label || "Data 0") + "</td>";
             text += "<td class='tooltip-value'>" + data.d0 + "</td>";
             text += "</tr>";
             text += "<tr>";
            
-            text+= "<td class='tooltip-value'>" + (this.config.d1Label || "Data 1")+ "</td>";
+            text+= "<td class='tooltip-value'>" + (this.config_d1Label || "Data 1")+ "</td>";
             text += "<td class='tooltip-value'>" + data.d1 + "</td>";
             text += "</tr>";
             text += "<tr>";
             
-            text+= "<td class='tooltip-value'>" +(this.config.d2Label || "Data 2")+ "</td>";
+            text+= "<td class='tooltip-value'>" +(this.config_d2Label || "Data 2")+ "</td>";
             text += "<td class='tooltip-value'>" + data.d2 + "</td>";
             text += "</tr>";
             text += "<tr>";
 
-            text+= "<td class='tooltip-value'>" + (this.config.d3Label || "Data 3" )+ "</td>";
+            text+= "<td class='tooltip-value'>" + (this.config_d3Label || "Data 3" )+ "</td>";
             text += "<td class='tooltip-value'>" + data.d3 + "</td>";
             text += "</tr>";
             text += "<tr>";
   
-            text+= "<td class='tooltip-value'>" + (this.config.d4Label|| "Data 4") + "</td>";
+            text+= "<td class='tooltip-value'>" + (this.config_d4Label|| "Data 4") + "</td>";
             text += "<td class='tooltip-value'>" + data.d4 + "</td>";
             text += "</tr>";
 
-            text+= "<td class='tooltip-value'>" +(this.config.d5Label || "Data 5") + "</td>";
+            text+= "<td class='tooltip-value'>" +(this.config_d5Label || "Data 5") + "</td>";
             text += "<td class='tooltip-value'>" + data.d5 + "</td>";
             text += "</tr>";
         return text;
