@@ -6,25 +6,26 @@
 </head>
 <link rel="stylesheet" type="text/css" href="./chart.css" />
 
-<body >
-    <div id="chart" ></div>
+<body>
+    <div id="chart"></div>
     <button onclick="addData('bar')">AddBar</button>
     <button onclick="addData('area')">AddArea</button>
+    <button onclick="addData('range')">AddRange</button>
     <button onclick="addData('line')">AddLine</button>
     <button onclick="addData('boxplot')">AddBoxPlot</button>
     <button onclick="removeData()">Remove id 1</button>
     <button onclick="remove()">Remove Chart</button>
     <button onclick="rendering()">Rendering</button>
-    <div id="chart2" ></div>
+    <div id="chart2"></div>
     <button onclick="addData2('bar')">AddBar</button>
     <button onclick="addData2('line')">AddLine</button>
     <button onclick="addData2('boxplot')">AddBoxPlot</button>
     <button onclick="rendering2()">Rendering</button>
-    <div id="chart3" ></div>
+    <div id="chart3"></div>
     <button onclick="addData3('bar')">AddBar</button>
     <button onclick="addData3('boxplot')">AddBoxPlot</button>
     <button onclick="rendering3()">Rendering</button>
-    <div id="chart4" ></div>
+    <div id="chart4"></div>
     <button onclick="addData4()">AddRadar</button>
     <button onclick="rendering4()">Rendering</button>
     <button onclick="capture4()">Capture</button>
@@ -33,71 +34,86 @@
     <script src="./chart-measure.js" charset="utf-8"></script>
     <script src="./chart-compare.js" charset="utf-8"></script>
     <script src="./chart-legend.js" charset="utf-8"></script>
-    <script src="./chart-radar.js" charset="utf-8"></script> 
+    <script src="./chart-radar.js" charset="utf-8"></script>
     <script>
-        function capture(){
+        function capture() {
             c1.getPic();
         }
-          function capture4(){
+
+        function capture4() {
             c4.getPic();
         }
-        Array.prototype.unique = function(){
-            this.sort(function(v1,v2){return new Date(v1.time)- new Date(v2.time)});	//先排序
+        Array.prototype.unique = function() {
+            this.sort(function(v1, v2) {
+                return new Date(v1.time) - new Date(v2.time)
+            }); //先排序
             var res = [this[0]];
-            for(var i = 1; i < this.length; i++){
-                if(this[i].time !== res[res.length - 1].time){
+            for (var i = 1; i < this.length; i++) {
+                if (this[i].time !== res[res.length - 1].time) {
                     res.push(this[i]);
                 }
             }
             return res;
         }
-        Array.prototype.numUnique = function(){
-            var res =[];
-            for(var i=0;i<this.length; ++i){
-                var val =this[i];
-                if(res.find(function(v){return  v.num == val.num})=== undefined){
+        Array.prototype.numUnique = function() {
+            var res = [];
+            for (var i = 0; i < this.length; ++i) {
+                var val = this[i];
+                if (res.find(function(v) {
+                        return v.num == val.num
+                    }) === undefined) {
                     res.push(val);
                 }
             }
             return res;
         }
-        Array.prototype.nameUnique = function(){
-            var res =[];
-            for(var i=0;i<this.length; ++i){
-                var val =this[i];
-                if(res.find(function(v){return  v.name == val.name})=== undefined){
+        Array.prototype.nameUnique = function() {
+            var res = [];
+            for (var i = 0; i < this.length; ++i) {
+                var val = this[i];
+                if (res.find(function(v) {
+                        return v.name == val.name
+                    }) === undefined) {
                     res.push(val);
                 }
             }
             return res;
         }
-       
- /////////////////////////////////
-   
-  var c1 = SmartCompareChart.create();
-            c1.setConfig({
+
+        /////////////////////////////////
+
+        var c1 = SmartCompareChart.create();
+        c1.setConfig({
             "width": 1000,
             "height": 800,
             title: "TimeSeries",
-            xType:"time",
-            xTitle:{
-                    location:"end",
-                    value:"这是x轴"
+            xType: "time",
+            xTitle: {
+                location: "end",
+                value: "这是x轴"
             },
-            yTitle:{
-                    location:"start",
-                    value:"这是y轴"
+            yTitle: {
+                location: "start",
+                value: "这是y轴"
             },
-            y2Title:{
-                    location:"end",
-                    value:"这是y2轴"
+            y2Title: {
+                location: "end",
+                value: "这是y2轴"
             },
-            colorPallet:"d3_10",
-            xValueFormat:function(v){
+            colorPallet: "d3_10",
+            xValueFormat: function(v) {
                 return d3.time.format("%m月 %d 日 %H:%M")(new Date(v));
             },
-            customBackground:[{from:"2016-2-3 1:00",to:"2016-2-3 1:10",color:"#ddd"},{from:"2016-2-3 1:30",to:"2016-2-3 1:40",color:"#aaa"}],
-            showCustomLine:true,
+            customBackground: [{
+                from: "2016-2-3 1:00",
+                to: "2016-2-3 1:10",
+                color: "#ddd"
+            }, {
+                from: "2016-2-3 1:30",
+                to: "2016-2-3 1:40",
+                color: "#aaa"
+            }],
+            showCustomLine: true,
             // yValueFormat:function(v){
             //     if(v>1000){
             //         return Math.floor(v/1000)+","+v%1000;
@@ -107,302 +123,341 @@
             // }
         });
         c1.appendTo("chart");
-        c1.on("select",function(d){
+        c1.on("select", function(d) {
             console.log(d);
-        },this);
+        }, this);
+
         function addData(type) {
-            var _data = [],_d1=[];_dataNumber=[];
-             _data.push({
-                    time: "2016-2-3 1:10",
-                    num: "d"
+            var _data = [],
+                _d1 = [];
+            _dataNumber = [];
+            _rangeData = [];
+            _data.push({
+                time: "2016-2-3 1:10",
+                num: "d"
+            });
+             _rangeData.push({
+                    time: "2016-2-3 1:10" ,
+                    num1: "d",
+                    num2: 100000
                 });
             for (var i = 0; i < 30; ++i) {
                 _data.push({
                     time: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
-                    num: 100000 + 100 * Math.random()+i
+                    num: 100000 + 100 * Math.random() + i
+                });
+                _rangeData.push({
+                    time: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
+                    num1: 100100 + 100 * Math.random() + i,
+                    num2: 100000 + 100 * Math.random() + i
                 });
                 _dataNumber.push({
                     x: 5 * Math.floor(60 * Math.random()) % 60,
-                    num: 100 + 100 * Math.random()+i
+                    num: 100 + 100 * Math.random() + i
                 });
-                var d =100 + 100 * Math.random()+i;
+                var d = 100 + 100 * Math.random() + i;
 
                 _d1.push({
-                      time: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
-                      d0:d+10+10*Math.random(),
-                      d1:d+5+5*Math.random(),
-                      d2:d,
-                      d3:d+Math.random(),
-                      d4:d-10-5*Math.random(),
-                      d5:d-15-10*Math.random()
+                    time: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
+                    d0: d + 10 + 10 * Math.random(),
+                    d1: d + 5 + 5 * Math.random(),
+                    d2: d,
+                    d3: d + Math.random(),
+                    d4: d - 10 - 5 * Math.random(),
+                    d5: d - 15 - 10 * Math.random()
                 })
             }
-
             var name = Math.floor(100 * Math.random());
-            var measure ;
-            if(type==="boxplot"){
-                measure= new SmartMeasure({
-                            id: name,
-                            "name": "name" + name,
-                            "data": _d1.unique(),
-                            type: type,
-                            mapkey:{
-                                y: "num",
-                                x:"time",
-                            },
-                            config:{
-                                axes_ref:"y2",
-                                legendIcon:"rect",
-                                d0Label:"最大值",
-                                d1Label:"3/4分位值",
-                                d2Label:"中位数",
-                                d3Label:"平均值",
-                                d4Label:"1/4",
-                                d5Label:"最小值"
-                            }
+            var measure;
+            if (type === "boxplot") {
+                measure = new SmartMeasure({
+                    id: name,
+                    "name": "name" + name,
+                    "data": _d1.unique(),
+                    type: type,
+                    mapkey: {
+                        y: "num",
+                        x: "time",
+                    },
+                    config: {
+                        axes_ref: "y2",
+                        legendIcon: "rect",
+                        d0Label: "最大值",
+                        d1Label: "3/4分位值",
+                        d2Label: "中位数",
+                        d3Label: "平均值",
+                        d4Label: "1/4",
+                        d5Label: "最小值"
+                    }
 
-                        }
-            );
-            }else{
-                measure= new SmartMeasure({
-                            id: name,
-                            "name": "name" + name,
-                            "data": _data.unique(),
-                            type: type,
-                            mapkey:{
-                                        y: "num",
-                                        x:"time",
-                            } ,
-                            style:{
-                                    linewidth:4,
-                                    dasharray:"2,3",
-                                    opacity:0.8,
-                                    circleradius:0.1
-                                },
-                            config:{
-                                yLabel:"速度"
-                            }
-                            
-                        }
-            );
-        }
+                });
+            } else if (type === "range") {
+                measure = new SmartMeasure({
+                    id: name,
+                    "name": "name" + name,
+                    "data": _rangeData.unique(),
+                    type: type,
+                    mapkey: {
+                        y1: "num1",
+                        x: "time",
+                        y2: "num2",
+                    },
+                    style: {
+                        linewidth: 4,
+                        dasharray: "2,3",
+                        circleradius: 0.1
+                    },
+                    config: {
+                        yLabel: "速度"
+                    }
+
+                });
+            } else {
+                measure = new SmartMeasure({
+                    id: name,
+                    "name": "name" + name,
+                    "data": _data.unique(),
+                    type: type,
+                    mapkey: {
+                        y: "num",
+                        x: "time",
+                    },
+                    style: {
+                        linewidth: 4,
+                        dasharray: "2,3",
+                        opacity: 0.8,
+                        circleradius: 0.1
+                    },
+                    config: {
+                        yLabel: "速度"
+                    }
+
+                });
+            }
             c1.addMeasure(measure);
         };
-        function removeData(){
+
+        function removeData() {
             c1.removeMeasureById("1");
         }
-        function rendering(){
-                c1.rendering();
-            }
-        function remove(){
+
+        function rendering() {
+            c1.rendering();
+        }
+
+        function remove() {
             c1.remove();
         }
-///////////////////////////
- var c2 = SmartCompareChart.create({
+        ///////////////////////////
+        var c2 = SmartCompareChart.create({
             "width": 1000,
             "height": 800,
             title: "NumberSeries",
-            xType:"number",
-            xTitle:"x",
-            yTitle:"y",
-            xValueFormat:function(v){
+            xType: "number",
+            xTitle: "x",
+            yTitle: "y",
+            xValueFormat: function(v) {
                 return v.toFixed(2);
             },
-            appendId:"chart2"
+            appendId: "chart2"
         });
+
         function addData2(type) {
-            var _data = [],_d1=[];_dataNumber=[];
+            var _data = [],
+                _d1 = [];
+            _dataNumber = [];
             for (var i = 0; i < 30; ++i) {
                 _data.push({
-                    num:  5 * Math.floor(60 * Math.random()) % 60,
-                    val: 100 + 100 * Math.random()+i
+                    num: 5 * Math.floor(60 * Math.random()) % 60,
+                    val: 100 + 100 * Math.random() + i
                 });
-                var d =100 + 100 * Math.random()+i;
+                var d = 100 + 100 * Math.random() + i;
                 _d1.push({
-                      num: 5 * Math.floor(60 * Math.random()) % 60,
-                      d0:d+10+10*Math.random(),
-                      d1:d+5+5*Math.random(),
-                      d2:d,
-                      d3:d+Math.random(),
-                      d4:d-10-5*Math.random(),
-                      d5:d-15-10*Math.random()
+                    num: 5 * Math.floor(60 * Math.random()) % 60,
+                    d0: d + 10 + 10 * Math.random(),
+                    d1: d + 5 + 5 * Math.random(),
+                    d2: d,
+                    d3: d + Math.random(),
+                    d4: d - 10 - 5 * Math.random(),
+                    d5: d - 15 - 10 * Math.random()
                 })
             }
-             _data.push({
-                    num:  5 * Math.floor(60 * Math.random()) % 60,
-                    val: "N"
-                });
+            _data.push({
+                num: 5 * Math.floor(60 * Math.random()) % 60,
+                val: "N"
+            });
             var name = Math.floor(10 * Math.random());
-            var measure ;
-            if(type==="boxplot"){
-                measure= new SmartMeasure({
-                            id: name,
-                            name: "name" + name,
-                            data: _d1.numUnique(),
-                            type: type,
-                            mapkey:{
-                                x: "num"
-                            },
-                            config:{
-                                axes_ref:"y2",
-                                legendIcon:"rect",
-                                d0Label:"最大值",
-                                d1Label:"3/4分位值",
-                                d2Label:"中位数",
-                                d3Label:"平均值",
-                                d4Label:"1/4",
-                                d5Label:"最小值"
-                            }
-                        }
-            );
-            }else{
-                measure= new SmartMeasure({
-                            id: name,
-                            name: "name" + name,
-                            data: _data.numUnique(),
-                            type: type,
-                            mapkey:{
-                                        x: "num",
-                                        y:"val",
-                            } ,
-                            style:{
-                                    linewidth:4,
-                                    dasharray:"2,3",
-                                },
-                            config:{
-                                yLabel:"速度"
-                            }
-                        }
-            );
+            var measure;
+            if (type === "boxplot") {
+                measure = new SmartMeasure({
+                    id: name,
+                    name: "name" + name,
+                    data: _d1.numUnique(),
+                    type: type,
+                    mapkey: {
+                        x: "num"
+                    },
+                    config: {
+                        axes_ref: "y2",
+                        legendIcon: "rect",
+                        d0Label: "最大值",
+                        d1Label: "3/4分位值",
+                        d2Label: "中位数",
+                        d3Label: "平均值",
+                        d4Label: "1/4",
+                        d5Label: "最小值"
+                    }
+                });
+            } else {
+                measure = new SmartMeasure({
+                    id: name,
+                    name: "name" + name,
+                    data: _data.numUnique(),
+                    type: type,
+                    mapkey: {
+                        x: "num",
+                        y: "val",
+                    },
+                    style: {
+                        linewidth: 4,
+                        dasharray: "2,3",
+                    },
+                    config: {
+                        yLabel: "速度"
+                    }
+                });
             }
-           
+
             c2.addMeasure(measure);
         };
-        function rendering2(){
-                c2.rendering();
-            }
-////////////////////////////
- var c3 = SmartCompareChart.create({
+
+        function rendering2() {
+            c2.rendering();
+        }
+        ////////////////////////////
+        var c3 = SmartCompareChart.create({
             "width": 1000,
             "height": 800,
             title: "StringSeries",
-            xType:"string",
-            xTitle:"x",
-            yTitle:"y",
-            appendId:"chart3",
-            showLegend:false
+            xType: "string",
+            xTitle: "x",
+            yTitle: "y",
+            appendId: "chart3",
+            showLegend: false
         });
+
         function addData3(type) {
-            var _data = [],_d1=[];_dataNumber=[];
+            var _data = [],
+                _d1 = [];
+            _dataNumber = [];
             for (var i = 0; i < 30; ++i) {
                 _data.push({
-                    name: "Name"+ 5 * Math.floor(60 * Math.random()) % 60,
-                    val: 1000 + 100 * Math.random()+i
+                    name: "Name" + 5 * Math.floor(60 * Math.random()) % 60,
+                    val: 1000 + 100 * Math.random() + i
                 });
-                var d =100 + 100 * Math.random()+i;
+                var d = 100 + 100 * Math.random() + i;
                 _d1.push({
-                      name: 5 * Math.floor(60 * Math.random()) % 60,
-                      d0:d+10+10*Math.random(),
-                      d1:d+5+5*Math.random(),
-                      d2:d,
-                      d3:d+Math.random(),
-                      d4:d-10-5*Math.random(),
-                      d5:d-15-10*Math.random()
+                    name: 5 * Math.floor(60 * Math.random()) % 60,
+                    d0: d + 10 + 10 * Math.random(),
+                    d1: d + 5 + 5 * Math.random(),
+                    d2: d,
+                    d3: d + Math.random(),
+                    d4: d - 10 - 5 * Math.random(),
+                    d5: d - 15 - 10 * Math.random()
                 })
             }
-             _data.push({
-                    name:  5 * Math.floor(60 * Math.random()) % 60,
-                    val: "N"
-                });
+            _data.push({
+                name: 5 * Math.floor(60 * Math.random()) % 60,
+                val: "N"
+            });
             var name = Math.floor(10 * Math.random());
-            var measure ;
-            if(type==="boxplot"){
-                measure= new SmartMeasure({
-                            id: name,
-                            name: "name" + name,
-                            data: _d1.nameUnique(),
-                            type: type,
-                            mapkey:{
-                                x:"name"
-                            },
-                            config:{
-                                legendIcon:"rect",
-                                d0Label:"最大值",
-                                d1Label:"3/4分位值",
-                                d2Label:"中位数",
-                                d3Label:"平均值",
-                                d4Label:"1/4",
-                                d5Label:"最小值"
-                            }
-                        }
-            );
-            }else{
-                measure= new SmartMeasure({
-                            id: name,
-                            name: "name" + name,
-                            data: _data.nameUnique(),
-                            type: type,
-                            mapkey:{
-                                y: "val",
-                                x:"name"
-                            } ,
-                            style:{
-                                    linewidth:4,
-                                    dasharray:"2,3",
-                                },
-                            config:{
-                                yLabel:"速度"
-                            }
-                        }
-            );
+            var measure;
+            if (type === "boxplot") {
+                measure = new SmartMeasure({
+                    id: name,
+                    name: "name" + name,
+                    data: _d1.nameUnique(),
+                    type: type,
+                    mapkey: {
+                        x: "name"
+                    },
+                    config: {
+                        legendIcon: "rect",
+                        d0Label: "最大值",
+                        d1Label: "3/4分位值",
+                        d2Label: "中位数",
+                        d3Label: "平均值",
+                        d4Label: "1/4",
+                        d5Label: "最小值"
+                    }
+                });
+            } else {
+                measure = new SmartMeasure({
+                    id: name,
+                    name: "name" + name,
+                    data: _data.nameUnique(),
+                    type: type,
+                    mapkey: {
+                        y: "val",
+                        x: "name"
+                    },
+                    style: {
+                        linewidth: 4,
+                        dasharray: "2,3",
+                    },
+                    config: {
+                        yLabel: "速度"
+                    }
+                });
             }
-           
+
             c3.addMeasure(measure);
         };
-        function rendering3(){
-                c3.rendering();
-            }
-/////////////////////////
-         var c4 = SmartRadarChart.create({
+
+        function rendering3() {
+            c3.rendering();
+        }
+        /////////////////////////
+        var c4 = SmartRadarChart.create({
             "width": 1000,
             "height": 800,
             title: "Radar",
-            appendId:"chart4",
+            appendId: "chart4",
             secondTitle: "二级标题测试",
-            type:"radar",
+            type: "radar",
             axis: [
-                    "time","w","e","i","g"
-                ]    
-            ,
-            valueFormater:function(v){
-               return  v.toFixed(2);
+                "time", "w", "e", "i", "g"
+            ],
+            valueFormater: function(v) {
+                return v.toFixed(2);
             }
         });
 
-   
+
         function addData4() {
-            
-            var _d1={
-                      d0:100*Math.random(),
-                      d1:100*Math.random(),
-                      d2:100*Math.random(),
-                      d3:100*Math.random(),
-                      d4:100*Math.random()
-                };
+
+            var _d1 = {
+                d0: 100 * Math.random(),
+                d1: 100 * Math.random(),
+                d2: 100 * Math.random(),
+                d3: 100 * Math.random(),
+                d4: 100 * Math.random()
+            };
             var name = Math.floor(10 * Math.random());
-            var figure=new SmartMeasure({
-                        name:name,
-                        id:name,
-                        data:_d1,
-                        type:"radar",
-                        valueFormater:function(v){
-                            return v.toFixed(3);
-                        }
-                        
-                     });
-                    c4.addMeasure(figure);
+            var figure = new SmartMeasure({
+                name: name,
+                id: name,
+                data: _d1,
+                type: "radar",
+                valueFormater: function(v) {
+                    return v.toFixed(3);
+                }
+
+            });
+            c4.addMeasure(figure);
         };
-        function rendering4(){
+
+        function rendering4() {
             c4.rendering();
         }
         // var ws = new WebSocket("ws://127.0.0.1:8123");

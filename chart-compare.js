@@ -184,6 +184,11 @@ var CompareChart=SmartChartBaseClass.extend({
                 measureObj=Area.create(_measure);
                 //this.attachMeasure(measureObj);
                 break;
+             case "range":
+                measureObj=RangeChart.create(_measure);
+                //this.attachMeasure(measureObj);
+                break;
+                
             default:
                 console.error("Error figure type !");
                 return false;
@@ -629,6 +634,11 @@ var CompareChart=SmartChartBaseClass.extend({
             .add("zoomScale",this._zoomScale || 1);
         this._measures.forEach(function(f){
             if(f.type==="area" &&self.xType !== "string"){
+                 f.draw(ctx);
+            }
+        })
+        this._measures.forEach(function(f){
+            if(f.type==="range" &&self.xType !== "string"){
                  f.draw(ctx);
             }
         })
@@ -1147,6 +1157,7 @@ var Line=SmartChartBaseClass.extend({
         this._d.forEach(function(d) {
             d._figureObj = self;
         })
+        this.dataCheck()?null:(this._d=[],console.warn("data format is error"));
         // var config = originData,
         //     self = this;
         // this.setOption(config);
@@ -1175,9 +1186,14 @@ var Line=SmartChartBaseClass.extend({
         //     d._figureObj = self;
         // })
     },
-    parseFromMeasure:function(){
-        var self=this,measure=this.measure;
-       
+    dataCheck:function(){
+      var result=true,self=this;
+      this.mapkey.forEach(function(k){
+          self._d.forEach(function(d){
+              result=result && !(d[k]===undefined || d[k]===null)
+          })
+      })
+    return result;
 
     },
     getX: function(point) {
@@ -1743,6 +1759,108 @@ var Area = Line.extend({
            return lineString;
         }
 
+})
+var RangeChart=Line.extend({
+    type:"range",
+    mapkey:["x","y1","y2"],
+    draw:function(ctx){
+       //this.parseFromMeasure();
+        var svg= ctx.get("svg");
+        var transitionTime = ctx.get("transitionTime") || 1000;
+        var xcooridate=ctx.get("xcooridate");
+        var scales = ctx.get("scales");
+        var figureHeight=ctx.get("figureHeight");
+        var getColor=ctx.get("color");
+        var xSetIndex=ctx.get("xsetIndex");
+        var isHandleNaN=this.isHandleNaN;
+        var area = svg.append("g").attr("class", "CompareChart-area").attr("pointer-events", "none");
+        var self = this,yScale, _line, lineGen, _circle, xScale;
+        yScale = this.y2 ? scales("y2") : scales("y");
+        xScale =xcooridate;
+
+        lines=this.smartLinesGen(xScale,yScale,isHandleNaN,this._d);
+        lines.forEach(function(d){
+            area.append("path")
+                .attr('stroke', self.style_color)
+                .attr('stroke-width', self.style_linewidth||defaultStyle.linewidth)
+                .attr('fill', self.style_color)
+                .attr('d', d);
+        })
+        if(this.style_dasharray){
+           area.attr("stroke-dasharray",this.style_dasharray); 
+        }
+        var circles=function(ds){
+            ds=ds.filter(function(v){return !isNaN(v.y1)&& !isNaN(v.y2)});
+            var ds1=ds.map(function(d){var _={};_.x=d.x;_.y=d.y1;_._figureObj=d._figureObj; return _;});
+            var ds2=ds.map(function(d){var _={};_.x=d.x;_.y=d.y2;_._figureObj=d._figureObj; return _;});
+           return ds1.concat(ds2);
+        }
+        _circle =
+            area.selectAll("linepoint")
+            .data(circles(this._d))
+            .enter()
+            .append("circle")
+            .attr("fill", this.style_color)
+            .attr("cx", function(d) {
+                return xScale(d.x);
+            })
+            .attr("cy", function(d) {
+                return yScale(d.y);
+            })
+            .attr("r", this.style_circleradius||defaultStyle.circleradius)
+            .attr("class",function(d,i){
+                return "event-comparechart-"+xSetIndex(d.x);
+            })
+        if(!isNaN(this.style_opacity)){
+           area.attr("opacity",+this.style_opacity);
+          // _circle.attr("opacity",+this.style_opacity);
+        }
+        if(!this.measureDom){
+          
+        }  
+        this.measureDom =area;
+    },
+    smartLinesGen: function(xScale,yScale,isHandleNaN,ds){
+            if(!isHandleNaN){
+                ds=ds.filter(function(v){
+                    return !isNaN(v.y1)&& !isNaN(v.y2);
+                })
+            }
+            var new_ds=[];
+            var _ds=[];
+            for(var i=0;i<ds.length; ++i){
+                if(!isNaN(ds[i].y2) && !isNaN(ds[i].y1)){
+                    _ds.push(ds[i]);
+                }else{
+                    _ds.length>0?new_ds.push(_ds):0;
+                    _ds=[];
+                }
+            }
+            if(_ds.length>0){
+                new_ds.push(_ds);
+            } 
+            var gen=function(ds){
+                var i=0;
+                if(ds.length<1) return "M0,0";
+                var lineString="";
+                lineString+="M"+xScale(ds[i].x)+","+yScale(ds[i].y2);
+                lineString+="L"+xScale(ds[i].x)+","+yScale(ds[i].y1);
+                for(i=1;i<ds.length;++i){
+                    lineString+="L"+xScale(ds[i].x)+","+yScale(ds[i].y1);
+                }
+                lineString+="L"+xScale(ds[ds.length-1].x)+","+yScale(ds[ds.length-1].y2);
+                for(i=ds.length-1;i>=0;--i){
+                    lineString+="L"+xScale(ds[i].x)+","+yScale(ds[i].y2);
+                }
+                return lineString;
+            }
+
+            return new_ds.map(gen);
+
+        },
+     getAllY:function(){
+              return this._d.map(function(v){ return [v.y1,v.y2]}).reduce(function(v1,v2){return v1.concat(v2)});
+    }
 })
 CompareChart.mergeFunction(commentFunction);
 window.SmartCompareChart=CompareChart;
