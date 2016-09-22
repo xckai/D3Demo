@@ -1157,7 +1157,7 @@ var Line=SmartChartBaseClass.extend({
         this._d.forEach(function(d) {
             d._figureObj = self;
         })
-        this.dataCheck()?null:(this._d=[],console.warn("data format is error"));
+        this.dataCheck()?null:(this._d=[],console.error("data format is error"));
         // var config = originData,
         //     self = this;
         // this.setOption(config);
@@ -1190,7 +1190,10 @@ var Line=SmartChartBaseClass.extend({
       var result=true,self=this;
       this.mapkey.forEach(function(k){
           self._d.forEach(function(d){
-              result=result && !(d[k]===undefined || d[k]===null)
+              var _r=!(d[k]===undefined || d[k]===null);
+              !_r?console.log(d):null;
+              result=_r&&result;
+              
           })
       })
     return result;
