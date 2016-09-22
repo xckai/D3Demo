@@ -5,6 +5,7 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    cursor: default;
 }
 .datamousehover{
     stroke: black;
@@ -24,6 +25,9 @@
 }
 .CompareChart-Bar{
     opacity: 0.8
+}
+.CompareChart-area{
+    opacity: 0.5
 }
 .CompareChart-boxplot{
      opacity: 0.8

@@ -9,6 +9,7 @@
 <body >
     <div id="chart" ></div>
     <button onclick="addData('bar')">AddBar</button>
+    <button onclick="addData('area')">AddArea</button>
     <button onclick="addData('line')">AddLine</button>
     <button onclick="addData('boxplot')">AddBoxPlot</button>
     <button onclick="removeData()">Remove id 1</button>
@@ -18,22 +19,21 @@
     <button onclick="addData2('bar')">AddBar</button>
     <button onclick="addData2('line')">AddLine</button>
     <button onclick="addData2('boxplot')">AddBoxPlot</button>
-     <button onclick="rendering2()">Rendering</button>
+    <button onclick="rendering2()">Rendering</button>
     <div id="chart3" ></div>
     <button onclick="addData3('bar')">AddBar</button>
     <button onclick="addData3('boxplot')">AddBoxPlot</button>
-     <button onclick="rendering3()">Rendering</button>
+    <button onclick="rendering3()">Rendering</button>
     <div id="chart4" ></div>
     <button onclick="addData4()">AddRadar</button>
-     <button onclick="rendering4()">Rendering</button>
+    <button onclick="rendering4()">Rendering</button>
     <button onclick="capture4()">Capture</button>
     <script src="./lib/d3.js" charset="utf-8"></script>
     <script src="./chart-service.js" charset="utf-8"></script>
-     <script src="./chart-measure.js" charset="utf-8"></script>
+    <script src="./chart-measure.js" charset="utf-8"></script>
     <script src="./chart-compare.js" charset="utf-8"></script>
     <script src="./chart-legend.js" charset="utf-8"></script>
-    <script src="./chart-radar.js" charset="utf-8"></script>
-    
+    <script src="./chart-radar.js" charset="utf-8"></script> 
     <script>
         function capture(){
             c1.getPic();
@@ -92,9 +92,11 @@
                     location:"end",
                     value:"这是y2轴"
             },
+            colorPallet:"d3_10",
             xValueFormat:function(v){
                 return d3.time.format("%m月 %d 日 %H:%M")(new Date(v));
             },
+            customBackground:[{from:"2016-2-3 1:00",to:"2016-2-3 1:10",color:"#ddd"},{from:"2016-2-3 1:30",to:"2016-2-3 1:40",color:"#aaa"}],
             showCustomLine:true,
             // yValueFormat:function(v){
             //     if(v>1000){
@@ -110,6 +112,10 @@
         },this);
         function addData(type) {
             var _data = [],_d1=[];_dataNumber=[];
+             _data.push({
+                    time: "2016-2-3 1:10",
+                    num: "d"
+                });
             for (var i = 0; i < 30; ++i) {
                 _data.push({
                     time: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
@@ -131,7 +137,7 @@
                       d5:d-15-10*Math.random()
                 })
             }
-           
+
             var name = Math.floor(100 * Math.random());
             var measure ;
             if(type==="boxplot"){
@@ -170,6 +176,8 @@
                             style:{
                                     linewidth:4,
                                     dasharray:"2,3",
+                                    opacity:0.8,
+                                    circleradius:0.1
                                 },
                             config:{
                                 yLabel:"速度"
@@ -177,8 +185,7 @@
                             
                         }
             );
-            }
-           
+        }
             c1.addMeasure(measure);
         };
         function removeData(){
@@ -233,7 +240,19 @@
                             name: "name" + name,
                             data: _d1.numUnique(),
                             type: type,
-                            x:"num"
+                            mapkey:{
+                                x: "num"
+                            },
+                            config:{
+                                axes_ref:"y2",
+                                legendIcon:"rect",
+                                d0Label:"最大值",
+                                d1Label:"3/4分位值",
+                                d2Label:"中位数",
+                                d3Label:"平均值",
+                                d4Label:"1/4",
+                                d5Label:"最小值"
+                            }
                         }
             );
             }else{
@@ -242,8 +261,17 @@
                             name: "name" + name,
                             data: _data.numUnique(),
                             type: type,
-                            y: "val",
-                            x:"num"
+                            mapkey:{
+                                        x: "num",
+                                        y:"val",
+                            } ,
+                            style:{
+                                    linewidth:4,
+                                    dasharray:"2,3",
+                                },
+                            config:{
+                                yLabel:"速度"
+                            }
                         }
             );
             }
@@ -294,13 +322,18 @@
                             name: "name" + name,
                             data: _d1.nameUnique(),
                             type: type,
-                            x:"name",
-                            d0Label:"最大值",
-                            d1Label:"3/4分位值",
-                            d2Label:"中位数",
-                            d3Label:"平均值",
-                            d4Label:"1/4",
-                            d5Label:"最小值"
+                            mapkey:{
+                                x:"name"
+                            },
+                            config:{
+                                legendIcon:"rect",
+                                d0Label:"最大值",
+                                d1Label:"3/4分位值",
+                                d2Label:"中位数",
+                                d3Label:"平均值",
+                                d4Label:"1/4",
+                                d5Label:"最小值"
+                            }
                         }
             );
             }else{
@@ -309,11 +342,17 @@
                             name: "name" + name,
                             data: _data.nameUnique(),
                             type: type,
-                            y: "val",
-                            x:"name",
-                            ref:"y2",
-                            lineWidth:4,
-                            dashArray:"2,3"
+                            mapkey:{
+                                y: "val",
+                                x:"name"
+                            } ,
+                            style:{
+                                    linewidth:4,
+                                    dasharray:"2,3",
+                                },
+                            config:{
+                                yLabel:"速度"
+                            }
                         }
             );
             }

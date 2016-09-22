@@ -8,7 +8,7 @@ var CompareChart=SmartChartBaseClass.extend({
     init:function(config){
         var self= this;
         this.isInitDraw=false;
-
+//////////////////////add value format for localization
         this._yValueFormat=function(v){
             var max=this.getMaxData("y"),min=this.getMinData("y");
             var span = (max-min)/10;
@@ -58,6 +58,7 @@ var CompareChart=SmartChartBaseClass.extend({
                     }(v)
             }
         }
+
         this.eventManager=eventManager.create();
 	    this.colorManager=colorManager.create();
         this.legend=Legend.create(this.eventManager);
@@ -79,23 +80,40 @@ var CompareChart=SmartChartBaseClass.extend({
             this.showLegend=config.showLegend === false ? false:true;
             this.yLabel=this.yLabel||this.yTitle;
             this.y2Label=this.y2Label || this.y2Title;
-            
             this.isInitDraw=false;
         }else{
             this[config] = val;
-        }   
+        }
+            this.colorPallet?this.colorManager.setColorPallet(this.colorPallet):null;
         return this;
     },
     registerEvent:function(){
+        var self = this;
         this.eventManager.on("select",this.setSelectStyle,this)
         this.eventManager.on("deSelect",this.setSelectStyle,this)
         this.eventManager.on("xtitleclick",function(){
             console.log("xtitleclick")
         },this)
         this.eventManager.on("ytitleclick",function(){
+            this._measures.forEach(function(d){
+                if(!d.y2){
+                    d.isSelected = true;
+                }else{
+                    d.isSelected = false;
+                }
+            })
+            this.setSelectStyle();
             console.log("ytitleclick")
         },this)
         this.eventManager.on("y2titleclick",function(){
+            this._measures.forEach(function(d){
+                if(d.y2){
+                    d.isSelected = true;
+                }else{
+                    d.isSelected = false;
+                }
+            })
+            this.setSelectStyle();
             console.log("y2titleclick")
         },this)
     },
@@ -160,6 +178,10 @@ var CompareChart=SmartChartBaseClass.extend({
                break;
             case "boxplot":
                 measureObj=BoxPlot.create(_measure);
+                //this.attachMeasure(measureObj);
+                break;
+            case "area":
+                measureObj=Area.create(_measure);
                 //this.attachMeasure(measureObj);
                 break;
             default:
@@ -304,7 +326,7 @@ var CompareChart=SmartChartBaseClass.extend({
 
     },
     draw:function(){
-        this.drawTitle().drawAxis().drawYTicketLine().drawMeasure().drawLegend().drawEventZone();
+        this.drawTitle().drawBackground().drawAxis().drawYTicketLine().drawMeasure().drawLegend().drawEventZone();
     },
     drawAxis:function(){
         var self = this;
@@ -446,6 +468,29 @@ var CompareChart=SmartChartBaseClass.extend({
             },this)
         }
     },
+    drawBackground:function(){
+        var svg = this.svg.drawArea.figureArea.append("g"),self=this;
+        if(this.xType ==="string" || !this.customBackground) {
+            return this;
+        }
+        this.customBackground.forEach(function(d){
+            if(self.xType==="time"){
+                d.from = new Date(d.from);
+                d.to=new Date(d.to);
+            }
+            if(self.xType==="number"){
+                d.from = +d.from;
+                d.to = +d.to;
+            }
+            svg.append("rect").attr("x",self.getScale("x")(d.from))
+                                .attr("y",0)
+                                .attr("height",self._figureHeight)
+                                .attr("width",self.getScale("x")(d.to)-self.getScale("x")(d.from))
+                                .attr("fill",d.color)
+                                .attr("pointer-events", "none");
+        })
+        return this;
+    },
     drawTitle:function(){
         var self =this;
         this.svg.title.selectAll("text").remove();
@@ -574,6 +619,7 @@ var CompareChart=SmartChartBaseClass.extend({
         var ctx = new context();
         var self =this;
         ctx.add("svg",this.svg.drawArea.figureArea)
+            .add("figureHeight",this._figureHeight)
             .add("scales",this.getScale.bind(this))
             .add("xsetIndex",this.getXsetIndex.bind(this))
             .add("xcooridate",this.getXCoordinate());
@@ -581,6 +627,11 @@ var CompareChart=SmartChartBaseClass.extend({
             .add("xset",this.getXset.bind(this))
             .add("barMaxHeight",this._figureHeight)
             .add("zoomScale",this._zoomScale || 1);
+        this._measures.forEach(function(f){
+            if(f.type==="area" &&self.xType !== "string"){
+                 f.draw(ctx);
+            }
+        })
         this._measures.forEach(function(f){
             if(f.type==="bar"){
                  f.draw(ctx);
@@ -883,7 +934,7 @@ var CompareChart=SmartChartBaseClass.extend({
         if(!this.p2){
             this.p1=null;
         }
-        this.drawAxis().drawYTicketLine().drawTitle().drawMeasure().drawEventZone().setSelectStyle();
+        this.drawBackground().drawAxis().drawYTicketLine().drawTitle().drawMeasure().drawEventZone().setSelectStyle();
         this.drawCustomeLine(this.p1,this.p2);
     },
     drawGuideLine:function(point){
@@ -1299,15 +1350,13 @@ var Line=SmartChartBaseClass.extend({
             .attr("cy", function(d) {
                 return yScale(d.y);
             })
-            .attr("r", function(d) {
-                return this.style_circleradius||defaultStyle.circleradius;
-            })
+            .attr("r",  this.style_circleradius||defaultStyle.circleradius)
             .attr("class",function(d,i){
                 return "event-comparechart-"+xSetIndex(d.x);
             })
         if(!isNaN(this.style_opacity)){
-           _line.attr("opacity",+this.style_opacity);
-           _circle.attr("opacity",+this.style_opacity);
+           line.attr("opacity",+this.style_opacity);
+          // _circle.attr("opacity",+this.style_opacity);
         }
         if(!this.measureDom){
             _line.call(lineTransition);
@@ -1488,7 +1537,6 @@ var BoxPlot = Line.extend({
         var barMaxHeight=ctx.get("barMaxHeight");
         var transSitionTime = ctx.get("transitionTime") || 1000;
         var xcooridate=ctx.get("xcooridate");
-    
         var xScale =xcooridate,yScale=this.y2?scales("y2"):scales("y"),linelength=this.linelength,rectwidth=this.rectwidth,self=this;
         var boxGroup=svg.append("g").attr("class","CompareChart-boxplot").attr("pointer-events", "none");
         this._d.forEach(function(d){
@@ -1586,6 +1634,115 @@ var BoxPlot = Line.extend({
             text += "</tr>";
         return text;
     }
+})
+var Area = Line.extend({
+    type:"area",
+    mapkey:["x","y"],
+    draw:function(ctx){
+       //this.parseFromMeasure();
+        var svg= ctx.get("svg");
+        var transitionTime = ctx.get("transitionTime") || 1000;
+        var xcooridate=ctx.get("xcooridate");
+        var scales = ctx.get("scales");
+        var figureHeight=ctx.get("figureHeight");
+        var getColor=ctx.get("color");
+        var xSetIndex=ctx.get("xsetIndex");
+        var isHandleNaN=this.isHandleNaN;
+        var area = svg.append("g").attr("class", "CompareChart-area").attr("pointer-events", "none");
+        var self = this,yScale, _line, lineGen, _circle, xScale;
+        yScale = this.y2 ? scales("y2") : scales("y");
+        xScale =xcooridate;
+
+
+        _line = area.append("path")
+            .attr('stroke', this.style_color)
+            .attr('stroke-width', this.style_linewidth||defaultStyle.linewidth)
+            .attr('fill', this.style_color)
+            .attr('d', this.smartLineGen(xScale,yScale,isHandleNaN,this._d,figureHeight));
+        if(this.style_dasharray){
+           _line.attr("stroke-dasharray",this.style_dasharray); 
+        } 
+        _circle =
+            area.selectAll("linepoint")
+            .data(this._d.filter(function(v){return !isNaN(v.y)}))
+            .enter()
+            .append("circle")
+            .attr("fill", this.style_color)
+            .attr("cx", function(d) {
+                return xScale(d.x);
+            })
+            .attr("cy", function(d) {
+                return yScale(d.y);
+            })
+            .attr("r", this.style_circleradius||defaultStyle.circleradius)
+            .attr("class",function(d,i){
+                return "event-comparechart-"+xSetIndex(d.x);
+            })
+        if(!isNaN(this.style_opacity)){
+           area.attr("opacity",+this.style_opacity);
+          // _circle.attr("opacity",+this.style_opacity);
+        }
+        if(!this.measureDom){
+          
+        }  
+        this.measureDom =area;
+    },
+    smartLineGen: function(xScale,yScale,isHandleNaN,ds,figureHeight){
+            if(!isHandleNaN){
+                ds=ds.filter(function(v){
+                    return !isNaN(v.y);
+                })
+            }
+            if (ds.length<1) return "M0,0"; 
+            var lineString="";
+            var gen=function(ds,i,isBegin){
+                if(i>=ds.length) return;
+                if(isBegin){
+                    lineString+="M"+xScale(ds[i].x)+","+figureHeight;
+                }
+                if(!isNaN(ds[i].y)){
+                    lineString+="L"+xScale(ds[i].x)+","+yScale(ds[i].y);
+                    if(i+1>=ds.length||isNaN(ds[i+1].y)){
+                        lineString+="L"+xScale(ds[i].x)+","+figureHeight;
+                        gen(ds,++i,true);
+                    }else{
+                        gen(ds,++i,false);
+                    }
+                }else{
+                   gen(ds,++i,true);
+                }
+            }
+            gen(ds,0,true);
+
+
+            // var isStartPoint = true;
+            // if(!isHandleNaN){
+            //     ds=ds.filter(function(v){
+            //         return !isNaN(v.y);
+            //     })
+            // }
+            // for(var i=0;i< ds.length;++i){
+            //     if(isStartPoint){
+            //         if(isNaN(ds[i].y)) {
+            //             isStartPoint = true;
+            //             continue;
+            //         }else{
+            //             lineString+="M"+xScale(ds[i].x)+","+yScale(ds[i].y);
+            //             isStartPoint = false;
+            //         }
+            //     }else{
+            //          if(isNaN(ds[i].y)) {
+            //             isStartPoint = true;
+            //             continue;
+            //         }else{
+            //              lineString+="L"+xScale(ds[i].x)+","+yScale(ds[i].y);
+            //         }
+            //     }
+               
+            // }
+           return lineString;
+        }
+
 })
 CompareChart.mergeFunction(commentFunction);
 window.SmartCompareChart=CompareChart;

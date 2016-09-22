@@ -85,17 +85,17 @@ var eventManager = SmartChartBaseClass.extend({
 var colorManager =  SmartChartBaseClass.extend({
     getColor: function(i) {
         if (!this._colors) this.init();  
-        if(i!== undefined)
-        {
-            return this._colors(i);
-        }
-        else{
-                  
-        return this._colors(this._colorIndex++);
+            if(i!== undefined)
+            {
+                return this._colors(i);
+            }
+            else{
+                    
+            return this._colors(this._colorIndex++);
         }
 
     },
-    init: function() {
+    init: function(agrs) {
         this._colors=d3.scale.category10();
         // this._colors=function(i){
         //     var colorScale= ["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477", "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc", "#e67300", "#8b0707", "#651067", "#329262", "#5574a6", "#3b3eac"];
@@ -105,6 +105,22 @@ var colorManager =  SmartChartBaseClass.extend({
     },
     reset: function() {
         this._colorIndex = 0;
+    },
+    setColorPallet:function(agrs){
+        if(Array.isArray(agrs)){
+            this._colors=function(i){
+                return agrs[i%agrs.length];
+            }
+        }else{
+            switch (agrs){
+                case "d3_20":
+                     this._colors=d3.scale.category20();
+                     break;
+                default:
+                     this._colors=d3.scale.category10();
+            }
+        }
+        return this;
     }
 });
 var Curry = function(f) {
@@ -161,8 +177,14 @@ Set.prototype.add=function(v){
     return this;
 }
 Set.prototype.forEach=function(){
-    Array().forEach.apply(this._vals,arguments);
+    return [].forEach.apply(this._vals,arguments);
    
+}
+Set.prototype.filter =function(){
+   return [].filter.apply(this._vals,arguments);
+}
+Set.prototype.map =function(){
+   return [].map.apply(this._vals,arguments);
 }
 Set.prototype.del=function(v){
     var del=null,i=-1;
