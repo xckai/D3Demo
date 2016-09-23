@@ -91,21 +91,21 @@ var Legend=SmartChartBaseClass.extend({
                                     .attr("dominant-baseline", "middle");
             d.legendDom=g;
             g.on("mouseover", function(d) {
-                d3.select(this).select("rect").classed("legendMouseOver",true);
+                d3.select(this).select("rect").classed("measuremouseover",true);
                 self.eventManager.call("legendmouseover", d);
             })
             .on("mouseout", function(d) {
-                d3.select(this).select("rect").classed("legendMouseOver",false);
+                d3.select(this).select("rect").classed("measuremouseout",false);
                 self.eventManager.call( "legendmouseout", d);
                
             });
             g.on("click", function() {
             if (d.isSelected) {
                 d.isSelected = false;
-                self.eventManager.call("deSelect", [d]);
+                self.eventManager.call("measuredeselect", [d]);
             } else {
                 d.isSelected = true;
-                self.eventManager.call("select", [d]);
+                self.eventManager.call("measureselect", [d]);
             }
             event.stopPropagation();
         });

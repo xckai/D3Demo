@@ -123,10 +123,15 @@
             // }
         });
         c1.appendTo("chart");
-        c1.on("select", function(d) {
-            console.log(d);
+        c1.on("measureselect", function(d) {
+            console.log(event);
         }, this);
-
+        c1.on("dataclick",function(ds){
+            console.log(ds);
+        })
+        c1.on("datamouseover",function(ds){
+            console.log(ds);
+        })
         function addData(type) {
             var _data = [],
                 _d1 = [];
