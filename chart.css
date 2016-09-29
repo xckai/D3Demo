@@ -78,6 +78,9 @@
 .radarNotSelect{
     opacity:0.2
 }
-.legendMouseOver{
+.measuremouseover{
     fill:rgb(240,240,240)
+}
+.measuremouseout{
+    fill:none
 }

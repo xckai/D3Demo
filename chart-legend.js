@@ -95,7 +95,7 @@ var Legend=SmartChartBaseClass.extend({
                 self.eventManager.call("legendmouseover", d);
             })
             .on("mouseout", function(d) {
-                d3.select(this).select("rect").classed("measuremouseout",false);
+                d3.select(this).select("rect").classed("measuremouseover",false);
                 self.eventManager.call( "legendmouseout", d);
                
             });

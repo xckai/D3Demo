@@ -1,0 +1,33 @@
+body .chartpage {
+  display: flex;
+  flex-direction: column;
+}
+body .chartpage section {
+  display: flex;
+  flex-direction: row;
+  margin: auto;
+  flex-wrap: wrap;
+}
+body .chartpage section div {
+  margin: auto;
+}
+body .chartpage section section {
+  display: flex;
+  flex-direction: column;
+}
+body .chartpage section section .textarea {
+  display: block;
+  margin: 20 20;
+}
+body .chartpage section section .textarea .configeditor {
+  height: 300px;
+  width: 600px;
+}
+body .chartpage section section .textarea label,
+body .chartpage section section .textarea button {
+  margin: 5 0;
+}
+body .chartpage .timechartapi {
+  display: block;
+  width: 90%;
+}

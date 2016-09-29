@@ -73,6 +73,7 @@ var CompareChart = SmartChartBaseClass.extend({
         this._zoomScale = 1;
         this.setConfig(config);
         this.registerEvent();
+        this.isInitDraw=false;
     },
     setConfig: function(config, val) {
         if (config === undefined || config === null) return this;
@@ -83,7 +84,6 @@ var CompareChart = SmartChartBaseClass.extend({
             this.showLegend = config.showLegend === false ? false : true;
             this.yLabel = this.yLabel || this.yTitle;
             this.y2Label = this.y2Label || this.y2Title;
-            this.isInitDraw = false;
         } else {
             this[config] = val;
         }
@@ -172,8 +172,7 @@ var CompareChart = SmartChartBaseClass.extend({
         switch (_measure.type) {
             case "line":
                 measureObj = Line.create(_measure);
-                // this.attachMeasure(measureObj);
-
+                // this.attachMeasure(measureObj)
                 break;
             case "bar":
                 measureObj = Bar.create(_measure);
@@ -1090,6 +1089,7 @@ var CompareChart = SmartChartBaseClass.extend({
 
     },
     drawCustomeLine: function(p1, p2, isLineExtend) {
+        if (!this.showCustomLine) return;
         if (p1 && p2) {
             var x0, y0, x1, y1, x2, y2;
             var xScale = this.getScale("x"),

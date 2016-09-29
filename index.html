@@ -1,409 +1,57 @@
-<html> 
-  <head> 
-        <meta charset="utf-8"> 
-        <title>D3 Test</title> 
-  </head> 
-<style>
-.axis path,
-.axis line{
-    fill: none;
-  stroke: black;
-}
-.axis text {
-    font-family: sans-serif;
-    font-size: 11px;
-}
-.tooltip{
-    background: bisque;
-    border-radius:2px;
-    padding:4 4 4 4 ;
-}
-</style>
+<html>
 
-    <body> 
-        <script src="./lib/d3.js" charset="utf-8"></script> 
+<head>
+    <meta chartset="utf-8">
+    <title>Chart Demo</title>
+    <link rel="stylesheet" type="text/css" href="./demo.css" />
+    <link rel="stylesheet" type="text/css" href="./chart.css" />
+    <script src="./ace/ace.js" charset="utf-8"></script>
+    <script src="./lib/d3.js" charset="utf-8"></script>
+    <script src="./jquery-1.12.3.min.js" charset="utf-8"></script>
+    <script src="./chart-service.js" charset="utf-8"></script>
+    <script src="./chart-measure.js" charset="utf-8"></script>
+    <script src="./chart-compare.js" charset="utf-8"></script>
+    <script src="./chart-legend.js" charset="utf-8"></script>
+    <script src="./chart-radar.js" charset="utf-8"></script>
+    <script src="./demo.js" charset="utf-8"></script>
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.7.0/styles/default.min.css">
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.7.0/highlight.min.js"></script>
+    <script src="https://cdn.rawgit.com/showdownjs/showdown/1.4.3/dist/showdown.min.js" charset="utf-8"></script>
+</head>
+
+<body>
+    <section class="chartpage timechart">
+        <section class="chart">
+            <div id="timechart"></div>
+         <section>
+            <section class="textarea">
+                <label for="chartconfig">ChartConfig</label>
+                <div name="chartconfig" id="chartconfig" class="configeditor"></div>
+                <button onclick="setconfig()">SetConfig</button>
+            </section>
+            <section class="textarea">
+                <label for="type">Measure Type</label>
+                <select name="type" id="measuretype" onchange="typechange()">
+                                    <option value="Line">Line</option>
+                                    <option value="Bar">Bar</option>
+                                    <option value="Area">Area</option>
+                                    <option value="Range">Range</option>
+                                    <option value="BoxPlot">BoxPlot</option>
+                </select>
+                <div name="measureconfig" id="measureconfig" class="configeditor"></div>
+                <button onclick="addmeasure()">AddMeasure</button>
+            </section>
+
+        </section>
+    </section>
+    <section class="timechartapi">
+    </section>  
         
-    <script>  
-        var _height = 50;
-        var _d=[11,22,33,44,100,200];
-        var linear = d3.scale.linear()
-                            .domain([0, d3.max(_d)])
-                            .range([0, 250]);
-        var svg = d3.select("body").append("svg")
-                        .attr("width",400)
-                        .attr("height", 300);
-        var axis = d3.svg.axis()
-                        .scale(linear)      //指定比例尺
-                        .orient("bottom")   //指定刻度的方向
-                        .ticks(7);          //指定刻度的数量
-        var _recHeight = 20;
-       svg.append("g")
-            .attr("class","axis")
-            .attr("transform","translate(20,125)")
-            .call(axis);
-      svg.selectAll("rect")
-        .data(_d)
-        .enter()
-        .append("rect")
-        .attr("x",20)
-        .attr("y",function(d,i){
-            return i * _recHeight;
-        })
-        .attr("width",function(d){
-            return linear(d);
-        })
-        .attr("height",_recHeight-2)
-        .attr("fill","steelblue");
-     
-        </script> 
-        <script>
-            var width = 400;
-            var height = 400;
-            
-            //在 body 里添加一个 SVG 画布   
-            var _svg = d3.select("body")
-                .append("svg")
-                .attr("width", width)
-                .attr("height", height);
-            var padding = {left:30, right:30, top:20, bottom:20};
-            var dataset = [10, 20, 30, 40, 33, 24, 12, 5];
-        
-        //x轴的比例尺
-            var xScale = d3.scale.ordinal()
-                .domain(d3.range(dataset.length))
-                .rangeRoundBands([0, width - padding.left - padding.right]);
+</body>
+<script>
+    window.onload = function() {
+        init();
+    }
+</script>
 
-            //y轴的比例尺
-            var yScale = d3.scale.linear()
-                .domain([0,d3.max(dataset)])
-                .range([height - padding.top - padding.bottom, 0]);
-                //定义x轴
-            var xAxis = d3.svg.axis()
-                .scale(xScale)
-                .orient("bottom");
-                    
-            //定义y轴
-            var yAxis = d3.svg.axis()
-                .scale(yScale)
-                .orient("left");
-                //矩形之间的空白
-            var rectPadding = 4;
-            //添加矩形元素
-            var rects = _svg.selectAll("rect")
-                    .data(dataset)
-                    .enter()
-                    .append("rect")
-                    .attr("fill","steelblue")
-                    .attr("transform","translate(" + padding.left + "," + padding.top + ")")
-                    .attr("x", function(d,i){
-                        return xScale(i) + rectPadding/2;
-                    } )
-                    .attr("width", xScale.rangeBand() - rectPadding )
-                    .attr("height", function(d){
-                        return 0;
-                    })
-                    .attr("y",function (d,i){
-                        return height - padding.top - padding.bottom;
-                    })
-                    .on("mouseover",function(d,i){
-                        d3.select(this)
-                            .attr("fill","yellow");
-                    })
-                    .on("mouseout",function(d,i){
-                        d3.select(this)
-                            .attr("fill","steelblue");
-                    })
-                    .transition()
-                    .delay(function(d,i){
-                        return i * 100;
-                    })
-                    .duration(1000)
-                    .attr("y",function(d){
-                        return yScale(d);
-                    }).attr("height",function(d){
-                     return  height - padding.top - padding.bottom - yScale(d);
-                    });
-
-
-            //添加文字元素
-            var texts = _svg.selectAll(".MyText")
-                    .data(dataset)
-                    .enter()
-                    .append("text")
-                    .attr("class","MyText")
-                    .attr("transform","translate(" + padding.left + "," + padding.top + ")")
-                    .attr("x", function(d,i){
-                        return xScale(i) + rectPadding/2;
-                    } )
-                    .attr("y",function(d){
-                        return yScale(d);
-                    })
-                    .attr("dx",function(){
-                        return (xScale.rangeBand() - rectPadding)/2 ;
-                    })
-                    .attr("dy",function(d){
-                        return -5;
-                    })
-                    .text(function(d){
-                        return d;
-                    }).attr("y",function(d){
-                        var min = yScale.domain()[0];
-                        return yScale(min);
-                    })
-                    .transition()
-                    .delay(function(d,i){
-                        return i * 200;
-                    })
-                    .duration(2000)
-                    .ease("bounce")
-                    .attr("y",function(d){
-                        return yScale(d);
-                    });
-    
-                    //添加x轴
-                _svg.append("g")
-                .attr("class","axis")
-                .attr("transform","translate(" + padding.left + "," + (height - padding.bottom) + ")")
-                .call(xAxis); 
-                        
-                //添加y轴
-                _svg.append("g")
-                .attr("class","axis")
-                .attr("transform","translate(" + padding.left + "," + padding.top + ")")
-                .call(yAxis);
-
-
-        </script>
-        <!--<script>
-		
-		var width = 400;
-		var height = 400;
-		var dataset = [ 30 , 10 , 43 , 55 , 13 ];
-		
-		var svg = d3.select("body")
-					.append("svg")
-					.attr("width", width)
-					.attr("height", height);
-		
-		var pie = d3.layout.pie();
-
-		var piedata = pie(dataset);
-		
-		var outerRadius = 150;	//外半径
-		var innerRadius = 0;	//内半径，为0则中间没有空白
-
-		var arc = d3.svg.arc()	//弧生成器
-					.innerRadius(innerRadius)	//设置内半径
-					.outerRadius(outerRadius);	//设置外半径
-		
-		var color = d3.scale.category10();
-		
-		var arcs = svg.selectAll("g")
-					  .data(piedata)
-					  .enter()
-					  .append("g")
-					  .attr("transform","translate("+ (width/2) +","+ (width/2) +")");
-					  
-		arcs.append("path")
-			.attr("fill",function(d,i){
-				return color(i);
-			})
-			.attr("d",function(d){
-				return arc(d);
-			})
-            .on("mouseover",function(d,i){
-                d3.select(this).attr("stroke","yellow")
-                .attr("stroke-width",5);
-            }).on("mouseout",function(d,i){
-                d3.select(this).attr("stroke","none");
-        });
-		
-		arcs.append("text")
-			.attr("transform",function(d){
-				return "translate(" + arc.centroid(d) + ")";
-			})
-			.attr("text-anchor","middle")
-			.text(function(d){
-				return d.data;
-			});
-		
-		console.log(dataset);
-		console.log(piedata);
-		  
-        </script> -->
-        <script>
-            // var padding = {
-            //     top:20,
-            //     bottom:20,
-            //     right:20,
-            //     left:40
-            // };
-            var data = [{
-                "y": "202",
-                "x": "2000"
-            }, {
-                "y": "215",
-                "x": "2001"
-            }, {
-                "y": "179",
-                "x": "2002"
-            }, {
-                "y": "199",
-                "x": "2003"
-            }, {
-                "y": "134",
-                "x": "2005"
-            }, {
-                "y": "176",
-                "x": "2008"
-            }];
-            var viz = d3.select("body")
-                                .append("svg")
-                                .attr("height",400)
-                                .attr("width", 800);
-            viz._height=400;
-            viz._width = 600;
-            viz._left = 40;
-            viz._right = 20;
-            viz._bottom=20;
-            viz._top = 20;
-
-            // var xScale = d3.scale.linear().range([padding.left, 600-padding.right]).domain([2000,2010]);
-            // var yScale = d3.scale.linear().range([padding.bottom,400-padding.top]).domain([250,0]);
-            // var xAxis= d3.svg.axis()
-            //                     .scale(xScale);
-            // var yAxis =d3.svg.axis().scale(yScale).orient("left");
-            // viz.append("svg:g")
-            //         .attr("transform","translate(0,380)")
-            //         .call(xAxis);
-            //  viz.append("g")
-            //         .attr("transform","translate("+padding.left+",0)")
-            //         .call(yAxis);     
-            // var lineGen = d3.svg.line()
-            //                 .x(function(d) {
-            //                     return xScale(d.year);
-            //                 })
-            //                 .y(function(d) {
-            //                     return yScale(d.sale);
-            //                 }).interpolate("monotone");  
-            // viz.append('svg:path')
-            //     .attr('d', lineGen(data))
-            //     .attr('stroke', 'green')
-            //     .attr('stroke-width', 2)
-            //     .attr('fill', 'none');
-            var data2 = [{
-                        "y": "152",
-                        "x": "2000"
-                    }, {
-                        "y": "189",
-                        "x": "2002"
-                    }, {
-                        "y": "179",
-                        "x": "2004"
-                    }, {
-                        "y": "199",
-                        "x": "2006"
-                    }, {
-                        "y": "134",
-                        "x": "2008"
-                    }, {
-                        "y": "176",
-                        "x": "2010"
-                    }];
-            // viz.append('svg:path')
-            //     .attr('d', lineGen(data2))
-            //     .attr('stroke', 'blue')
-            //     .attr('stroke-width', 2)
-            //     .attr('fill', 'none');
-            //  viz.selectAll(".myline")
-            //                         .data(data2)
-            //                         .enter()
-            //                         .append("circle")
-            //                         .attr("cx",function(d){
-                                         
-            //                            return  xScale(d.year);
-            //                         })
-            //                         .attr("cy",function(d){
-            //                             return  yScale(d.sale);
-            //                         })
-            //                         .attr("r",5)
-            //                         .attr("fill","steelblue");
-
-
-          function AddLine(svg , data ,color){
-              if(data.lenth < 1) return ;
-              if (!svg._xScale){
-                  svg._xScale = d3.scale.linear()
-                                        .range([svg._left , svg._width])
-                                        .domain([1999, 2016]);
-              }
-              if(!svg._yScale){
-                  svg._yScale  =d3.scale.linear()
-                                        .range([svg._top, svg._height - svg._top - svg._bottom])
-                                        .domain([250,0]);
-              }
-             svg.append("svg:g")
-                    .attr("transform","translate(0,380)")
-                    .call(d3.svg.axis()
-                            .scale(svg._xScale)
-                            .orient("bottom"));
-             svg.append("svg:g")
-                    .attr("transform","translate("+svg._left+","+svg._top+")")
-                    .call(d3.svg.axis()
-                            .scale(svg._yScale)
-                            .orient("left"));   
-              var lineGen = d3.svg.line()
-                                    .x(function(d){
-                                        return svg._xScale(d.x);
-                                    })
-                                    .y(function(d){
-                                        return svg._yScale(d.y);
-                                    }).interpolate("monotone");
-            svg.append("svg:path")
-                     .attr('d', lineGen(data))
-                     .attr('stroke', color)
-                     .attr('stroke-width', 2)
-                    .attr('fill', 'none');
-            svg.selectAll(".linepoint")
-                                    .data(data)
-                                    .enter()
-                                    .append("circle")
-                                    .attr("cx",function(d){
-                                         
-                                       return  svg._xScale(d.x);
-                                    })
-                                    .attr("cy",function(d){
-                                        return  svg._yScale(d.y);
-                                    })
-                                    .attr("r",5)
-                                    .attr("fill",color)
-                                    .on("mouseover", function(){return tooltip.style("visibility", "visible");})
-	                                .on("mousemove", function(d){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px").text(d.y);})
-	                                .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
-          var nameList = svg.selectAll("nameList")
-                                        .data(data)
-                                        .enter()
-                                        .append("circle")
-                                        .attr("cx",function(d ,i){
-                                            return svg._width +5;
-                                        })
-                                        .attr("cy",function(d,i){
-                                            return  i*30 + svg._top +8;
-                                        })
-                                        .attr("r",8)
-                                        .attr("fill",color)
-          }
-          AddLine(viz,data,"green");
-          AddLine(viz,data2,"red");
-        
-          var tooltip = d3.select("body")
-            .append("div")
-            .attr("class","tooltip")
-            .style("position", "absolute")
-            .style("z-index", "10")
-            .style("visibility", "hidden");
-    
-
-        </script>
-    </body> 
 </html>
