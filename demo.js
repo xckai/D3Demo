@@ -128,12 +128,12 @@ function defaultConfig(type) {
             type: "boxplot",
             mapkey: {
                 x: "time",
-                d0:"num0",
-                d1:"num1",
-                d2:"num2",
-                d3:"num3",
-                d4:"num4",
-                d5:"num5"
+                d0:"num1",
+                d1:"num2",
+                d2:"num3",
+                d3:"num4",
+                d4:"num5",
+                d5:"num6"
             },
            config: {
                         axes_ref: "y2",
@@ -188,12 +188,12 @@ function defaultConfig(type) {
               res.add({
                     time: "2016-2-3 1:" + 5 * Math.floor(60 * Math.random()) % 60,
                     num: 1000 * Math.random() + i,
-                    num1: 2000 + 100 * Math.random() + i,
-                    num2: 1900 + 100 * Math.random() + i,
-                    num3: 1800 + 100 * Math.random() + i,
-                    num4: 1700 + 100 * Math.random() + i,
-                    num5: 1600 + 100 * Math.random() + i,
-                    num6: 1500 + 100 * Math.random() + i,
+                    num1: 1050 + 10 * Math.random() + i,
+                    num2: 1040 + 10 * Math.random() + i,
+                    num3: 1030 + 10 * Math.random() + i,
+                    num4: 1020 + 10 * Math.random() + i,
+                    num5: 1010 + 10 * Math.random() + i,
+                    num6: 1000 + 10 * Math.random() + i,
                 });
         }
         return res.vals();

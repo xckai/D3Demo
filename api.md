@@ -1,8 +1,15 @@
 # Config & API reference  - timeseries
+
+---
+
 ## Chart
-	1.创建
+1. 创建
+
 		var _c=SmartCompareChart.create();
-	2.配置Chart
+
+
+2. 配置Chart
+
 		var _config={
             width: 1000,//chart的宽度
             height: 800,//chart 高度
@@ -38,21 +45,39 @@
             showLegend:true///设置legend是否显示 默认为true 不需要可不设置该属性
         }
         _c.setConfig(_config)
-	3.设置chart绘制位置以及绘制
+
+
+
+3. 设置chart绘制位置以及绘制
+
+
 		_c.appendTo("divchart")//在id为 divchart元素里绘制chart
 		_c.rendering()//chart 渲染
-	4.事件监听
+
+
+4. 事件监听
+
 		_c.on(eventname,callback)
 		//现在支持的事件 measureclick measuremouseover 以上事件是mouse在legend上点击相应的item的时候引发
 		//datamouseover dataclick 事件由鼠标在chart图标区域点击、经过相应的 line bar 以及boxplot 时引发 
 		//callback(data) 回调函数会传入当前点击的对象 可以通过该对象获取点击目标的所有信息
-	5.增加measure
+
+
+5. 增加measure
+
 		_c.addMeasure(measure)//chart如果已经渲染，增加measure后会自行重新渲染。
-	6.调整宽高
-		_c.setHeight(1000).setWidth(800)
+        
+
+6. 调整宽高
+
+		_c.setHeight(1000).setWidth(800);
+        
+---
+
 ## Measure
-		1.创建
-		measure = new SmartMeasure({
+1. 创建
+
+        measure = new SmartMeasure({
                     id: 1,    //相同id 的measure添加近同一chart会覆盖之前的measure
                     name: 1,   //legend上显示的名称
                     data: [{}],//可以再创建的时候指定data数组，数组格式请见 步骤2
@@ -76,12 +101,13 @@
                         d3Label: "平均值",
                         d4Label: "1/4",
                         d5Label: "最小值"
-                    }
-                });
-		2.Data数据
+                    }});
+
+2. Data数据
+
 			 line bar area 接收的格式[{x:"2010-3-3 10:20",y:"29"},{x:"2010-3-3 10:20",y:"29"}]
 			 range [{x:"2010-3-3 10:20",y1:"29",y1:"20"},{x:"2010-3-3 10:20",y1:"23",y2:"10"}]
-					 (y1 显示在y2 之上)
+					 //(y1 显示在y2 之上  y1>y2)
 			 boxplot[{
                     x: "2010-3-3 10:20",
                     d0: 20,
@@ -99,10 +125,12 @@
                     d4: 5,
                     d5: 1
                 }]
-			（d0>d1>d2>d3>d4>d5）
+                //(d0>d1>d2>d3>d4>d5)
+                
+---
 
 ## 本地化
-chart本身不处理任何字符本地化，例如时间显示以及数字格式显示，时间以及数字显示格式请通过ui5或者其他库完成本地化。
+>chart本身不处理任何字符本地化，例如时间显示以及数字格式显示，时间以及数字显示格式请通过ui5或者其他库完成本地化。
 chart会根据xy 轴的刻度字符串的长度自动调整chart的宽高，请设置合适的高度以及正确的xy轴格式化函数，不然chart无法绘制。
  
 	

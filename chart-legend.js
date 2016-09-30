@@ -73,7 +73,7 @@ var Legend=SmartChartBaseClass.extend({
                                     .attr("y", i * 32 )
                                     .attr("x", -10)
                                     .attr("fill", "transparent");
-            if(d.legendIcon==="rect"){
+            if(d.config_legendIcon==="rect"){
                   g.append("svg:rect").attr("x",-8)
                                         .attr("y",i * 32+5)
                                         .attr("width",16)

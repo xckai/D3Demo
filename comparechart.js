@@ -478,7 +478,7 @@ var Legend=SmartChartBaseClass.extend({
                                     .attr("y", i * 32 )
                                     .attr("x", -10)
                                     .attr("fill", "transparent");
-            if(d.legendIcon==="rect"){
+            if(d.config_legendIcon==="rect"){
                   g.append("svg:rect").attr("x",-8)
                                         .attr("y",i * 32+5)
                                         .attr("width",16)
@@ -2222,7 +2222,7 @@ var BoxPlot = Line.extend({
         this.measureDom = boxGroup;
     },
     getY: function(point) {
-        return [point.d0, point.d1, point.d2, point.d3, point.d4];
+        return [point.d0, point.d1, point.d2, point.d3, point.d4,point.d5];
     },
     getAllY: function() {
         return this._d.map(function(v) {

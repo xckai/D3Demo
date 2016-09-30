@@ -1668,7 +1668,7 @@ var BoxPlot = Line.extend({
         this.measureDom = boxGroup;
     },
     getY: function(point) {
-        return [point.d0, point.d1, point.d2, point.d3, point.d4];
+        return [point.d0, point.d1, point.d2, point.d3, point.d4,point.d5];
     },
     getAllY: function() {
         return this._d.map(function(v) {
