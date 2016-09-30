@@ -57,7 +57,7 @@ var SmartChartBaseClass = {
     
 };
 
-var eventManager = SmartChartBaseClass.extend({
+var eventManager =  SmartChartBaseClass.extend({
     on: function(type, callback,self) {
         if (!this._events) this._events = {};
         if (!this._events[type]) this._events[type] = [];
@@ -66,7 +66,7 @@ var eventManager = SmartChartBaseClass.extend({
         return this;
     },
     off: function(type, callback,self) {
-        if (this._events && this._events[type]) {
+        if (this._events && this._events[type]) {   
             this._events[type].forEach(function(v, i, events) {
                 if (v === callback) delete events[i];
             });

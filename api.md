@@ -24,7 +24,7 @@
             xValueFormat: function(v) {//xtype为time时该函数必须定义，默认的Date toString 字符串过长，会导致绘图失败。回调函数接受一个参数，该参数类型为string，使用时需重新构造为需要的类型。
 	            return d3.time.format("%m月 %d 日 %H:%M")(new Date(v));
 		        },
-		     yValueFormat:function(v){return v},//y轴数值格式化函数
+		    yValueFormat:function(v){return v},//y轴数值格式化函数
             customBackground: [{//自定义背景接收一个对象数组 可定义多组不同的背景 ，背景定义格式如下如需修改全部chart背景建议直接修改css
                 from: "2016-2-3 1:00",
                 to: "2016-2-3 1:10",

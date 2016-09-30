@@ -48,6 +48,7 @@ function defaultConfig(type) {
                 value: "Y2 Title"
             },
             colorPallet: "d3_10",
+            yValueFormat:function(v){return v},
             xValueFormat: function(v) {return d3.time.format("%m月 %d 日 %H:%M")(new Date(v));},
             customBackground: [{
                 from: "2016-2-3 1:00",
@@ -120,6 +121,32 @@ function defaultConfig(type) {
                 yLabel: "Speed"
             }            
         })
+        configs.push({
+            id: "5",
+            name: "name5",
+            data: null,
+            type: "boxplot",
+            mapkey: {
+                x: "time",
+                d0:"num0",
+                d1:"num1",
+                d2:"num2",
+                d3:"num3",
+                d4:"num4",
+                d5:"num5"
+            },
+           config: {
+                        axes_ref: "y2",
+                        legendIcon: "rect",
+                        d0Label: "最大值",
+                        d1Label: "3/4分位值",
+                        d2Label: "中位数",
+                        d3Label: "平均值",
+                        d4Label: "1/4",
+                        d5Label: "最小值"
+                    }
+       
+        })
         var conf;
         switch(type){
             case "Line":
@@ -134,7 +161,10 @@ function defaultConfig(type) {
             case "Range":
                 conf= configs.find(function(c){return c.type==="range"});
                 break;
-            case "Chart":
+            case "Boxplot":
+                conf= configs.find(function(c){return c.type==="boxplot"});
+                break;
+             case "Chart":
                 conf=chartConfig;
                 break;
             default:
@@ -236,13 +266,10 @@ function addFunction(str){
         }
         _strIndex.push(i+1);
     }
-    console.log(_strIndex);
     var res="";
     for(var i =0;i<str.length;++i){
        _strIndex.indexOf(i)=== -1 ? res+=str[i]:(res+="\"",res+=str[i]);
-       
     }
-    console.log(res);
     return res;
 }
 // function autoResize(width){
