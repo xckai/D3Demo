@@ -71,9 +71,10 @@ var CompareChart = SmartChartBaseClass.extend({
         this.memory = new Memory();
         this.translate = [0, 0];
         this._zoomScale = 1;
-        this.setConfig(config);
         this.registerEvent();
         this.isInitDraw=false;
+        this.isDrawed=false;
+        this.setConfig(config);
     },
     setConfig: function(config, val) {
         if (config === undefined || config === null) return this;
@@ -196,7 +197,7 @@ var CompareChart = SmartChartBaseClass.extend({
                 return false;
         }
         this._measures.add(this.preHandleMeasure(measureObj));
-        if (this.isInitDraw) this.reDraw();
+        if(this.isDrawed) this.reDraw();
         return true;
     },
     removeMeasureById: function(id) {
@@ -857,6 +858,7 @@ var CompareChart = SmartChartBaseClass.extend({
         }, this);
     },
     rendering: function() {
+        this.isDrawed=true;
         if(this._measures.vals().length===0) return ;
         if (this.isInitDraw) {
             this.reDraw();
@@ -865,7 +867,10 @@ var CompareChart = SmartChartBaseClass.extend({
         }
     },
     reDraw: function() {
-        this.svgContainer.remove();
+        if( this.svgContainer){
+             this.svgContainer.remove();
+             this.svgContainer=null;
+        }
         this.isInitDraw = false;
         this.memory.flush();
         this._zoomScale = 1;
