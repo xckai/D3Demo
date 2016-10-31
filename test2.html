@@ -31,7 +31,8 @@
     <button onclick="capture4()">Capture</button>
     <script src="./lib/d3.js" charset="utf-8"></script>
     <script src="./comparechart.js" charset="utf-8"></script>
-    <!--<script src="./chart-measure.js" charset="utf-8"></script>
+    <!--<script src="./chart-service.js" charset="utf-8"></script>
+    <script src="./chart-measure.js" charset="utf-8"></script>
     <script src="./chart-compare.js" charset="utf-8"></script>
     <script src="./chart-legend.js" charset="utf-8"></script>
     <script src="./chart-radar.js" charset="utf-8"></script>-->
@@ -82,7 +83,7 @@
 
         /////////////////////////////////
 
-        var c1 = SmartCompareChart.create();
+        var c1 = ChartManeger.createCompareChart();
         c1.setConfig({
             "width": 1000,
             "height": 800,
@@ -175,7 +176,7 @@
             var name = Math.floor(100 * Math.random());
             var measure;
             if (type === "boxplot") {
-                measure = new SmartMeasure({
+                measure = new ChartManeger.createMeasure({
                     id: name,
                     "name": "name" + name,
                     "data": _d1.unique(),
@@ -197,7 +198,7 @@
 
                 });
             } else if (type === "range") {
-                measure = new SmartMeasure({
+                measure = new ChartManeger.createMeasure({
                     id: name,
                     "name": "name" + name,
                     "data": _rangeData.unique(),
@@ -218,7 +219,7 @@
 
                 });
             } else {
-                measure = new SmartMeasure({
+                measure = new ChartManeger.createMeasure({
                     id: name,
                     "name": "name" + name,
                     "data": _data.unique(),
@@ -248,13 +249,14 @@
 
         function rendering() {
             c1.rendering();
+            console.log(c1);
         }
 
         function remove() {
             c1.remove();
         }
         ///////////////////////////
-        var c2 = SmartCompareChart.create({
+        var c2 = ChartManeger.createCompareChart({
             "width": 1000,
             "height": 800,
             title: "NumberSeries",
@@ -294,7 +296,7 @@
             var name = Math.floor(10 * Math.random());
             var measure;
             if (type === "boxplot") {
-                measure = new SmartMeasure({
+                measure = new ChartManeger.createMeasure({
                     id: name,
                     name: "name" + name,
                     data: _d1.numUnique(),
@@ -314,7 +316,7 @@
                     }
                 });
             } else {
-                measure = new SmartMeasure({
+                measure = new ChartManeger.createMeasure({
                     id: name,
                     name: "name" + name,
                     data: _data.numUnique(),
@@ -340,7 +342,7 @@
             c2.rendering();
         }
         ////////////////////////////
-        var c3 = SmartCompareChart.create({
+        var c3 = ChartManeger.createCompareChart({
             "width": 1000,
             "height": 800,
             title: "StringSeries",
@@ -378,7 +380,7 @@
             var name = Math.floor(10 * Math.random());
             var measure;
             if (type === "boxplot") {
-                measure = new SmartMeasure({
+                measure = new ChartManeger.createMeasure({
                     id: name,
                     name: "name" + name,
                     data: _d1.nameUnique(),
@@ -397,7 +399,7 @@
                     }
                 });
             } else {
-                measure = new SmartMeasure({
+                measure = new ChartManeger.createMeasure({
                     id: name,
                     name: "name" + name,
                     data: _data.nameUnique(),
@@ -449,7 +451,7 @@
                 d4: 100 * Math.random()
             };
             var name = Math.floor(10 * Math.random());
-            var figure = new SmartMeasure({
+            var figure = new ChartManeger.createMeasure({
                 name: name,
                 id: name,
                 data: _d1,

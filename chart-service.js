@@ -401,5 +401,9 @@ var commentFunction={
         this.width=width;
         if(this.isInitDraw) this.reDraw();
         return this;
-    }
+    },
+    toJSON:function(){
+        var _={};
+        //_.config=this.
+    },
 }

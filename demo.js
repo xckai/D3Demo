@@ -224,6 +224,7 @@ function  setconfig(){
     chart.rendering();
    
 }
+// remove " around function
 function removeFunction(str){
     var bg=0,cIndex=0;
     var _strIndex=[];
