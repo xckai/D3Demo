@@ -1,3 +1,4 @@
+ChartManeger={};
 ChartManeger.createCompareChart = function (option) {
     return CompareChart.create(option)
 };

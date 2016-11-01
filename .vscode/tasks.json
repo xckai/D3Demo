@@ -1,7 +1,24 @@
-
 {
     "version": "0.1.0",
-    "command": "lessc",
     "isShellCommand": true,
-    "args": ["demo.less", "demo.css"]
+    "command": "cmd",
+    "args": ["/c"],
+    "tasks": [
+        {
+            "taskName": "merge js file",
+            "suppressTaskName": true,
+            "showOutput": "always",
+            "problemMatcher": "$jshint",
+            "isBuildCommand": true,
+            "args": ["node","mergefile.js"]
+        },
+        {
+            "taskName": "compile less",
+            "suppressTaskName": true,
+            "showOutput": "always",
+            "args": ["lessc","demo.less", "demo.css"]
+
+        }
+    ]
+
 }

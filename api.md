@@ -5,8 +5,11 @@
 ## Chart
 1. 创建
 
-		var _c=SmartCompareChart.create();
-
+		//var _c=SmartCompareChart.create();
+        新API 
+        - ChartManeger.createCompareChart();
+        - ChartManeger.createChartFromJSON(jsonStr);
+            接收一个jsonStr会自动返回对应的compareChart；
 
 2. 配置Chart
 
@@ -71,13 +74,23 @@
 6. 调整宽高
 
 		_c.setHeight(1000).setWidth(800);
-        
+7. Clone
+
+        var a= _c.clone();
+        //获取一个新的Chart A，measure 跟config与c相同
+        //A.appendTo("chart2").rendering()即可在新的div渲染出于c相同的chart
+8. resize
+
+        var a=_c.clone().resize("mini");
+        //主要供clone使用，可以返回一个仅仅包含图标区域的chart（不显示legend，不显示xy 轴的title ）；
+        a=resize("normal")//恢复显示legend 以及xy轴title。
 ---
 
 ## Measure
 1. 创建
 
-        measure = new SmartMeasure({
+       //new SmartMeasure 加入命名空间这个不再使用。
+        measure = ChartManeger.createMeasure({
                     id: 1,    //相同id 的measure添加近同一chart会覆盖之前的measure
                     name: 1,   //legend上显示的名称
                     data: [{}],//可以再创建的时候指定data数组，数组格式请见 步骤2

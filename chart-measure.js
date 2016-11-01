@@ -32,4 +32,3 @@ Measure.prototype.setConfig=function(config){
     })
 }
 Measure.prototype.constructor=Measure;
-window.SmartMeasure=Measure;

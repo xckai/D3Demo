@@ -1,4 +1,4 @@
-var SmartChartBaseClass = {
+(function(){var SmartChartBaseClass = {
     extend: function(prop) {
         var subClass = Object.create(this);
         for (var i in prop) {
@@ -407,6 +407,41 @@ var commentFunction={
         //_.config=this.
     },
 }
+
+var Measure = function(config){
+        var self=this;
+        this.setConfig(config);
+        if(this.id ===undefined ||this.id ===null){
+            throw new Error("Please assign data id");
+        }
+        if(this.name === undefined){
+            this.name = this.id;
+        }
+};
+Measure.prototype.setData=function(data){
+    this.data=data;
+    return this;
+}
+Measure.prototype.setColor=function(color){
+    this.color = color;
+    return this;
+}
+Measure.prototype.setType=function(type){
+    this.type=type;
+    return this;
+}
+Measure.prototype.setConfig=function(config){
+    var self =this;
+    Object.keys(config).forEach(function(k){
+                if(typeof config[k] ==="object"){
+                    self[k] = JSON.parse(JSON.stringify(config[k]));
+                }else{
+                    self[k]=config[k]; 
+                }
+                     
+    })
+}
+Measure.prototype.constructor=Measure;
 var scrolls = Curry(Scroll);
 var verticalScrolls=scrolls("vertical");
 var Legend=SmartChartBaseClass.extend({
@@ -521,40 +556,6 @@ var Legend=SmartChartBaseClass.extend({
         })                                                   
     }
 })
-var Measure = function(config){
-        var self=this;
-        this.setConfig(config);
-        if(this.id ===undefined ||this.id ===null){
-            throw new Error("Please assign data id");
-        }
-        if(this.name === undefined){
-            this.name = this.id;
-        }
-};
-Measure.prototype.setData=function(data){
-    this.data=data;
-    return this;
-}
-Measure.prototype.setColor=function(color){
-    this.color = color;
-    return this;
-}
-Measure.prototype.setType=function(type){
-    this.type=type;
-    return this;
-}
-Measure.prototype.setConfig=function(config){
-    var self =this;
-    Object.keys(config).forEach(function(k){
-                if(typeof config[k] ==="object"){
-                    self[k] = JSON.parse(JSON.stringify(config[k]));
-                }else{
-                    self[k]=config[k]; 
-                }
-                     
-    })
-}
-Measure.prototype.constructor=Measure;
 var defaultStyle = {
     linewidth: 2,
     circleradius: 3,
@@ -631,6 +632,8 @@ var CompareChart = SmartChartBaseClass.extend({
         this.registerEvent();
         this.isInitDraw=false;
         this.isDrawed=false;
+        this.noAxisTicket=false;
+        this.noAxisTitle=false;
         this.handleEvent=true;
         this.setConfig(config);
     },
@@ -697,22 +700,22 @@ var CompareChart = SmartChartBaseClass.extend({
         }
         if (this.hasY1()) {
             // has y1  
-            this._yAxisWidth = this.getYAxisWidth("y");
-            this._yTitleWidth = 40;
+            this._yAxisWidth = this.noAxisTicket?1:this.getYAxisWidth("y");
+            this._yTitleWidth = this.noAxisTitle?1: 40;
         } else {
             this._yAxisWidth = 0;
             this._yTitleWidth = 0;
         }
         if (this.hasY2()) {
             //y2
-            this._y2AxisWidth = this.getYAxisWidth("y2");
-            this._y2TitleWidth = 40;
+            this._y2AxisWidth =this.noAxisTicket?1:this.getYAxisWidth("y2");
+            this._y2TitleWidth =this.noAxisTitle? 1:40;
         } else {
             this._y2AxisWidth = 0;
             this._y2TitleWidth = 0;
         }
-        this._xTitleHeight = 20;
-        this._xAxisHeight = this.getXAxisHeight();
+        this._xTitleHeight =  this.noAxisTitle? 1:20;
+        this._xAxisHeight =this.noAxisTicket?1: this.getXAxisHeight();
         this._figureHeight = this._drawAreaHeight - this._xTitleHeight - this._xAxisHeight;
         this._figureWidth = this._drawAreaWidth - this._y2AxisWidth - this._y2TitleWidth - this._yAxisWidth - this._yTitleWidth;
         return this;
@@ -1089,7 +1092,7 @@ var CompareChart = SmartChartBaseClass.extend({
         this.svg.title.append("text").text(this.title).attr("text-anchor", "middle")
             .attr("font-size", "22px")
             .attr("dominant-baseline", "text-before-edge");
-        if (this.hasY1()) {
+        if (this.hasY1()&& !this.noAxisTitle) {
             var _titleRect = this.svg.drawArea.append("rect")
                 .attr("x", 0)
                 .attr("height", this._figureHeight).attr("width", this._yTitleWidth)
@@ -1127,7 +1130,7 @@ var CompareChart = SmartChartBaseClass.extend({
                     break;
             }
         }
-        if (this.hasY2()) {
+        if (this.hasY2() && !this.noAxisTitle) {
             var _titleRect = this.svg.drawArea.append("rect")
                 .attr("x", this._figureWidth + this._yTitleWidth + this._yAxisWidth + this._y2AxisWidth)
                 .attr("height", this._figureHeight).attr("width", this._y2TitleWidth)
@@ -1171,7 +1174,8 @@ var CompareChart = SmartChartBaseClass.extend({
             .on("click", function() {
                 self.eventManager.call("xtitleclick")
             });
-        switch (this.xTitle_location) {
+        if(!this.noAxisTitle){
+            switch (this.xTitle_location) {
 
             case "start":
                 this.svg.drawArea.append("g").attr("transform", "translate(" + (0) + "," + (this._drawAreaHeight - this._xTitleHeight) + ")")
@@ -1197,6 +1201,7 @@ var CompareChart = SmartChartBaseClass.extend({
                     .attr("dominant-baseline", "text-before-edge")
                     .attr("pointer-events", "none");
                 break;
+        }
         }
         return this;
     },
@@ -1759,7 +1764,7 @@ var CompareChart = SmartChartBaseClass.extend({
         return this;
     },
     _getConfig:function(){
-        var _={
+        var _ ={
             isInitDraw:false,
             _y2ValueFormat:this._y2ValueFormat,
             _yValueFormat:this._yValueFormat,
@@ -1800,11 +1805,23 @@ var CompareChart = SmartChartBaseClass.extend({
     clone:function(arg){
         var config=this._getConfig();
         var measures=this._getMeasures();
-        if(arg==="mini"){
-            config.handleEvent=false;
-            config.showLegend=false;
-        }
         return CompareChart.create(config).addMeasures(measures);
+    },
+    resize:function(arg){
+        if(arg==="mini"){
+            this.handleEvent=false;
+            this.showLegend=false;
+            this.noAxisTicket=true;
+            this.noAxisTitle=true;
+        }
+        if(arg==="normal"){
+            this.handleEvent=true;
+            this.showLegend=true;
+            this.noAxisTicket=false;
+            this.noAxisTitle=false;
+        }
+        return this;
+
     },
     toChartJSON:function(){
         var _={};
@@ -2617,9 +2634,7 @@ var RangeChart = Line.extend({
     }
 })
 CompareChart.mergeFunction(commentFunction);
-
-
-var ChartManeger={};
+ChartManeger={};
 ChartManeger.createCompareChart = function (option) {
     return CompareChart.create(option)
 };
@@ -2639,3 +2654,5 @@ ChartManeger.createChartFromJSON = function (str) {
     }
 }
 window.ChartManeger=ChartManeger;
+window.SmartCompareChart=CompareChart;
+window.SmartMeasure=Measure;})();

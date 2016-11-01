@@ -1,4 +1,54 @@
 var chartconfig,measureconfig,chart;
+var Set=function(f){
+    this.compareFunction=f;
+    this._vals=[];
+};
+Set.prototype.add=function(v){
+    var self =this;
+    var i = -1;
+    for(var _i in this._vals){
+        if(this.compareFunction(this._vals[_i],v)){
+            i=_i;
+            break;
+        }
+    }
+    if(i=== -1){
+        this._vals.push(v);
+    }else{
+        this._vals[i]=v;
+    }
+    return this;
+}
+Set.prototype.forEach=function(){
+    return [].forEach.apply(this._vals,arguments);
+   
+}
+Set.prototype.filter =function(){
+   return [].filter.apply(this._vals,arguments);
+}
+Set.prototype.map =function(){
+   return [].map.apply(this._vals,arguments);
+}
+Set.prototype.del=function(v){
+    var del=null,i=-1;
+    for(var _i in this._vals){
+        if(this.compareFunction(this._vals[_i],v)){
+            i=_i;
+            break;
+        }
+    }
+    if(i!== -1){
+      del=this._vals[i];
+      this._vals.splice(i,1);
+    }
+    return del;
+}
+Set.prototype.vals=function(){
+    return this._vals;
+}
+Set.prototype.sort=function(){
+    Array().sort.apply(this._vals,arguments);
+}
 function init(){
         chartconfig=ace.edit("chartconfig");
         chartconfig.setTheme("ace/theme/monokai");
