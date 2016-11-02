@@ -55,3 +55,66 @@ function getAllData(entityname,fn){
 StorageManage.prototype.register=register;
 StorageManage.prototype.addData=addData;
 StorageManage.prototype.getAllData=getAllData;
+function indexedDBManager (){};
+function creatindexedDB(dbName,tables,version){
+    this.dbName=dbName;
+    this.version=version;
+    this.db={};
+    var self=this;
+    if(version){
+        this.request=indexedDB.open(dbName,version);
+    }
+    else{
+        this.request=indexedDB.open(dbName); 
+    }
+    this.request.onsuccess=function(e){
+        self.db=self.request.result;
+    }
+    this.request.onerror=function(e){
+        console.log("Database error: "+e);
+    }
+    this.request.onupgradeneeded=function(e){
+        var db = event.target.result;
+        tables.forEach(function(t){
+            db.createObjectStore(t.name,{keyPath:t.key})
+        });
+    }
+}
+function createIndexDBTable(db,tablename,keyPath,fns,fne){
+        var objStore=db.createObjectStore("tablename",{keyPath:keyPath});
+        objStore.onsuccess=fns;
+        objStore.onerror=fne;
+}
+function addIndexDBEntitity(db,tablename,entity,fns,fne){
+    var transaction=db.transaction([tablename],"readwrite");
+    var objectStore=transaction.objectStore(tablename);
+    var req=objectStore.add(entity);
+    req.onsuccess=fns;
+    req.onerror=fne
+}
+function getAllIndexDBEntities(db,tablename,fn){
+    var objectStore = db.transaction(tablename).objectStore(tablename);
+    objectStore.openCursor().onsuccess=function(e){
+        var cur=e.target.result;
+        if (cur) {
+                console.log(cur.value);
+                cur.continue();
+        }
+        else {
+                 console.log("No more entries!");
+        }
+    }
+     objectStore.openCursor().onerror=function(e){
+         console.log(e);
+     }
+}
+indexedDBManager.prototype.create=creatindexedDB;
+// indexedDBManager.prototype.createIndexDBTable=function(tablename,keyPath,fns,fne){
+//     createIndexDBTable(this.db,tablename,keyPath,fns,fne);
+// };
+indexedDBManager.prototype.addToIndexDB=function(tablename,entity,fns,fne){
+    addIndexDBEntitity(this.db,tablename,entity,fns,fne);
+}
+indexedDBManager.prototype.getAllData=function(tablename,fn){
+    getAllIndexDBEntities(this.db,tablename);
+}
