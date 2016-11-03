@@ -32,6 +32,14 @@
 .CompareChart-boxplot{
      opacity: 0.8
 }
+.CompareChart-hintdiv{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.CompareChart-hint{
+    font-size:3rem;
+}
 .RadarChart-svg{
     /*background-color: black;
     fill:red;*/

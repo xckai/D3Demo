@@ -1440,11 +1440,27 @@ var CompareChart = SmartChartBaseClass.extend({
     },
     rendering: function() {
         this.isDrawed=true;
-        if(this._measures.vals().length===0) return ;
+        if(this._measures.vals().length===0) {
+            this.drawHint(this.emptyHint||"Please Add Item");
+            return;
+        }
+        if(this.hintDiv){
+            this.hintDiv.remove();
+            this.hintDiv=null;
+        }
         if (this.isInitDraw) {
             this.reDraw();
         } else {
             this.calculateMargin().initDraw().draw();
+        }
+    },
+    drawHint:function(str){
+        if(this.appendId){
+            this.hintDiv = d3.select("#" + this.appendId).append("div").classed("CompareChart-hintdiv", true)
+                .style("width", this.width)
+                .style("height", this.height)
+                .classed("notextselect", true);
+            this.hintDiv.append("text").classed("CompareChart-hint",true).text(str);
         }
     },
     reDraw: function() {
