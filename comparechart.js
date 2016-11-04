@@ -1455,6 +1455,7 @@ var CompareChart = SmartChartBaseClass.extend({
     },
     drawHint:function(str){
         if(this.appendId){
+            if(this.hintDiv) return;
             this.hintDiv = d3.select("#" + this.appendId).append("div").classed("CompareChart-hintdiv", true)
                 .style("width", this.width)
                 .style("height", this.height)
