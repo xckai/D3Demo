@@ -84,7 +84,7 @@
 
         /////////////////////////////////
 
-        var c1 = ChartManeger.createCompareChart();
+        var c1 = ChartManager.createCompareChart();
         c1.setConfig({
             "width": 1000,
             "height": 800,
@@ -177,7 +177,7 @@
             var name = Math.floor(100 * Math.random());
             var measure;
             if (type === "boxplot") {
-                measure = new ChartManeger.createMeasure({
+                measure = new ChartManager.createMeasure({
                     id: name,
                     "name": "name" + name,
                     "data": _d1.unique(),
@@ -199,7 +199,7 @@
 
                 });
             } else if (type === "range") {
-                measure = new ChartManeger.createMeasure({
+                measure = new ChartManager.createMeasure({
                     id: name,
                     "name": "name" + name,
                     "data": _rangeData.unique(),
@@ -220,7 +220,7 @@
 
                 });
             } else {
-                measure = new ChartManeger.createMeasure({
+                measure = new ChartManager.createMeasure({
                     id: name,
                     "name": "name" + name,
                     "data": _data.unique(),
@@ -257,7 +257,7 @@
             c1.remove();
         }
         ///////////////////////////
-        var c2 = ChartManeger.createCompareChart({
+        var c2 = ChartManager.createCompareChart({
             "width": 1000,
             "height": 800,
             title: "NumberSeries",
@@ -297,7 +297,7 @@
             var name = Math.floor(10 * Math.random());
             var measure;
             if (type === "boxplot") {
-                measure = new ChartManeger.createMeasure({
+                measure = new ChartManager.createMeasure({
                     id: name,
                     name: "name" + name,
                     data: _d1.numUnique(),
@@ -317,7 +317,7 @@
                     }
                 });
             } else {
-                measure = new ChartManeger.createMeasure({
+                measure = new ChartManager.createMeasure({
                     id: name,
                     name: "name" + name,
                     data: _data.numUnique(),
@@ -343,7 +343,7 @@
             c2.rendering();
         }
         ////////////////////////////
-        var c3 = ChartManeger.createCompareChart({
+        var c3 = ChartManager.createCompareChart({
             "width": 1000,
             "height": 800,
             title: "StringSeries",
@@ -381,7 +381,7 @@
             var name = Math.floor(10 * Math.random());
             var measure;
             if (type === "boxplot") {
-                measure = new ChartManeger.createMeasure({
+                measure = new ChartManager.createMeasure({
                     id: name,
                     name: "name" + name,
                     data: _d1.nameUnique(),
@@ -400,7 +400,7 @@
                     }
                 });
             } else {
-                measure = new ChartManeger.createMeasure({
+                measure = new ChartManager.createMeasure({
                     id: name,
                     name: "name" + name,
                     data: _data.nameUnique(),
@@ -452,7 +452,7 @@
                 d4: 100 * Math.random()
             };
             var name = Math.floor(10 * Math.random());
-            var figure = new ChartManeger.createMeasure({
+            var figure = new ChartManager.createMeasure({
                 name: name,
                 id: name,
                 data: _d1,
