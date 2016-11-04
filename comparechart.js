@@ -402,10 +402,9 @@ var commentFunction={
         if(this.isInitDraw) this.reDraw();
         return this;
     },
-    toJSON:function(){
-        var _={};
-        //_.config=this.
-    },
+    getMeasures:function(){
+        return this._measures.map(function(m){return m});
+    }
 }
 
 var Measure = function(config){
