@@ -55,42 +55,45 @@ function getAllData(entityname,fn){
 StorageManage.prototype.register=register;
 StorageManage.prototype.addData=addData;
 StorageManage.prototype.getAllData=getAllData;
-function indexedDBManager (){};
-function creatindexedDB(dbName,tables,version){
-    this.dbName=dbName;
-    this.version=version;
-    this.db={};
-    var self=this;
+
+function createindexedDB(name,version,tables,index,fne,fns){
+    var request;
     if(version){
-        this.request=indexedDB.open(dbName,version);
+        request=indexedDB.open(dbName,version);
     }
     else{
-        this.request=indexedDB.open(dbName); 
+        request=indexedDB.open(dbName); 
     }
-    this.request.onsuccess=function(e){
-        self.db=self.request.result;
-    }
-    this.request.onerror=function(e){
+    request.onsuccess=fns;
+    request.onerror=function(e){
         console.log("Database error: "+e);
     }
-    this.request.onupgradeneeded=function(e){
+    request.onupgradeneeded=function(e){
         var db = event.target.result;
         tables.forEach(function(t){
             db.createObjectStore(t.name,{keyPath:t.key})
         });
     }
+    return requset;
 }
 function createIndexDBTable(db,tablename,keyPath,fns,fne){
         var objStore=db.createObjectStore("tablename",{keyPath:keyPath});
         objStore.onsuccess=fns;
         objStore.onerror=fne;
 }
-function addIndexDBEntitity(db,tablename,entity,fns,fne){
+function addIndexDBEntity(db,tablename,entity,fns,fne){
     var transaction=db.transaction([tablename],"readwrite");
     var objectStore=transaction.objectStore(tablename);
-    var req=objectStore.add(entity);
+    var req=objectStore.put(entity);
     req.onsuccess=fns;
-    req.onerror=fne
+    req.onerror=fne;
+}
+function removeIndexDBEntity(db,tablename,key,fns,fne){
+    var transaction=db.transaction([tablename],"readwrite");
+    var objectStore=transaction.objectStore(tablename);
+    var req=objectStore.delete(key);
+    req.onsuccess=fns;
+    req.onerror=fne;
 }
 function getAllIndexDBEntities(db,tablename,fn){
     var objectStore = db.transaction(tablename).objectStore(tablename);
@@ -108,13 +111,9 @@ function getAllIndexDBEntities(db,tablename,fn){
          console.log(e);
      }
 }
-indexedDBManager.prototype.create=creatindexedDB;
-// indexedDBManager.prototype.createIndexDBTable=function(tablename,keyPath,fns,fne){
-//     createIndexDBTable(this.db,tablename,keyPath,fns,fne);
-// };
-indexedDBManager.prototype.addToIndexDB=function(tablename,entity,fns,fne){
-    addIndexDBEntitity(this.db,tablename,entity,fns,fne);
-}
-indexedDBManager.prototype.getAllData=function(tablename,fn){
-    getAllIndexDBEntities(this.db,tablename);
-}
+
+var dbManager={};
+dbManager.initDB=createindexedDB;
+dbManager.del=removeIndexDBEntity;
+dbManager.store=addIndexDBEntity;
+dbManager.getAll=getAllIndexDBEntities;

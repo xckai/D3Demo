@@ -444,11 +444,20 @@ Measure.prototype.constructor=Measure;
 var scrolls = Curry(Scroll);
 var verticalScrolls=scrolls("vertical");
 var Legend=SmartChartBaseClass.extend({
-    init:function(eventManager){
-        this.eventManager =eventManager;
+    init:function(options){
+        this.eventManager =options.eventManager;
+        this.textRectHeight=options.textRectHeight
+        this.textRectWidth=options.textRectWidth 
     },
     draw:function(ctx,_measures){
         var svg=ctx.get("svg"),legendWidth=ctx.get("legendWidth")-10,self=this,legendHeight =ctx.get("legendHeight"),guid=ctx.get("guid");
+        var displayModel=ctx.get("display")||"vertical",self=this;
+        if(displayModel==="vertical"){
+            this.textRectWidth=legendWidth-5;
+        }else{
+            this.textRectWidth=Math.min(legendWidth-5,this.textRectWidth);
+        }
+        var location=Curry(self.getLocation)(legendHeight,legendWidth,this.textRectHeight,this.textRectWidth,displayModel);
         var _a=svg.append("a").attr("xlink:href","javascript:void(0)").attr("name","legend")
         var legendGroup =_a.append("svg:g").classed("legendGroup",true);
         var i =-1;
@@ -492,7 +501,7 @@ var Legend=SmartChartBaseClass.extend({
                         })
                        event.preventDefault();
                        break;
-         }
+            }
         })
         legendGroup.append("rect").attr("height",legendHeight).attr("width",legendWidth).attr("fill-opacity", 0);
         var legends=legendGroup.append("svg:g");
@@ -507,31 +516,46 @@ var Legend=SmartChartBaseClass.extend({
         legends.selectAll(".legend")
                             .data(_measures.vals()).enter()
                             .append("g").classed("legend",true);
-        var scrollContainer=svg.append("g").attr("transform","translate("+(legendWidth-10)+",0)");
-        verticalScrolls(legendHeight,legendWidth,_measures.vals().length*32,0,svg,scrollContainer,legends);
+        var scrollContainer=svg.append("g").attr("transform","translate("+(legendWidth-5)+",0)");
+        verticalScrolls(legendHeight,legendWidth,self.getAccHeight(displayModel,legendWidth,self.textRectWidth,_measures.vals().length),0,svg,scrollContainer,legends);
         legends.selectAll(".legend").each(function(d,i){
             var g=d3.select(this);
-            g.append("svg:rect").attr("height", 26)
-                                    .attr("width", legendWidth-10)
-                                    .attr("y", i * 32 )
-                                    .attr("x", -10)
+            g.append("svg:rect").attr("height", self.textRectHeight)
+                                    .attr("width", self.textRectWidth)
+                                    .attr("y", location(i).y )
+                                    .attr("x", location(i).x)
                                     .attr("fill", "transparent");
             if(d.config_legendIcon==="rect"){
-                  g.append("svg:rect").attr("x",-8)
-                                        .attr("y",i * 32+5)
+                  g.append("svg:rect").attr("x",location(i).x)
+                                        .attr("y",location(i).y+(self.textRectHeight-16)/2)
                                         .attr("width",16)
                                         .attr("height",16)
                                         .attr("fill",d.style_color);
             }else{
-                g.append("svg:circle").attr("cx",0)
-                                    .attr("cy",  i * 32+13)
+                g.append("svg:circle").attr("cx",location(i).x+8)
+                                    .attr("cy", location(i).y+(self.textRectHeight)/2)
                                     .attr("r",8)
                                     .attr("fill", d.style_color );
             }
-            g.append("svg:text").attr("x", 12)
-                                    .attr("y",(i * 32) + 14)
-                                    .text(d.name)
-                                    .attr("dominant-baseline", "middle");
+            g.append("svg:foreignObject").attr("x",location(i).x+ 20)
+                                             .attr("y",location(i).y)
+                                             .attr("height", self.textRectHeight)
+                                             .attr("width", self.textRectWidth)
+                                             .append("xhtml:p")
+                                             .style("line-height",self.textRectHeight+"px")
+                                             .text(d.name);
+  
+            // g.append("textArea").attr("x", 20)
+            //                                  .attr("y",(i * self.textRectHeight) + (self.textRectHeight)/2)
+            //                                  .attr("height", self.textRectHeight)
+            //                                  .attr("width", self.textRectWidth)
+            //                                  .text(d.name)
+
+                                            //   <p xmlns="http://www.w3.org/1999/xhtml">Text goes here</p>
+            // g.append("svg:text").attr("x", 20)
+            //                         .attr("y",(i * self.textRectHeight) + (self.textRectHeight)/2)
+            //                         .text(d.name)
+            //                         .attr("dominant-baseline", "middle");
             d.legendDom=g;
             g.on("mouseover", function(d) {
                 d3.select(this).select("rect").classed("measuremouseover",true);
@@ -553,6 +577,24 @@ var Legend=SmartChartBaseClass.extend({
             event.stopPropagation();
         });
         })                                                   
+    },
+    getLocation:function(h,w,th,tw,display,i){
+        if(display==="vertical"){
+            return {x:0,y:i*th}
+        }else{
+            var column=Math.floor(w/tw);
+            var offSet=(w-tw*column)/2;
+            return {x:(i%column)*tw+offSet,y:(Math.floor(i/column)*th)}
+        }
+    },
+    getAccHeight:function(display,w,tw,acc){
+        if(display==="vertical"){
+            return acc*this.textRectHeight;
+        }else{
+            var column=Math.floor(w/tw);
+            var rows=Math.ceil(acc/column);
+            return rows*this.textRectHeight;
+        }
     }
 })
 var defaultStyle = {
@@ -562,11 +604,11 @@ var defaultStyle = {
 }
 var CompareChart = SmartChartBaseClass.extend({
     mapkey: ["x", "y"],
-    init: function(config) {
+    init: function (config) {
         var self = this;
         this.isInitDraw = false;
         //////////////////////add value format for localization
-        this._yValueFormat = function(v) {
+        this._yValueFormat = function (v) {
             var max = this.getMaxData("y"),
                 min = this.getMinData("y");
             var span = (max - min) / 10;
@@ -574,11 +616,11 @@ var CompareChart = SmartChartBaseClass.extend({
                 return this.yValueFormat ? this.yValueFormat(v) : v;
             } else {
                 var self = this;
-                return span > 1 ? function(v) {
+                return span > 1 ? function (v) {
                         var _v = Number(v).toFixed();
                         return self.yValueFormat ? self.yValueFormat(_v) : _v;
                     }(v) :
-                    function(v) {
+                    function (v) {
                         var num = 1,
                             _v;
                         for (var i = 0; i < span.toString().length; ++i) {
@@ -592,7 +634,7 @@ var CompareChart = SmartChartBaseClass.extend({
                     }(v)
             }
         }
-        this._y2ValueFormat = function(v) {
+        this._y2ValueFormat = function (v) {
             var max = this.getMaxData("y2"),
                 min = this.getMinData("y2");
             var span = (max - min) / 10;
@@ -600,11 +642,11 @@ var CompareChart = SmartChartBaseClass.extend({
                 return this.y2ValueFormat ? this.y2ValueFormat(v) : v;
             } else {
                 var self = this;
-                return span > 1 ? function(v) {
+                return span > 1 ? function (v) {
                         var _v = Number(v).toFixed();
                         return self.y2ValueFormat ? self.y2ValueFormat(_v) : _v;
                     }(v) :
-                    function(v) {
+                    function (v) {
                         var num = 1,
                             _v;
                         for (var i = 0; i < span.toString().length; ++i) {
@@ -620,23 +662,26 @@ var CompareChart = SmartChartBaseClass.extend({
 
         this.eventManager = eventManager.create();
         this.colorManager = colorManager.create();
-        this.legend = Legend.create(this.eventManager);
+        this.legendOption={eventManager:this.eventManager,
+                            textRectHeight:32,
+                            textRectWidth:200};
+        this.legend = Legend.create(this.legendOption);
         this.toolTip = ChartToolTip.create();
-        this._measures = new Set(function(v1, v2) {
+        this._measures = new Set(function (v1, v2) {
             return String(v1.id) === String(v2.id)
         });
         this.memory = new Memory();
         this.translate = [0, 0];
         this._zoomScale = 1;
         this.registerEvent();
-        this.isInitDraw=false;
-        this.isDrawed=false;
-        this.noAxisTicket=false;
-        this.noAxisTitle=false;
-        this.handleEvent=true;
+        this.isInitDraw = false;
+        this.isDrawed = false;
+        this.noAxisTicket = false;
+        this.noAxisTitle = false;
+        this.handleEvent = true;
         this.setConfig(config);
     },
-    setConfig: function(config, val) {
+    setConfig: function (config, val) {
         if (config === undefined || config === null) return this;
         if (typeof config === "object") {
             var self = this;
@@ -652,15 +697,15 @@ var CompareChart = SmartChartBaseClass.extend({
         this.reDraw();
         return this;
     },
-    registerEvent: function() {
+    registerEvent: function () {
         var self = this;
         this.eventManager.on("measureselect", this.setSelectStyle, this)
         this.eventManager.on("measuredeselect", this.setSelectStyle, this)
-        this.eventManager.on("xtitleclick", function() {
+        this.eventManager.on("xtitleclick", function () {
             console.log("xtitleclick")
         }, this)
-        this.eventManager.on("ytitleclick", function() {
-            this._measures.forEach(function(d) {
+        this.eventManager.on("ytitleclick", function () {
+            this._measures.forEach(function (d) {
                 if (!d.y2) {
                     d.isSelected = true;
                 } else {
@@ -670,8 +715,8 @@ var CompareChart = SmartChartBaseClass.extend({
             this.setSelectStyle();
             console.log("ytitleclick")
         }, this)
-        this.eventManager.on("y2titleclick", function() {
-            this._measures.forEach(function(d) {
+        this.eventManager.on("y2titleclick", function () {
+            this._measures.forEach(function (d) {
                 if (d.y2) {
                     d.isSelected = true;
                 } else {
@@ -682,44 +727,65 @@ var CompareChart = SmartChartBaseClass.extend({
             console.log("y2titleclick")
         }, this)
     },
-    appendTo: function(id) {
+    appendTo: function (id) {
         this.appendId = id;
         this.reDraw();
         return this;
     },
-    calculateMargin: function() {
-        this._titleHeight = 80;
+    calculateMargin: function () {
+        if(this.width<this.height){
+            this.legendDisplay="horizontal";
+        }else{
+            this.legendDisplay="vertical";
+        }
+        if (this.title) {
+            this._titleHeight = 80;
+        } else {
+            this._titleHeight = 0;
+        }
+
         this._drawAreaWidth = this.width;
-        this._drawAreaHeight = this.height - this._titleHeight;
+        this._drawAreaHeight = this.height;
         if (this.showLegend) {
-            this._drawAreaWidth = Math.floor(this.width * 0.8);
-            this._legendWidth = Math.floor(this.width * 0.2);
+            //this._drawAreaWidth = Math.floor(this.width * 0.8);
+            if(this.legendDisplay==="horizontal"){
+                var column=Math.floor((this.width-10)/this.legendOption.textRectWidth);
+                var rows=Math.ceil(this._measures.vals().length/column);
+                this._legendHeight = Math.min(Math.floor(this.height * 0.1),rows*this.legendOption.textRectHeight+1);
+                this._drawAreaHeight = this.height-this._titleHeight-this._legendHeight;
+                this._legendWidth= this.width
+            }else{
+                this._drawAreaWidth = Math.floor(this.width * 0.8);
+                this._legendHeight = this.height-this._titleHeight;
+                this._legendWidth= Math.floor(this.width * 0.2);
+            }
+
         } else {
             this._drawAreaWidth = this.width;
         }
         if (this.hasY1()) {
             // has y1  
-            this._yAxisWidth = this.noAxisTicket?1:this.getYAxisWidth("y");
-            this._yTitleWidth = this.noAxisTitle?1: 40;
+            this._yAxisWidth = this.noAxisTicket ? 1 : this.getYAxisWidth("y");
+            this._yTitleWidth = this.noAxisTitle ? 1 : 40;
         } else {
             this._yAxisWidth = 0;
             this._yTitleWidth = 0;
         }
         if (this.hasY2()) {
             //y2
-            this._y2AxisWidth =this.noAxisTicket?1:this.getYAxisWidth("y2");
-            this._y2TitleWidth =this.noAxisTitle? 1:40;
+            this._y2AxisWidth = this.noAxisTicket ? 1 : this.getYAxisWidth("y2");
+            this._y2TitleWidth = this.noAxisTitle ? 1 : 40;
         } else {
             this._y2AxisWidth = 0;
             this._y2TitleWidth = 0;
         }
-        this._xTitleHeight =  this.noAxisTitle? 1:20;
-        this._xAxisHeight =this.noAxisTicket?1: this.getXAxisHeight();
+        this._xTitleHeight = this.noAxisTitle ? 1 : 20;
+        this._xAxisHeight = this.noAxisTicket ? 1 : this.getXAxisHeight();
         this._figureHeight = this._drawAreaHeight - this._xTitleHeight - this._xAxisHeight;
         this._figureWidth = this._drawAreaWidth - this._y2AxisWidth - this._y2TitleWidth - this._yAxisWidth - this._yTitleWidth;
         return this;
     },
-    validateConfig: function() {
+    validateConfig: function () {
         if (this.appendId === undefined || this.appendId === null) {
             console.error("please assign chart container ID");
             return false;
@@ -730,16 +796,16 @@ var CompareChart = SmartChartBaseClass.extend({
         }
         return true;
     },
-    addMeasures:function(ms){
-        var _flag=this.isDrawed;
-        this.isDrawed=false;
+    addMeasures: function (ms) {
+        var _flag = this.isDrawed;
+        this.isDrawed = false;
         ms.forEach(this.addMeasure.bind(this));
-        this.isDrawed=_flag;
-        if(this.isDrawed) this.reDraw();
+        this.isDrawed = _flag;
+        if (this.isDrawed) this.reDraw();
         return this;
 
     },
-    addMeasure: function(_measure) {
+    addMeasure: function (_measure) {
         var measureObj;
         switch (_measure.type) {
             case "line":
@@ -768,27 +834,27 @@ var CompareChart = SmartChartBaseClass.extend({
                 return false;
         }
         this._measures.add(this.preHandleMeasure(measureObj));
-        if(this.isDrawed) this.reDraw();
+        if (this.isDrawed) this.reDraw();
         return true;
     },
-    removeMeasureById: function(id) {
+    removeMeasureById: function (id) {
         this._measures.del({
             id: id
         });
         if (this.isInitDraw) this.reDraw();
         return this;
     },
-    removeMeasure: function(mesure) {
+    removeMeasure: function (mesure) {
         this._measures.del(mesure);
         if (this.isInitDraw) this.reDraw();
         return this;
     },
-    preHandleMeasure: function(obj) {
+    preHandleMeasure: function (obj) {
         var self = this;
         obj.style_color = obj.style_color || this.colorManager.getColor();
         obj.eventManager = this.eventManager;
         obj.$chart = this;
-        obj._d.forEach(function(d) {
+        obj._d.forEach(function (d) {
             if (self.xType === "time") {
                 if (typeof d.x !== "time") d.x = new Date(d.x);
             }
@@ -798,17 +864,16 @@ var CompareChart = SmartChartBaseClass.extend({
             if (self.xType === "string") {
                 d.x = d.x.toString();
             }
-
         });
-        obj._d.sort(function(v1, v2) {
+        obj._d.sort(function (v1, v2) {
             return v1.x - v2.x;
         });
         return obj;
     },
-    validateMeasure: function(measure) {
+    validateMeasure: function (measure) {
 
     },
-    initDraw: function() {
+    initDraw: function () {
         if (this.isInitDraw) return this;
         if (this.validateConfig()) {
             var self = this;
@@ -840,7 +905,12 @@ var CompareChart = SmartChartBaseClass.extend({
                 .attr("height", this._figureHeight)
                 .attr("fill-opacity", 0);
             if (this.showLegend) {
-                this.svg.legend = this.svg.append("g").attr("transform", "translate(" + (this._drawAreaWidth + 10) + "," + this._titleHeight + ")").classed("CompareChart-Legend-Container", true);
+                if(this.legendDisplay==="horizontal"){
+                     this.svg.legend = this.svg.append("g").attr("transform", "translate(0," + (this._drawAreaHeight +this._titleHeight) + ")").classed("CompareChart-Legend-Container", true);
+                }else{
+                    this.svg.legend = this.svg.append("g").attr("transform", "translate(" + (this._drawAreaWidth + 10) + "," + this._titleHeight + ")").classed("CompareChart-Legend-Container", true);
+                    
+                }
             }
             if (this.showToolTip) {
                 this.svg.toolTip = this.toolTip.initDraw(this.svgContainer);
@@ -851,31 +921,31 @@ var CompareChart = SmartChartBaseClass.extend({
                 .x(self.getScale("x"))
                 .scaleExtent([0.8, 8])
                 .on("zoom", self.zoomFunction.bind(self), false);
-            if(this.handleEvent){
+            if (this.handleEvent) {
                 this.svg.drawArea.call(this.zoom).on("dblclick.zoom", null, false);
             }
-            
+
             this.svg.drawArea.figureArea.on("click", self.getLinePosition.bind(this), false);
             this.isInitDraw = true;
         }
         return this;
     },
-    dataMouseOver: function(obj) {
+    dataMouseOver: function (obj) {
         this.svg.selectAll(".datamousehover").classed("datamousehover", false);
         obj ? obj.classed("datamousehover", true) : null;
     },
-    keyboardHandle: function(_a) {
+    keyboardHandle: function (_a) {
         var i = -1,
             self = this;
-        _a.on("keydown", function() {
-            console.log(self._measures.vals().map(function(m) {
+        _a.on("keydown", function () {
+            console.log(self._measures.vals().map(function (m) {
                 return m.getObjForAccessiability();
-            }).reduce(function(v1, v2) {
+            }).reduce(function (v1, v2) {
                 return v1.concat(v2);
             }))
-            var objs = self._measures.vals().map(function(m) {
+            var objs = self._measures.vals().map(function (m) {
                 return m.getObjForAccessiability();
-            }).reduce(function(v1, v2) {
+            }).reduce(function (v1, v2) {
                 return v1.concat(v2);
             })
             switch (event.code) {
@@ -910,10 +980,10 @@ var CompareChart = SmartChartBaseClass.extend({
         })
 
     },
-    draw: function() {
+    draw: function () {
         this.drawTitle().drawBackground().drawAxis().drawYTicketLine().drawMeasure().drawLegend().drawEventZone();
     },
-    drawAxis: function() {
+    drawAxis: function () {
         var self = this;
         var xtickNum = Math.floor(this._figureWidth / 70);
         if (this._xAxis) this._xAxis.remove();
@@ -924,7 +994,7 @@ var CompareChart = SmartChartBaseClass.extend({
             this._xAxis = this.svg.drawArea.append("svg:g")
                 .attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth) + "," + (this._drawAreaHeight - this._xTitleHeight - this._xAxisHeight) + ")")
                 .attr("class", "CompareChart-xaxis")
-                .call(d3.svg.axis().scale(this.getScale("x")).orient("bottom").tickFormat(function(v) {
+                .call(d3.svg.axis().scale(this.getScale("x")).orient("bottom").tickFormat(function (v) {
                     if (Math.floor(v) !== Math.ceil(v)) return;
                     if (v > -1 && v < Set.length) {
                         if (this.xValueFormat) {
@@ -963,7 +1033,7 @@ var CompareChart = SmartChartBaseClass.extend({
             this._xAxis.selectAll("text").style("text-anchor", "end")
                 .attr("dx", "-4")
                 .attr("dy", "8")
-                .attr("transform", function(d) {
+                .attr("transform", function (d) {
                     return "rotate(-45)"
                 });
         }
@@ -971,7 +1041,7 @@ var CompareChart = SmartChartBaseClass.extend({
 
         return this;
     },
-    drawYTicketLine: function(isClear) {
+    drawYTicketLine: function (isClear) {
         var self = this;
         if (isClear) {
             if (this._ticketLine) {
@@ -997,13 +1067,13 @@ var CompareChart = SmartChartBaseClass.extend({
         }
         return this;
     },
-    getXAxisHeight: function() {
-        return this.memory.cache("xAsisHeight", function() {
+    getXAxisHeight: function () {
+        return this.memory.cache("xAsisHeight", function () {
             if (this._measures.vals().length === 0) return 5;
             var length = 0,
                 self = this;
-            this._measures.forEach(function(f) {
-                f._d.forEach(function(d) {
+            this._measures.forEach(function (f) {
+                f._d.forEach(function (d) {
                     if (self.xValueFormat) {
                         length = Math.max(length, self.xValueFormat(d.x).toString().length);
                     } else {
@@ -1020,17 +1090,17 @@ var CompareChart = SmartChartBaseClass.extend({
         }, this);
 
     },
-    getYAxisWidth: function(y) {
+    getYAxisWidth: function (y) {
         if (y === "y2") {
-            return this.memory.cache("y2AxisWidth", function() {
+            return this.memory.cache("y2AxisWidth", function () {
                 var length = 0,
                     self = this;
-                this._measures.vals().filter(function(f) {
+                this._measures.vals().filter(function (f) {
                     return f.y2
-                }).forEach(function(f) {
-                    f.getAllY().filter(function(d) {
+                }).forEach(function (f) {
+                    f.getAllY().filter(function (d) {
                         return !isNaN(d)
-                    }).forEach(function(d) {
+                    }).forEach(function (d) {
                         if (self._y2ValueFormat) {
                             length = Math.max(length, self._y2ValueFormat(d).toString().length);
                         } else {
@@ -1041,15 +1111,15 @@ var CompareChart = SmartChartBaseClass.extend({
                 return length * 7;
             }, this)
         } else {
-            return this.memory.cache("yAxisWidth", function() {
+            return this.memory.cache("yAxisWidth", function () {
                 var length = 0,
                     self = this;
-                this._measures.vals().filter(function(f) {
+                this._measures.vals().filter(function (f) {
                     return !f.y2
-                }).forEach(function(f) {
-                    f.getAllY().filter(function(d) {
+                }).forEach(function (f) {
+                    f.getAllY().filter(function (d) {
                         return !isNaN(d)
-                    }).forEach(function(d) {
+                    }).forEach(function (d) {
                         if (self._yValueFormat) {
                             length = Math.max(length, self._yValueFormat(d).toString().length);
                         } else {
@@ -1061,13 +1131,13 @@ var CompareChart = SmartChartBaseClass.extend({
             }, this)
         }
     },
-    drawBackground: function() {
+    drawBackground: function () {
         var svg = this.svg.drawArea.figureArea.append("g"),
             self = this;
         if (this.xType === "string" || !this.customBackground) {
             return this;
         }
-        this.customBackground.forEach(function(d) {
+        this.customBackground.forEach(function (d) {
             if (self.xType === "time") {
                 d.from = new Date(d.from);
                 d.to = new Date(d.to);
@@ -1085,18 +1155,18 @@ var CompareChart = SmartChartBaseClass.extend({
         })
         return this;
     },
-    drawTitle: function() {
+    drawTitle: function () {
         var self = this;
         this.svg.title.selectAll("text").remove();
         this.svg.title.append("text").text(this.title).attr("text-anchor", "middle")
             .attr("font-size", "22px")
             .attr("dominant-baseline", "text-before-edge");
-        if (this.hasY1()&& !this.noAxisTitle) {
+        if (this.hasY1() && !this.noAxisTitle) {
             var _titleRect = this.svg.drawArea.append("rect")
                 .attr("x", 0)
                 .attr("height", this._figureHeight).attr("width", this._yTitleWidth)
                 .attr("fill-opacity", "0")
-                .on("click", function() {
+                .on("click", function () {
                     self.eventManager.call("ytitleclick")
                 });
             switch (this.yTitle_location) {
@@ -1134,7 +1204,7 @@ var CompareChart = SmartChartBaseClass.extend({
                 .attr("x", this._figureWidth + this._yTitleWidth + this._yAxisWidth + this._y2AxisWidth)
                 .attr("height", this._figureHeight).attr("width", this._y2TitleWidth)
                 .attr("fill-opacity", "0")
-                .on("click", function() {
+                .on("click", function () {
                     self.eventManager.call("y2titleclick")
                 });
             switch (this.y2Title_location) {
@@ -1170,50 +1240,52 @@ var CompareChart = SmartChartBaseClass.extend({
             .attr("y", this._drawAreaHeight - this._xTitleHeight)
             .attr("height", this._xTitleHeight).attr("width", this._figureWidth)
             .attr("fill-opacity", "0")
-            .on("click", function() {
+            .on("click", function () {
                 self.eventManager.call("xtitleclick")
             });
-        if(!this.noAxisTitle){
+        if (!this.noAxisTitle) {
             switch (this.xTitle_location) {
 
-            case "start":
-                this.svg.drawArea.append("g").attr("transform", "translate(" + (0) + "," + (this._drawAreaHeight - this._xTitleHeight) + ")")
-                    .classed("CompareChart-xTitleBar", true).attr("text-anchor", "start")
-                    .append("text")
-                    .text(this.xTitle_value)
-                    .attr("dominant-baseline", "text-before-edge")
-                    .attr("pointer-events", "none");
-                break;
-            case "middle":
-                this.svg.drawArea.append("g").attr("transform", "translate(" + (this._drawAreaWidth / 2) + "," + (this._drawAreaHeight - this._xTitleHeight) + ")")
-                    .classed("CompareChart-xTitleBar", true).attr("text-anchor", "middle")
-                    .append("text")
-                    .text(this.xTitle_value)
-                    .attr("dominant-baseline", "text-before-edge")
-                    .attr("pointer-events", "none");
-                break;
-            case "end":
-                this.svg.drawArea.append("g").attr("transform", "translate(" + (this._drawAreaWidth - this._y2TitleWidth - this._y2AxisWidth) + "," + (this._drawAreaHeight - this._xTitleHeight) + ")")
-                    .classed("CompareChart-xTitleBar", true).attr("text-anchor", "end")
-                    .append("text")
-                    .text(this.xTitle_value)
-                    .attr("dominant-baseline", "text-before-edge")
-                    .attr("pointer-events", "none");
-                break;
-        }
+                case "start":
+                    this.svg.drawArea.append("g").attr("transform", "translate(" + (0) + "," + (this._drawAreaHeight - this._xTitleHeight) + ")")
+                        .classed("CompareChart-xTitleBar", true).attr("text-anchor", "start")
+                        .append("text")
+                        .text(this.xTitle_value)
+                        .attr("dominant-baseline", "text-before-edge")
+                        .attr("pointer-events", "none");
+                    break;
+                case "middle":
+                    this.svg.drawArea.append("g").attr("transform", "translate(" + (this._drawAreaWidth / 2) + "," + (this._drawAreaHeight - this._xTitleHeight) + ")")
+                        .classed("CompareChart-xTitleBar", true).attr("text-anchor", "middle")
+                        .append("text")
+                        .text(this.xTitle_value)
+                        .attr("dominant-baseline", "text-before-edge")
+                        .attr("pointer-events", "none");
+                    break;
+                case "end":
+                    this.svg.drawArea.append("g").attr("transform", "translate(" + (this._drawAreaWidth - this._y2TitleWidth - this._y2AxisWidth) + "," + (this._drawAreaHeight - this._xTitleHeight) + ")")
+                        .classed("CompareChart-xTitleBar", true).attr("text-anchor", "end")
+                        .append("text")
+                        .text(this.xTitle_value)
+                        .attr("dominant-baseline", "text-before-edge")
+                        .attr("pointer-events", "none");
+                    break;
+            }
         }
         return this;
     },
-    drawLegend: function() {
+    drawLegend: function () {
         if (this.showLegend) {
             var ctx = new context();
-            ctx.add("svg", this.svg.legend).add("legendWidth", this._legendWidth).add("legendHeight", this._figureHeight)
-                .add("guid", this.appendId);
+            ctx.add("svg", this.svg.legend).add("legendWidth", this._legendWidth)
+                .add("guid", this.appendId)
+                .add("legendHeight",this._legendHeight)
+                .add("display","horizontal");
             this.legend.draw(ctx, this._measures);
         }
         return this;
     },
-    drawMeasure: function() {
+    drawMeasure: function () {
         var ctx = new context();
         var self = this;
         ctx.add("svg", this.svg.drawArea.figureArea)
@@ -1221,40 +1293,40 @@ var CompareChart = SmartChartBaseClass.extend({
             .add("scales", this.getScale.bind(this))
             .add("xsetIndex", this.getXsetIndex.bind(this))
             .add("xcooridate", this.getXCoordinate());
-        ctx.add("bars", this._measures.vals().filter(function(v) {
+        ctx.add("bars", this._measures.vals().filter(function (v) {
                 return v.type === "bar"
             }))
             .add("xset", this.getXset.bind(this))
             .add("barMaxHeight", this._figureHeight)
             .add("zoomScale", this._zoomScale || 1);
-        this._measures.forEach(function(f) {
+        this._measures.forEach(function (f) {
             if (f.type === "area" && self.xType !== "string") {
                 f.draw(ctx);
             }
         })
-        this._measures.forEach(function(f) {
+        this._measures.forEach(function (f) {
             if (f.type === "range" && self.xType !== "string") {
                 f.draw(ctx);
             }
         })
-        this._measures.forEach(function(f) {
+        this._measures.forEach(function (f) {
             if (f.type === "bar") {
                 f.draw(ctx);
             }
         })
-        this._measures.forEach(function(f) {
+        this._measures.forEach(function (f) {
             if (f.type === "boxplot") {
                 f.draw(ctx);
             }
         })
-        this._measures.forEach(function(f) {
+        this._measures.forEach(function (f) {
             if (f.type === "line" && self.xType !== "string") {
                 f.draw(ctx);
             }
         })
         return this;
     },
-    drawEventZone: function() {
+    drawEventZone: function () {
         this.svg.drawArea.figureArea.selectAll("CompareChart-Event-Zone").remove();
         var self = this;
         var set = this.getXset();
@@ -1268,34 +1340,34 @@ var CompareChart = SmartChartBaseClass.extend({
         this.svg.eventZones.selectAll("rect").data(set)
             .enter()
             .append("rect")
-            .attr("x", function(d, i) {
+            .attr("x", function (d, i) {
                 return self.getXCoordinate()(d) - minSpan / 2
             })
             .attr("y", 0)
             .attr("width", minSpan)
             .attr("height", self._figureHeight)
-            .attr("class", function(d, i) {
+            .attr("class", function (d, i) {
                 return "event-zone-" + i
             })
-            .attr("rect-index", function(d, i) {
+            .attr("rect-index", function (d, i) {
                 return i
             })
             .attr("fill-opacity", "0");
-            if(this.handleEvent){
-                this.svg.eventZones.selectAll("rect")
-                    .on("click", this.eventZoneMouseEvent.bind(this))
-                    .on("mousemove", this.eventZoneMouseEvent.bind(this))
-                    .on("mouseout", this.eventZoneMousout.bind(this));
-            }
+        if (this.handleEvent) {
+            this.svg.eventZones.selectAll("rect")
+                .on("click", this.eventZoneMouseEvent.bind(this))
+                .on("mousemove", this.eventZoneMouseEvent.bind(this))
+                .on("mouseout", this.eventZoneMousout.bind(this));
+        }
 
         return this;
     },
-    eventZoneMousout: function() {
-        if(this.showToolTip) this.toolTip.setVisiable(false);
+    eventZoneMousout: function () {
+        if (this.showToolTip) this.toolTip.setVisiable(false);
         this.removeGuideLine();
         this.dataMouseOver();
     },
-    eventZoneMouseEvent: function(d, i) {
+    eventZoneMouseEvent: function (d, i) {
         var self = this;
         var ctx = new context();
         if (this.showToolTip) this.toolTip.setVisiable(false);
@@ -1307,11 +1379,11 @@ var CompareChart = SmartChartBaseClass.extend({
             var sharps = this.svg.selectAll(".event-comparechart-" + i);
             var chartFigrues = [];
             this.toolTip.setVisiable(false);
-            sharps.filter(function(d) {
+            sharps.filter(function (d) {
                 //only show selected item
                 var isAllSelect = true,
                     hasSelect = false;
-                self._measures.forEach(function(f) {
+                self._measures.forEach(function (f) {
                     if (f.isSelected) {
                         hasSelect = true
                     } else {
@@ -1319,16 +1391,16 @@ var CompareChart = SmartChartBaseClass.extend({
                     }
                 })
                 if (isAllSelect) {
-                    self._measures.forEach(function(f) {
+                    self._measures.forEach(function (f) {
                         f.isSelected = false;
                     })
                     hasSelect = false;
                 }
                 return (!hasSelect || d._figureObj.isSelected);
-            }).filter(function(d) {
+            }).filter(function (d) {
                 //show insharp item
                 return d._figureObj.isInSharp(self.svg.drawArea.figureArea, this, ctx);
-            }).each(function(d) {
+            }).each(function (d) {
                 chartFigrues.push(d);
                 self.drawGuideLine(d);
                 d3.select(this).call(self.dataMouseOver.bind(self));
@@ -1339,12 +1411,12 @@ var CompareChart = SmartChartBaseClass.extend({
                 //this.toolTip.setPosition(event.pageX , event.pageY);
                 this.toolTip.setContent(this.getToolTipContent(chartFigrues));
                 this.toolTip.setVisiable(true);
-                switch (d3.event.type){
+                switch (d3.event.type) {
                     case "click":
-                        self.eventManager.call("dataclick",chartFigrues);
+                        self.eventManager.call("dataclick", chartFigrues);
                         break;
                     case "mousemove":
-                        self.eventManager.call("datamouseover",chartFigrues);
+                        self.eventManager.call("datamouseover", chartFigrues);
                         break;
                     default:
                         break;
@@ -1352,8 +1424,8 @@ var CompareChart = SmartChartBaseClass.extend({
             }
         }
     },
-    getToolTipContent: function(chartFigrues) {
-        var datas = chartFigrues.map(function(c, i) {
+    getToolTipContent: function (chartFigrues) {
+        var datas = chartFigrues.map(function (c, i) {
             var d = {};
             d.name = c._figureObj.name;
             d.id = c._figureObj.id;
@@ -1364,12 +1436,12 @@ var CompareChart = SmartChartBaseClass.extend({
             return d;
         });
 
-        var defaultTooltipGen = function(datas) {
+        var defaultTooltipGen = function (datas) {
             var text = "",
                 self = this;
             var title = this.xValueFormat ? this.xValueFormat(datas[0].data.x) : datas[0].data.x;
             text = "<table class='tool-tip-table' ><tbody><tr><th class = 'tooltip-title' colspan='3'>" + title + "</th></tr>";
-            datas.forEach(function(d) {
+            datas.forEach(function (d) {
                 var ctx = new context();
                 ctx.add("d", d.data);
                 text += d.Measure.toHtml(ctx);
@@ -1382,28 +1454,28 @@ var CompareChart = SmartChartBaseClass.extend({
             return defaultTooltipGen.bind(this)(datas);
         }
     },
-    getXset: function() {
-        return this.memory.cache("xset", function() {
+    getXset: function () {
+        return this.memory.cache("xset", function () {
             var self = this;
-            self._xSet = new Set(function(v1, v2) {
+            self._xSet = new Set(function (v1, v2) {
                 if (self.xType === "time" || self.xType === "number") {
                     return v1 - v2 === 0;
                 } else {
                     return v1 === v2;
                 }
             });
-            this._measures.forEach(function(ds) {
-                ds._d.forEach(function(d) {
+            this._measures.forEach(function (ds) {
+                ds._d.forEach(function (d) {
                     self._xSet.add(d.x);
                 })
             })
-            self._xSet.sort(function(v1, v2) {
+            self._xSet.sort(function (v1, v2) {
                 return v1 - v2;
             })
             return self._xSet.vals();
         }, this);
     },
-    getXsetIndex: function(x) {
+    getXsetIndex: function (x) {
         for (var i = 0; i < this.getXset().length; ++i) {
             if (this.xType === "time" || this.xType === "number") {
                 if (this.getXset()[i] - x === 0)
@@ -1419,33 +1491,33 @@ var CompareChart = SmartChartBaseClass.extend({
         }
         return -1;
     },
-    hasY1: function() {
-        return this.memory.cache("hasy1", function() {
+    hasY1: function () {
+        return this.memory.cache("hasy1", function () {
             var find = false;
-            this._measures.forEach(function(d) {
+            this._measures.forEach(function (d) {
                 find = !d.y2 || find;
             })
             return find;
         }, this);
     },
-    hasY2: function() {
-        return this.memory.cache("hasy2", function() {
+    hasY2: function () {
+        return this.memory.cache("hasy2", function () {
             var find = false;
-            this._measures.forEach(function(d) {
+            this._measures.forEach(function (d) {
                 find = d.y2 || find;
             })
             return find;
         }, this);
     },
-    rendering: function() {
-        this.isDrawed=true;
-        if(this._measures.vals().length===0) {
-            this.drawHint(this.emptyHint||"Please Add Item");
+    rendering: function () {
+        this.isDrawed = true;
+        if (this._measures.vals().length === 0) {
+            this.drawHint(this.emptyHint || "Please Add Item");
             return;
         }
-        if(this.hintDiv){
+        if (this.hintDiv) {
             this.hintDiv.remove();
-            this.hintDiv=null;
+            this.hintDiv = null;
         }
         if (this.isInitDraw) {
             this.reDraw();
@@ -1453,24 +1525,23 @@ var CompareChart = SmartChartBaseClass.extend({
             this.calculateMargin().initDraw().draw();
         }
     },
-    drawHint:function(str){
-        if(this.appendId){
-            if(this.hintDiv) return;
+    drawHint: function (str) {
+        if (this.appendId) {
+            if (this.hintDiv) return;
             this.hintDiv = d3.select("#" + this.appendId).append("div").classed("CompareChart-hintdiv", true)
                 .style("width", this.width)
                 .style("height", this.height)
                 .classed("notextselect", true);
-            this.hintDiv.append("text").classed("CompareChart-hint",true).text(str);
+            this.hintDiv.append("text").classed("CompareChart-hint", true).text(str);
         }
     },
-    reDraw: function() {
-        if(!this.isDrawed || !this.appendId )
-        {
+    reDraw: function () {
+        if (!this.isDrawed || !this.appendId) {
             return;
         }
-        if( this.svgContainer){
-             this.svgContainer.remove();
-             this.svgContainer=null;
+        if (this.svgContainer) {
+            this.svgContainer.remove();
+            this.svgContainer = null;
         }
         this.isInitDraw = false;
         this.memory.flush();
@@ -1478,13 +1549,13 @@ var CompareChart = SmartChartBaseClass.extend({
         this.translate = [0, 0];
         this.rendering();
     },
-    remove: function() {
+    remove: function () {
         this.svgContainer.remove();
         this.init();
     },
-    getScale: function(key) {
+    getScale: function (key) {
         if (key === "x") {
-            return this.memory.cache("xscale", function(key) {
+            return this.memory.cache("xscale", function (key) {
                 if (this.xType === "time" || this.xType === "number") {
                     var span = (this.getMaxData("x") - this.getMinData("x")) / 24;
                     return d3.scale.linear()
@@ -1500,7 +1571,7 @@ var CompareChart = SmartChartBaseClass.extend({
             }, this);
         }
         if (key === "y" || key === "y2") {
-            return this.memory.cache(key + "scale", function(key) {
+            return this.memory.cache(key + "scale", function (key) {
                 var span, max, min;
                 max = this.getMaxData(key);
                 min = this.getMinData(key);
@@ -1517,13 +1588,13 @@ var CompareChart = SmartChartBaseClass.extend({
             }, this, arguments);
         }
     },
-    getXCoordinate: function() {
-        return this.memory.cache("xcooridate", function() {
+    getXCoordinate: function () {
+        return this.memory.cache("xcooridate", function () {
             if (this.xType === "time" || this.xType === "number") {
                 return this.getScale("x");
             } else if (this.xType === "string") {
                 var self = this;
-                return function(x) {
+                return function (x) {
                     var i = self.getXset().indexOf(x);
                     var f = self.getScale("x");
                     return f(i);
@@ -1531,11 +1602,11 @@ var CompareChart = SmartChartBaseClass.extend({
             }
         }, this);
     },
-    getMaxData: function(key) {
-        return this.memory.cache("max" + key, function(key) {
+    getMaxData: function (key) {
+        return this.memory.cache("max" + key, function (key) {
             var datas = this._measures;
             var _num = Number.MIN_VALUE;
-            datas.forEach(function(d) {
+            datas.forEach(function (d) {
                 if (d.getMax() !== null) {
                     _num = Math.max(d.getMax(key), _num);
                 }
@@ -1544,11 +1615,11 @@ var CompareChart = SmartChartBaseClass.extend({
         }, this, arguments)
 
     },
-    getMinData: function(key) {
-        return this.memory.cache("min" + key, function(key) {
+    getMinData: function (key) {
+        return this.memory.cache("min" + key, function (key) {
             var datas = this._measures;
             var _num = Number.MAX_VALUE;
-            datas.forEach(function(d) {
+            datas.forEach(function (d) {
                 if (d.getMin(key) !== null) {
                     _num = Math.min(d.getMin(key), _num);
                 }
@@ -1556,7 +1627,7 @@ var CompareChart = SmartChartBaseClass.extend({
             return _num;
         }, this, arguments);
     },
-    zoomFunction: function() {
+    zoomFunction: function () {
         var max, min;
         min = this.getXCoordinate()(this.getXset()[0]);
         max = this.getXCoordinate()(this.getXset()[this.getXset().length - 1]);
@@ -1588,13 +1659,13 @@ var CompareChart = SmartChartBaseClass.extend({
         this.drawBackground().drawAxis().drawYTicketLine().drawTitle().drawMeasure().drawEventZone().setSelectStyle();
         this.drawCustomeLine(this.p1, this.p2);
     },
-    drawGuideLine: function(point) {
+    drawGuideLine: function (point) {
         var self = this,
             $chart = this.$chart;
         var xScale = self.getXCoordinate(),
             yScale = point._figureObj.y2 ? this.getScale("y2") : this.getScale("y");
         if (!self._guideLineGroup) self._guideLineGroup = this.svg.drawArea.figureArea.append("g").attr("class", "guide-lines");
-        point._figureObj.getY(point).forEach(function(v) {
+        point._figureObj.getY(point).forEach(function (v) {
             if (point._figureObj.y2) {
                 self._guideLineGroup
                     .append("line")
@@ -1627,7 +1698,7 @@ var CompareChart = SmartChartBaseClass.extend({
             }
         });
         var minY = Number.MAX_VALUE;
-        point._figureObj.getY(point).forEach(function(v) {
+        point._figureObj.getY(point).forEach(function (v) {
             minY = Math.min(minY, yScale(v));
         });
         if (self._guideLineGroup.yLine) {
@@ -1645,14 +1716,14 @@ var CompareChart = SmartChartBaseClass.extend({
             .attr("stroke-dasharray", "3,3");
         self.svg.selectAll(".yAxisGuideLine").attr("visibility", "hidden");
     },
-    removeGuideLine: function() {
+    removeGuideLine: function () {
         var self = this;
         if (self._guideLineGroup) {
             self._guideLineGroup.remove();
             delete self._guideLineGroup;
         }
     },
-    getLinePosition: function() {
+    getLinePosition: function () {
         if (!this.showCustomLine) return;
         if (d3.event.defaultPrevented) return;
         if (this.p1 && this.p2) {
@@ -1685,7 +1756,7 @@ var CompareChart = SmartChartBaseClass.extend({
             this.p1.x = xScale.invert(position[0]);
             this.p1.y = yScale.invert(position[1]);
             var self = this;
-            this.svg.drawArea.on("mousemove", function() {
+            this.svg.drawArea.on("mousemove", function () {
                 var position = d3.mouse(self.svg.drawArea.figureArea.node());
                 var p2 = {};
                 p2.x = xScale.invert(position[0]);
@@ -1695,7 +1766,7 @@ var CompareChart = SmartChartBaseClass.extend({
         }
 
     },
-    drawCustomeLine: function(p1, p2, isLineExtend) {
+    drawCustomeLine: function (p1, p2, isLineExtend) {
         if (!this.showCustomLine) return;
         if (p1 && p2) {
             var x0, y0, x1, y1, x2, y2;
@@ -1745,10 +1816,10 @@ var CompareChart = SmartChartBaseClass.extend({
                 .attr("stroke-dasharray", "3,3");
         }
     },
-    setSelectStyle: function() {
+    setSelectStyle: function () {
         var isAllSelect = true,
             hasSelect = false;
-        this._measures.forEach(function(f) {
+        this._measures.forEach(function (f) {
             if (f.isSelected) {
                 hasSelect = true
             } else {
@@ -1756,12 +1827,12 @@ var CompareChart = SmartChartBaseClass.extend({
             }
         })
         if (isAllSelect) {
-            this._measures.forEach(function(f) {
+            this._measures.forEach(function (f) {
                 f.isSelected = false;
             })
             hasSelect = false;
         }
-        this._measures.forEach(function(f) {
+        this._measures.forEach(function (f) {
             if (hasSelect) {
                 if (f.legendDom) f.legendDom.classed("legendNotSelected", !f.isSelected);
                 if (f.isSelected) {
@@ -1779,104 +1850,104 @@ var CompareChart = SmartChartBaseClass.extend({
 
         return this;
     },
-    _getConfig:function(){
-        var _ ={
-            isInitDraw:false,
-            _y2ValueFormat:this._y2ValueFormat,
-            _yValueFormat:this._yValueFormat,
-            xValueFormat:this.xValueFormat,
-            width:this.width,
-            height:this.height,
-            title:this.title,
-            xType:this.xType,
-            xTitle:this.xTitle,
-            yTitle:this.yTitle,
-            y2Title:this.y2Title,
-            colorPallet:this.colorPallet,
-            customBackground:this.customBackground,
-            showCustomeLine:this.showCustomeLine
+    _getConfig: function () {
+        var _ = {
+            isInitDraw: false,
+            _y2ValueFormat: this._y2ValueFormat,
+            _yValueFormat: this._yValueFormat,
+            xValueFormat: this.xValueFormat,
+            width: this.width,
+            height: this.height,
+            title: this.title,
+            xType: this.xType,
+            xTitle: this.xTitle,
+            yTitle: this.yTitle,
+            y2Title: this.y2Title,
+            colorPallet: this.colorPallet,
+            customBackground: this.customBackground,
+            showCustomeLine: this.showCustomeLine
         };
-       return _;
+        return _;
     },
-    _getMeasures:function(){
-        return this._measures.map(function(m){
-            var _m={
-                id:m.id,
-                name:m.name,
-                type:m.type,
-                style:m.style,
-                config:m.config
+    _getMeasures: function () {
+        return this._measures.map(function (m) {
+            var _m = {
+                id: m.id,
+                name: m.name,
+                type: m.type,
+                style: m.style,
+                config: m.config
             };
-            _m.data=[];
-            m._d.forEach(function(_){
-                var t={};
-               m.mapkey.forEach(function(k){
-                   t[k] =_[k];
-               });
-               _m.data.push(t);
+            _m.data = [];
+            m._d.forEach(function (_) {
+                var t = {};
+                m.mapkey.forEach(function (k) {
+                    t[k] = _[k];
+                });
+                _m.data.push(t);
             })
-           return _m;
+            return _m;
         });
     },
-    clone:function(arg){
-        var config=this._getConfig();
-        var measures=this._getMeasures();
+    clone: function (arg) {
+        var config = this._getConfig();
+        var measures = this._getMeasures();
         return CompareChart.create(config).addMeasures(measures);
     },
-    resize:function(arg){
-        if(arg==="mini"){
-            this.handleEvent=false;
-            this.showLegend=false;
-            this.noAxisTicket=true;
-            this.noAxisTitle=true;
+    resize: function (arg) {
+        if (arg === "mini") {
+            this.handleEvent = false;
+            this.showLegend = false;
+            this.noAxisTicket = true;
+            this.noAxisTitle = true;
         }
-        if(arg==="normal"){
-            this.handleEvent=true;
-            this.showLegend=true;
-            this.noAxisTicket=false;
-            this.noAxisTitle=false;
+        if (arg === "normal") {
+            this.handleEvent = true;
+            this.showLegend = true;
+            this.noAxisTicket = false;
+            this.noAxisTitle = false;
         }
         return this;
 
     },
-    toChartJSON:function(){
-        var _={};
-        _.type="comparechart";
-        _.config=this._getConfig();
-        _.measures=this._getMeasures();
-        return JSON.stringify(_,function(key,val){
-             if (typeof val === 'function') {
-                    return val.toString(); // implicitly `toString` it
-                }
-                return val;
-        },4);
+    toChartJSON: function () {
+        var _ = {};
+        _.type = "comparechart";
+        _.config = this._getConfig();
+        _.measures = this._getMeasures();
+        return JSON.stringify(_, function (key, val) {
+            if (typeof val === 'function') {
+                return val.toString(); // implicitly `toString` it
+            }
+            return val;
+        }, 4);
     },
-    createFromJSON:function(str){
-        var _=JSON.parse(str, function (key, value) {
-        if (value && (typeof value === 'string') && value.indexOf("function") === 0) {
-                var jsFunc = new Function('return ' + value)();
-                return jsFunc;
-            }    
-            return value;
-            });
-         if(_.type==="comparechart"){
-             return  CompareChart.create(_.config).addMeasures(_.measures);
-         }
+    createFromJSON: function (str) {
+        var _ = JSON.parse(str, function (key, value) {    
+            if (value && (typeof value === 'string') && value.indexOf("function") === 0) {        
+                var jsFunc = new Function('return ' + value)();        
+                return jsFunc;    
+            }        
+            return value;
+        });
+        if (_.type === "comparechart") {
+            return CompareChart.create(_.config).addMeasures(_.measures);
+        }
     }
 })
 var Line = SmartChartBaseClass.extend({
     type: "line",
     mapkey: ["x", "y"],
-    init: function(measure) {
+    init: function (measure) {
         var self = this;
         this.measure = measure;
         this.setOption(measure);
         this.id = measure.id;
         this.name = measure.name;
         this._d = JSON.parse(JSON.stringify(measure.data));
-        this.mapkey.forEach(function(key) {
+        this.mapkey.forEach(function (key) {
             if (measure.mapkey) {
-                self._d.forEach(function(d) {
+                self._d.forEach(function (d) {
                     if (measure.mapkey[key]) {
                         d[key] = d[measure.mapkey[key]];
                     }
@@ -1891,7 +1962,7 @@ var Line = SmartChartBaseClass.extend({
         }
 
         this.style = measure.style || {};
-        this._d.forEach(function(d) {
+        this._d.forEach(function (d) {
             d._figureObj = self;
         })
         this.dataCheck() ? null : (this._d = [], console.error("data format is error"));
@@ -1923,11 +1994,11 @@ var Line = SmartChartBaseClass.extend({
         //     d._figureObj = self;
         // })
     },
-    dataCheck: function() {
+    dataCheck: function () {
         var result = true,
             self = this;
-        this.mapkey.forEach(function(k) {
-            self._d.forEach(function(d) {
+        this.mapkey.forEach(function (k) {
+            self._d.forEach(function (d) {
                 var _r = !(d[k] === undefined || d[k] === null);
                 !_r ? console.log(d) : null;
                 result = _r && result;
@@ -1937,33 +2008,33 @@ var Line = SmartChartBaseClass.extend({
         return result;
 
     },
-    getX: function(point) {
+    getX: function (point) {
         return [point.x];
     },
-    getY: function(point) {
+    getY: function (point) {
         return [point.y];
     },
-    getAllX: function() {
-        return this._d.map(function(v) {
+    getAllX: function () {
+        return this._d.map(function (v) {
             return v.x
         });
     },
-    getAllY: function() {
-        return this._d.map(function(v) {
+    getAllY: function () {
+        return this._d.map(function (v) {
             return v.y
         });
     },
-    getObjForAccessiability: function() {
+    getObjForAccessiability: function () {
         return this.measureDom.selectAll("circle")[0];
     },
-    getRelativePoint: function(point) {
+    getRelativePoint: function (point) {
         return [point.attr("cx"), point.attr("cy")];
     },
-    getMax: function(key) {
+    getMax: function (key) {
         if (key === "x") {
             if (this._maxx) return this._maxx;
             var x = Number.MIN_VALUE;
-            this._d.forEach(function(v) {
+            this._d.forEach(function (v) {
                 if (!isNaN(x)) {
                     x = Math.max(v.x, x);
                 }
@@ -1976,7 +2047,7 @@ var Line = SmartChartBaseClass.extend({
             if (this._maxy) return this._maxy;
             var self = this;
             this._maxy = Number.MIN_VALUE;
-            this.getAllY().forEach(function(v) {
+            this.getAllY().forEach(function (v) {
                 if (!isNaN(v)) {
                     self._maxy = Math.max(v, self._maxy);
                 }
@@ -1988,7 +2059,7 @@ var Line = SmartChartBaseClass.extend({
             if (this._maxy) return this._maxy;
             var self = this;
             this._maxy = Number.MIN_VALUE;
-            this.getAllY().forEach(function(v) {
+            this.getAllY().forEach(function (v) {
                 if (!isNaN(v)) {
                     self._maxy = Math.max(v, self._maxy);
                 }
@@ -1997,11 +2068,11 @@ var Line = SmartChartBaseClass.extend({
         }
 
     },
-    getMin: function(key) {
+    getMin: function (key) {
         if (key === "x") {
             if (this._minx !== undefined) return this._minx;
             var x = Number.MAX_VALUE;
-            this._d.forEach(function(v) {
+            this._d.forEach(function (v) {
                 if (!isNaN(x)) {
                     x = Math.min(x, v.x);
                 }
@@ -2014,7 +2085,7 @@ var Line = SmartChartBaseClass.extend({
             if (this._miny) return this._miny;
             var self = this;
             this._miny = Number.MAX_VALUE;
-            this.getAllY().forEach(function(v) {
+            this.getAllY().forEach(function (v) {
                 if (!isNaN(v)) {
                     self._miny = Math.min(v, self._miny);
                 }
@@ -2026,7 +2097,7 @@ var Line = SmartChartBaseClass.extend({
             if (this._miny) return this._miny;
             var self = this;
             this._miny = Number.MAX_VALUE;
-            this.getAllY().forEach(function(v) {
+            this.getAllY().forEach(function (v) {
                 if (!isNaN(v)) {
                     self._miny = Math.min(v, self._miny);
                 }
@@ -2035,7 +2106,7 @@ var Line = SmartChartBaseClass.extend({
         }
 
     },
-    isInSharp: function(svg, _sharp) {
+    isInSharp: function (svg, _sharp) {
 
         _sharp = d3.select(_sharp);
         if (_sharp.node().nodeName === "circle") {
@@ -2045,7 +2116,7 @@ var Line = SmartChartBaseClass.extend({
             return Math.sqrt(Math.pow(mouse[0] - x2, 2) + Math.pow(mouse[1] - y2, 2)) < Math.max(r, 10);
         }
     },
-    draw: function(ctx) {
+    draw: function (ctx) {
         //this.parseFromMeasure();
         var svg = ctx.get("svg");
         var transitionTime = ctx.get("transitionTime") || 1000;
@@ -2059,7 +2130,7 @@ var Line = SmartChartBaseClass.extend({
             yScale, _line, lineGen, _circle, xScale;
         yScale = this.y2 ? scales("y2") : scales("y");
         xScale = xcooridate;
-        var lineTransition = function(l) {
+        var lineTransition = function (l) {
             var totalLength = l.node().getTotalLength();
             if (self.style_dasharray) {
                 l.attr("stroke-dasharray", totalLength + "," + totalLength)
@@ -2079,7 +2150,7 @@ var Line = SmartChartBaseClass.extend({
 
             }
         }
-        var circleTransition = function(c) {
+        var circleTransition = function (c) {
                 c.attr("opacity", "0")
                     .transition()
                     .delay(transitionTime)
@@ -2102,20 +2173,20 @@ var Line = SmartChartBaseClass.extend({
         }
         _circle =
             line.selectAll("linepoint")
-            .data(this._d.filter(function(v) {
+            .data(this._d.filter(function (v) {
                 return !isNaN(v.y)
             }))
             .enter()
             .append("circle")
             .attr("fill", this.style_color)
-            .attr("cx", function(d) {
+            .attr("cx", function (d) {
                 return xScale(d.x);
             })
-            .attr("cy", function(d) {
+            .attr("cy", function (d) {
                 return yScale(d.y);
             })
             .attr("r", this.style_circleradius || defaultStyle.circleradius)
-            .attr("class", function(d, i) {
+            .attr("class", function (d, i) {
                 return "event-comparechart-" + xSetIndex(d.x);
             })
         if (!isNaN(this.style_opacity)) {
@@ -2128,12 +2199,12 @@ var Line = SmartChartBaseClass.extend({
         }
         this.measureDom = line;
     },
-    smartLineGen: function(xScale, yScale, isHandleNaN, ds) {
+    smartLineGen: function (xScale, yScale, isHandleNaN, ds) {
         if (ds.length < 1) return "M0,0";
         var lineString = "";
         var isStartPoint = true;
         if (!isHandleNaN) {
-            ds = ds.filter(function(v) {
+            ds = ds.filter(function (v) {
                 return !isNaN(v.y);
             })
         }
@@ -2158,7 +2229,7 @@ var Line = SmartChartBaseClass.extend({
         }
         return lineString;
     },
-    toHtml: function(ctx) {
+    toHtml: function (ctx) {
         var data = ctx.get("d");
         var text = "";
         var yTitle;
@@ -2177,13 +2248,13 @@ var Line = SmartChartBaseClass.extend({
 })
 var Bar = Line.extend({
     type: "bar",
-    getObjForAccessiability: function() {
+    getObjForAccessiability: function () {
         return this.measureDom.selectAll("rect")[0];
     },
-    getRelativePoint: function(point) {
+    getRelativePoint: function (point) {
         return [point.attr("x"), point.attr("y")];
     },
-    draw: function(ctx) {
+    draw: function (ctx) {
         // this.parseFromMeasure()
         var bars = ctx.get("bars");
         var scales = ctx.get("scales");
@@ -2197,13 +2268,13 @@ var Bar = Line.extend({
         var bargroup = svg.append("g")
             .attr("class", "CompareChart-Bar")
             .attr("pointer-events", "none");
-        var transitionFunction = function(b) {
-            b.each(function(d) {
+        var transitionFunction = function (b) {
+            b.each(function (d) {
                 d3.select(this).attr("y", barMaxHeight)
                     .transition()
                     .duration(transSitionTime)
                     .ease("linear")
-                    .attr("y", function(d) {
+                    .attr("y", function (d) {
                         return yScale(d.y);
                     })
             });
@@ -2217,42 +2288,42 @@ var Bar = Line.extend({
         }
         barWidth = barWidth / barAcc * zoomScale;
         barWidth = Math.min(barWidth, 25);
-        var getBarIndex = function(bars, bar, x) {
+        var getBarIndex = function (bars, bar, x) {
             var i = -1;
-            bars.filter(function(b) {
-                return b.getAllX().find(function(b) {
+            bars.filter(function (b) {
+                return b.getAllX().find(function (b) {
                     return b - x === 0 || b === x
                 }) !== undefined;
-            }).forEach(function(b, j) {
+            }).forEach(function (b, j) {
                 if (b.id === bar.id) {
                     i = j;
                 }
             })
             return i;
         }
-        var getBarXAcc = function(bars, x) {
-            return bars.filter(function(b) {
-                return b.getAllX().find(function(b) {
+        var getBarXAcc = function (bars, x) {
+            return bars.filter(function (b) {
+                return b.getAllX().find(function (b) {
                     return b - x === 0 || b === x
                 }) !== undefined;
             }).length;
         }
         var self = this;
-        var bars = bargroup.selectAll("rect").data(this._d.filter(function(v) {
+        var bars = bargroup.selectAll("rect").data(this._d.filter(function (v) {
                 return !isNaN(v.y)
             }))
             .enter()
             .append("rect")
-            .attr("x", function(d) {
+            .attr("x", function (d) {
                 return xScale(d.x) - (getBarXAcc(bars, d.x)) / 2 * barWidth + getBarIndex(bars, self, d.x) * barWidth;
             })
-            .attr("y", function(d) {
+            .attr("y", function (d) {
                 return yScale(d.y);
             })
             .attr("width", barWidth)
             .attr("height", barMaxHeight)
             .attr("fill", this.style_color)
-            .attr("class", function(d, i) {
+            .attr("class", function (d, i) {
                 return "event-comparechart-" + xSetIndex(d.x);
             });
         if (!isNaN(this.style_opacity)) {
@@ -2263,7 +2334,7 @@ var Bar = Line.extend({
         }
         this.measureDom = bargroup;
     },
-    isInSharp: function(svg, _sharp) {
+    isInSharp: function (svg, _sharp) {
         _sharp = d3.select(_sharp);
         if (_sharp.node().nodeName === "rect") {
             var mouse = d3.mouse(svg.node());
@@ -2271,7 +2342,7 @@ var Bar = Line.extend({
             return mouse[0] > x && mouse[1] > y && mouse[0] < x + width;
         }
     },
-    toHtml: function(ctx) {
+    toHtml: function (ctx) {
         var data = ctx.get("d");
         var text = "";
         var yTitle;
@@ -2291,18 +2362,18 @@ var Bar = Line.extend({
 var BoxPlot = Line.extend({
     type: "boxplot",
     mapkey: ["x", "d0", "d1", "d2", "d3", "d4", "d5"],
-    getObjForAccessiability: function() {
+    getObjForAccessiability: function () {
         return this.measureDom.selectAll(".boxplot")[0];
     },
-    getRelativePoint: function(point) {
+    getRelativePoint: function (point) {
         return [point.select("line").attr("x1"), point.select("line").attr("y1")];
     },
-    init: function(measure) {
+    init: function (measure) {
         Line.init.call(this, measure);
         this.rectwidth = this.style_rectwidth || defaultStyle.rectwidth;
         this.linelength = this.rectwidth + 4;
     },
-    draw: function(ctx) {
+    draw: function (ctx) {
         //this.parseFromMeasure();
         var scales = ctx.get("scales");
         var svg = ctx.get("svg");
@@ -2316,7 +2387,7 @@ var BoxPlot = Line.extend({
             rectwidth = this.rectwidth,
             self = this;
         var boxGroup = svg.append("g").attr("class", "CompareChart-boxplot").attr("pointer-events", "none");
-        this._d.forEach(function(d) {
+        this._d.forEach(function (d) {
             var boxplot = boxGroup.append("g").attr("class", "event-comparechart-" + xSetIndex(d.x)).datum(d).classed("boxplot", true);
             boxplot.append("line").attr("x1", xScale(d.x) - linelength / 2).attr("y1", yScale(d.d0))
                 .attr("x2", xScale(d.x) + linelength / 2).attr("y2", yScale(d.d0))
@@ -2341,9 +2412,9 @@ var BoxPlot = Line.extend({
                 .attr("x2", xScale(d.x) + linelength / 2).attr("y2", yScale(d.d5))
                 .attr("stroke", "black").attr("stroke-width", "2");
         });
-        var tFunction = function(d) {
+        var tFunction = function (d) {
             var boxs = d.selectAll("g")[0];
-            boxs.forEach(function(box, i) {
+            boxs.forEach(function (box, i) {
                 d3.select(box).attr("transform", "translate(0," + barMaxHeight + ")")
                     .transition()
                     .delay(i * transSitionTime / (boxs.length + 1))
@@ -2357,17 +2428,17 @@ var BoxPlot = Line.extend({
         }
         this.measureDom = boxGroup;
     },
-    getY: function(point) {
-        return [point.d0, point.d1, point.d2, point.d3, point.d4,point.d5];
+    getY: function (point) {
+        return [point.d0, point.d1, point.d2, point.d3, point.d4, point.d5];
     },
-    getAllY: function() {
-        return this._d.map(function(v) {
+    getAllY: function () {
+        return this._d.map(function (v) {
             return [v.d0, v.d1, v.d2, v.d3, v.d4]
-        }).reduce(function(v1, v2) {
+        }).reduce(function (v1, v2) {
             return v1.concat(v2)
         });
     },
-    isInSharp: function(svg, _sharp, ctx) {
+    isInSharp: function (svg, _sharp, ctx) {
         _sharp = d3.select(_sharp);
         var scales = ctx.get("scales");
         var xCoor = ctx.get("xcooridate");
@@ -2381,7 +2452,7 @@ var BoxPlot = Line.extend({
         return mouse[0] > xScale(_d.x) - rectwidth / 2 && mouse[0] < xScale(_d.x) + rectwidth / 2 && mouse[1] > yScale(_d.d0) && mouse[1] < yScale(_d.d4);
 
     },
-    toHtml: function(ctx) {
+    toHtml: function (ctx) {
         var text = "";
         var data = ctx.get("d");
         text += "<tr>";
@@ -2419,7 +2490,7 @@ var BoxPlot = Line.extend({
 var Area = Line.extend({
     type: "area",
     mapkey: ["x", "y"],
-    draw: function(ctx) {
+    draw: function (ctx) {
         //this.parseFromMeasure();
         var svg = ctx.get("svg");
         var transitionTime = ctx.get("transitionTime") || 1000;
@@ -2446,20 +2517,20 @@ var Area = Line.extend({
         }
         _circle =
             area.selectAll("linepoint")
-            .data(this._d.filter(function(v) {
+            .data(this._d.filter(function (v) {
                 return !isNaN(v.y)
             }))
             .enter()
             .append("circle")
             .attr("fill", this.style_color)
-            .attr("cx", function(d) {
+            .attr("cx", function (d) {
                 return xScale(d.x);
             })
-            .attr("cy", function(d) {
+            .attr("cy", function (d) {
                 return yScale(d.y);
             })
             .attr("r", this.style_circleradius || defaultStyle.circleradius)
-            .attr("class", function(d, i) {
+            .attr("class", function (d, i) {
                 return "event-comparechart-" + xSetIndex(d.x);
             })
         if (!isNaN(this.style_opacity)) {
@@ -2471,15 +2542,15 @@ var Area = Line.extend({
         }
         this.measureDom = area;
     },
-    smartLineGen: function(xScale, yScale, isHandleNaN, ds, figureHeight) {
+    smartLineGen: function (xScale, yScale, isHandleNaN, ds, figureHeight) {
         if (!isHandleNaN) {
-            ds = ds.filter(function(v) {
+            ds = ds.filter(function (v) {
                 return !isNaN(v.y);
             })
         }
         if (ds.length < 1) return "M0,0";
         var lineString = "";
-        var gen = function(ds, i, isBegin) {
+        var gen = function (ds, i, isBegin) {
             if (i >= ds.length) return;
             if (isBegin) {
                 lineString += "M" + xScale(ds[i].x) + "," + figureHeight;
@@ -2531,7 +2602,7 @@ var Area = Line.extend({
 var RangeChart = Line.extend({
     type: "range",
     mapkey: ["x", "y1", "y2"],
-    draw: function(ctx) {
+    draw: function (ctx) {
         //this.parseFromMeasure();
         var svg = ctx.get("svg");
         var transitionTime = ctx.get("transitionTime") || 1000;
@@ -2548,7 +2619,7 @@ var RangeChart = Line.extend({
         xScale = xcooridate;
 
         lines = this.smartLinesGen(xScale, yScale, isHandleNaN, this._d);
-        lines.forEach(function(d) {
+        lines.forEach(function (d) {
             area.append("path")
                 .attr('stroke', self.style_color)
                 .attr('stroke-width', self.style_linewidth || defaultStyle.linewidth)
@@ -2558,18 +2629,18 @@ var RangeChart = Line.extend({
         if (this.style_dasharray) {
             area.attr("stroke-dasharray", this.style_dasharray);
         }
-        var circles = function(ds) {
-            ds = ds.filter(function(v) {
+        var circles = function (ds) {
+            ds = ds.filter(function (v) {
                 return !isNaN(v.y1) && !isNaN(v.y2)
             });
-            var ds1 = ds.map(function(d) {
+            var ds1 = ds.map(function (d) {
                 var _ = {};
                 _.x = d.x;
                 _.y = d.y1;
                 _._figureObj = d._figureObj;
                 return _;
             });
-            var ds2 = ds.map(function(d) {
+            var ds2 = ds.map(function (d) {
                 var _ = {};
                 _.x = d.x;
                 _.y = d.y2;
@@ -2584,14 +2655,14 @@ var RangeChart = Line.extend({
             .enter()
             .append("circle")
             .attr("fill", this.style_color)
-            .attr("cx", function(d) {
+            .attr("cx", function (d) {
                 return xScale(d.x);
             })
-            .attr("cy", function(d) {
+            .attr("cy", function (d) {
                 return yScale(d.y);
             })
             .attr("r", this.style_circleradius || defaultStyle.circleradius)
-            .attr("class", function(d, i) {
+            .attr("class", function (d, i) {
                 return "event-comparechart-" + xSetIndex(d.x);
             })
         if (!isNaN(this.style_opacity)) {
@@ -2603,9 +2674,9 @@ var RangeChart = Line.extend({
         }
         this.measureDom = area;
     },
-    smartLinesGen: function(xScale, yScale, isHandleNaN, ds) {
+    smartLinesGen: function (xScale, yScale, isHandleNaN, ds) {
         if (!isHandleNaN) {
-            ds = ds.filter(function(v) {
+            ds = ds.filter(function (v) {
                 return !isNaN(v.y1) && !isNaN(v.y2);
             })
         }
@@ -2622,7 +2693,7 @@ var RangeChart = Line.extend({
         if (_ds.length > 0) {
             new_ds.push(_ds);
         }
-        var gen = function(ds) {
+        var gen = function (ds) {
             var i = 0;
             if (ds.length < 1) return "M0,0";
             var lineString = "";
@@ -2641,10 +2712,10 @@ var RangeChart = Line.extend({
         return new_ds.map(gen);
 
     },
-    getAllY: function() {
-        return this._d.map(function(v) {
+    getAllY: function () {
+        return this._d.map(function (v) {
             return [v.y1, v.y2]
-        }).reduce(function(v1, v2) {
+        }).reduce(function (v1, v2) {
             return v1.concat(v2)
         });
     }

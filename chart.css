@@ -87,7 +87,8 @@
     opacity:0.2
 }
 .measuremouseover{
-    fill:rgb(240,240,240)
+    fill:rgb(240,240,240);
+    background-color: rgb(240,240,240);
 }
 .measuremouseout{
     fill:none

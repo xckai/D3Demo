@@ -1,11 +1,20 @@
 var scrolls = Curry(Scroll);
 var verticalScrolls=scrolls("vertical");
 var Legend=SmartChartBaseClass.extend({
-    init:function(eventManager){
-        this.eventManager =eventManager;
+    init:function(options){
+        this.eventManager =options.eventManager;
+        this.textRectHeight=options.textRectHeight
+        this.textRectWidth=options.textRectWidth 
     },
     draw:function(ctx,_measures){
         var svg=ctx.get("svg"),legendWidth=ctx.get("legendWidth")-10,self=this,legendHeight =ctx.get("legendHeight"),guid=ctx.get("guid");
+        var displayModel=ctx.get("display")||"vertical",self=this;
+        if(displayModel==="vertical"){
+            this.textRectWidth=legendWidth-5;
+        }else{
+            this.textRectWidth=Math.min(legendWidth-5,this.textRectWidth);
+        }
+        var location=Curry(self.getLocation)(legendHeight,legendWidth,this.textRectHeight,this.textRectWidth,displayModel);
         var _a=svg.append("a").attr("xlink:href","javascript:void(0)").attr("name","legend")
         var legendGroup =_a.append("svg:g").classed("legendGroup",true);
         var i =-1;
@@ -49,7 +58,7 @@ var Legend=SmartChartBaseClass.extend({
                         })
                        event.preventDefault();
                        break;
-         }
+            }
         })
         legendGroup.append("rect").attr("height",legendHeight).attr("width",legendWidth).attr("fill-opacity", 0);
         var legends=legendGroup.append("svg:g");
@@ -64,31 +73,46 @@ var Legend=SmartChartBaseClass.extend({
         legends.selectAll(".legend")
                             .data(_measures.vals()).enter()
                             .append("g").classed("legend",true);
-        var scrollContainer=svg.append("g").attr("transform","translate("+(legendWidth-10)+",0)");
-        verticalScrolls(legendHeight,legendWidth,_measures.vals().length*32,0,svg,scrollContainer,legends);
+        var scrollContainer=svg.append("g").attr("transform","translate("+(legendWidth-5)+",0)");
+        verticalScrolls(legendHeight,legendWidth,self.getAccHeight(displayModel,legendWidth,self.textRectWidth,_measures.vals().length),0,svg,scrollContainer,legends);
         legends.selectAll(".legend").each(function(d,i){
             var g=d3.select(this);
-            g.append("svg:rect").attr("height", 26)
-                                    .attr("width", legendWidth-10)
-                                    .attr("y", i * 32 )
-                                    .attr("x", -10)
+            g.append("svg:rect").attr("height", self.textRectHeight)
+                                    .attr("width", self.textRectWidth)
+                                    .attr("y", location(i).y )
+                                    .attr("x", location(i).x)
                                     .attr("fill", "transparent");
             if(d.config_legendIcon==="rect"){
-                  g.append("svg:rect").attr("x",-8)
-                                        .attr("y",i * 32+5)
+                  g.append("svg:rect").attr("x",location(i).x)
+                                        .attr("y",location(i).y+(self.textRectHeight-16)/2)
                                         .attr("width",16)
                                         .attr("height",16)
                                         .attr("fill",d.style_color);
             }else{
-                g.append("svg:circle").attr("cx",0)
-                                    .attr("cy",  i * 32+13)
+                g.append("svg:circle").attr("cx",location(i).x+8)
+                                    .attr("cy", location(i).y+(self.textRectHeight)/2)
                                     .attr("r",8)
                                     .attr("fill", d.style_color );
             }
-            g.append("svg:text").attr("x", 12)
-                                    .attr("y",(i * 32) + 14)
-                                    .text(d.name)
-                                    .attr("dominant-baseline", "middle");
+            g.append("svg:foreignObject").attr("x",location(i).x+ 20)
+                                             .attr("y",location(i).y)
+                                             .attr("height", self.textRectHeight)
+                                             .attr("width", self.textRectWidth)
+                                             .append("xhtml:p")
+                                             .style("line-height",self.textRectHeight+"px")
+                                             .text(d.name);
+  
+            // g.append("textArea").attr("x", 20)
+            //                                  .attr("y",(i * self.textRectHeight) + (self.textRectHeight)/2)
+            //                                  .attr("height", self.textRectHeight)
+            //                                  .attr("width", self.textRectWidth)
+            //                                  .text(d.name)
+
+                                            //   <p xmlns="http://www.w3.org/1999/xhtml">Text goes here</p>
+            // g.append("svg:text").attr("x", 20)
+            //                         .attr("y",(i * self.textRectHeight) + (self.textRectHeight)/2)
+            //                         .text(d.name)
+            //                         .attr("dominant-baseline", "middle");
             d.legendDom=g;
             g.on("mouseover", function(d) {
                 d3.select(this).select("rect").classed("measuremouseover",true);
@@ -110,5 +134,23 @@ var Legend=SmartChartBaseClass.extend({
             event.stopPropagation();
         });
         })                                                   
+    },
+    getLocation:function(h,w,th,tw,display,i){
+        if(display==="vertical"){
+            return {x:0,y:i*th}
+        }else{
+            var column=Math.floor(w/tw);
+            var offSet=(w-tw*column)/2;
+            return {x:(i%column)*tw+offSet,y:(Math.floor(i/column)*th)}
+        }
+    },
+    getAccHeight:function(display,w,tw,acc){
+        if(display==="vertical"){
+            return acc*this.textRectHeight;
+        }else{
+            var column=Math.floor(w/tw);
+            var rows=Math.ceil(acc/column);
+            return rows*this.textRectHeight;
+        }
     }
 })
