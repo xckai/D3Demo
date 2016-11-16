@@ -1,0 +1,93 @@
+.notextselect {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  cursor: default;
+}
+.CompareChart {
+  background-color: #001533;
+  color: #ffffff;
+  font-size: 14px;
+}
+.CompareChart .CompareChart-axis {
+  font-size: 11.2px;
+  color: #ffffff;
+}
+.CompareChart .CompareChart-axis .tick line,
+.CompareChart .CompareChart-axis path {
+  fill: none;
+  stroke: #B6B6B6;
+}
+.CompareChart .CompareChart-axis text {
+  fill: #ffffff;
+}
+.CompareChart .CompareChart-title-Container {
+  font-size: 25.2px;
+}
+.CompareChart .CompareChart-title-Container text {
+  fill: #ffffff;
+}
+.CompareChart .CompareChart-ytickline {
+  stroke-width: 1px;
+  stroke-dasharray: 2, 2;
+  stroke: #B6B6B6;
+  opacity: 0.5;
+}
+.CompareChart .CompareChart-guideline {
+  stroke-width: 1px;
+  stroke-dasharray: 2, 2;
+  stroke: #B6B6B6;
+  fill: #B6B6B6;
+}
+.CompareChart .CompareChart-boxplot line {
+  stroke: #ffffff;
+}
+.CompareChart .datamousehover {
+  stroke: #ffffff;
+  stroke-width: 1px;
+}
+.CompareChart .legendNotSelected {
+  opacity: 0.2 !important;
+}
+.CompareChart .legendmouseover {
+  font-size: 16.8px;
+}
+.CompareChart .compareChartNotSelected {
+  opacity: 0.2;
+}
+.CompareChart .tool-tip-table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  background-color: #103444;
+  empty-cells: show;
+  -webkit-box-shadow: 7px 7px 12px -9px #777777;
+  -moz-box-shadow: 7px 7px 12px -9px #777777;
+  box-shadow: 7px 7px 12px -9px #777777;
+  opacity: 0.9;
+}
+.CompareChart .tool-tip-table th {
+  background-color: #001533;
+  font-size: 16px;
+  padding: 2px 5px;
+  text-align: center;
+  color: #ffffff;
+}
+.CompareChart .tool-tip-table tr {
+  border: 1px solid #CCC;
+  color: #ffffff;
+}
+.CompareChart .tool-tip-table td {
+  font-size: 13px;
+  padding: 3px 6px;
+  background-color: #103444;
+  border-left: 1px dotted #999;
+}
+.CompareChart .tool-tip-table td > span {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+}

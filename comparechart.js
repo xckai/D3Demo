@@ -558,11 +558,11 @@ var Legend=SmartChartBaseClass.extend({
             //                         .attr("dominant-baseline", "middle");
             d.legendDom=g;
             g.on("mouseover", function(d) {
-                d3.select(this).select("rect").classed("measuremouseover",true);
+                d3.select(this).classed("legendmouseover",true);
                 self.eventManager.call("legendmouseover", d);
             })
             .on("mouseout", function(d) {
-                d3.select(this).select("rect").classed("measuremouseover",false);
+                d3.select(this).classed("legendmouseover",false);
                 self.eventManager.call( "legendmouseout", d);
                
             });
@@ -739,7 +739,7 @@ var CompareChart = SmartChartBaseClass.extend({
             this.legendDisplay="vertical";
         }
         if (this.title) {
-            this._titleHeight = 80;
+            this._titleHeight = 50;
         } else {
             this._titleHeight = 0;
         }
@@ -757,6 +757,7 @@ var CompareChart = SmartChartBaseClass.extend({
             }else{
                 this._drawAreaWidth = Math.floor(this.width * 0.8);
                 this._legendHeight = this.height-this._titleHeight;
+                 this._drawAreaHeight = this.height-this._titleHeight;
                 this._legendWidth= Math.floor(this.width * 0.2);
             }
 
@@ -878,8 +879,8 @@ var CompareChart = SmartChartBaseClass.extend({
         if (this.validateConfig()) {
             var self = this;
             this.svgContainer = d3.select("#" + this.appendId).append("div").classed("CompareChart", true)
-                .style("width", this.width)
-                .style("height", this.height)
+                .style("width", this.width+"px")
+                .style("height", this.height+"px")
                 .style("position", "relative")
                 .classed("notextselect", true);
             this.svg = this.svgContainer.append("svg").classed("CompareChart-svg", true)
@@ -891,7 +892,7 @@ var CompareChart = SmartChartBaseClass.extend({
                 .attr("width", this._figureWidth)
                 .attr("height", this._figureHeight);
             this.svg.title = this.svg.append('svg:g').classed("CompareChart-title-Container", true)
-                .attr("transform", "translate(" + (this._drawAreaWidth / 2) + ",5)");
+                .attr("transform", "translate(" + (this.width / 2) + ",5)");
             this.svg.drawArea = this.svg.append("svg:g").classed("CompareChart-drawArea", true)
                 .attr("transform", "translate(0," + this._titleHeight + ")");
             var _a = this.svg.drawArea.append("a").attr("xlink:href", "javascript:void(0)").attr("name", "legend");
@@ -994,6 +995,7 @@ var CompareChart = SmartChartBaseClass.extend({
             this._xAxis = this.svg.drawArea.append("svg:g")
                 .attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth) + "," + (this._drawAreaHeight - this._xTitleHeight - this._xAxisHeight) + ")")
                 .attr("class", "CompareChart-xaxis")
+                .attr("class", "CompareChart-axis")
                 .call(d3.svg.axis().scale(this.getScale("x")).orient("bottom").tickFormat(function (v) {
                     if (Math.floor(v) !== Math.ceil(v)) return;
                     if (v > -1 && v < Set.length) {
@@ -1009,6 +1011,7 @@ var CompareChart = SmartChartBaseClass.extend({
             this._xAxis = this.svg.drawArea.append("svg:g")
                 .attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth) + "," + (this._drawAreaHeight - this._xTitleHeight - this._xAxisHeight) + ")")
                 .attr("class", "CompareChart-xaxis")
+                .attr("class", "CompareChart-axis")
                 .call(d3.svg.axis().scale(this.getScale("x")).orient("bottom").tickFormat(this.xValueFormat.bind(this)).ticks([xtickNum]));
         }
 
@@ -1017,6 +1020,7 @@ var CompareChart = SmartChartBaseClass.extend({
             if (this._yAxis) this._yAxis.remove();
             this._yAxis = this.svg.drawArea.append("svg:g")
                 .attr("class", "CompareChart-yaxis")
+                .attr("class", "CompareChart-axis")
                 .attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth) + ",0)")
                 .call(d3.svg.axis().scale(this.getScale("y")).orient("left").tickFormat(this._yValueFormat.bind(this)));
         }
@@ -1026,6 +1030,7 @@ var CompareChart = SmartChartBaseClass.extend({
             if (this._y2Axis) this._y2Axis.remove();
             this._y2Axis = this.svg.drawArea.append("svg:g")
                 .attr("class", "CompareChart-y2axis")
+                .attr("class", "CompareChart-axis")
                 .attr("transform", "translate(" + (this._figureWidth + this._yTitleWidth + this._yAxisWidth) + ",0)")
                 .call(d3.svg.axis().scale(this.getScale("y2")).orient("right").tickFormat(this._y2ValueFormat.bind(this)));
         }
@@ -1055,13 +1060,11 @@ var CompareChart = SmartChartBaseClass.extend({
 
                 if (this.hasY1()) {
                     this._ticketLine = this._yAxis.selectAll("g")
-                        .append("line").attr("x2", self._figureWidth).attr("x1", 0).attr("y1", 0).attr("y2", 0).attr("stroke-width", 1)
-                        .attr("stroke", "black").attr("opacity", "0.2").attr("stroke-dasharray", "2,2");
+                        .append("line").attr("x2", self._figureWidth).attr("x1", 0).attr("y1", 0).attr("y2", 0).classed("CompareChart-ytickline",true)
 
                 } else if (this.hasY2()) {
                     this._ticketLine = this._y2Axis.selectAll("g")
-                        .append("line").attr("x2", -self._figureWidth).attr("x1", 0).attr("y1", 0).attr("y2", 0).attr("stroke-width", 1)
-                        .attr("stroke", "black").attr("opacity", "0.2").attr("stroke-dasharray", "2,2");
+                        .append("line").attr("x2", -self._figureWidth).attr("x1", 0).attr("y1", 0).attr("y2", 0).classed("CompareChart-ytickline",true);
                 }
             }
         }
@@ -1159,7 +1162,6 @@ var CompareChart = SmartChartBaseClass.extend({
         var self = this;
         this.svg.title.selectAll("text").remove();
         this.svg.title.append("text").text(this.title).attr("text-anchor", "middle")
-            .attr("font-size", "22px")
             .attr("dominant-baseline", "text-before-edge");
         if (this.hasY1() && !this.noAxisTitle) {
             var _titleRect = this.svg.drawArea.append("rect")
@@ -1527,12 +1529,15 @@ var CompareChart = SmartChartBaseClass.extend({
     },
     drawHint: function (str) {
         if (this.appendId) {
-            if (this.hintDiv) return;
-            this.hintDiv = d3.select("#" + this.appendId).append("div").classed("CompareChart-hintdiv", true)
-                .style("width", this.width)
-                .style("height", this.height)
+            if (!this.hintDiv) {
+                 this.hintDiv = d3.select("#" + this.appendId).append("div");
+                 this.hintDiv.textHint= this.hintDiv.append("text");
+            };
+            this.hintDiv.classed("CompareChart-hintdiv", true)
+                .style("width", this.width+"px")
+                .style("height", this.height+"px")
                 .classed("notextselect", true);
-            this.hintDiv.append("text").classed("CompareChart-hint", true).text(str);
+           this.hintDiv.textHint.classed("CompareChart-hint", true).text(str);
         }
     },
     reDraw: function () {
@@ -1664,7 +1669,7 @@ var CompareChart = SmartChartBaseClass.extend({
             $chart = this.$chart;
         var xScale = self.getXCoordinate(),
             yScale = point._figureObj.y2 ? this.getScale("y2") : this.getScale("y");
-        if (!self._guideLineGroup) self._guideLineGroup = this.svg.drawArea.figureArea.append("g").attr("class", "guide-lines");
+        if (!self._guideLineGroup) self._guideLineGroup = this.svg.drawArea.figureArea.append("g").attr("class", "CompareChart-guideline");
         point._figureObj.getY(point).forEach(function (v) {
             if (point._figureObj.y2) {
                 self._guideLineGroup
@@ -1673,9 +1678,7 @@ var CompareChart = SmartChartBaseClass.extend({
                     .attr("y1", yScale(v))
                     .attr("x2", self._figureWidth)
                     .attr("y2", yScale(v))
-                    .attr("stroke", "black")
-                    .attr("stroke-width", 1)
-                    .attr("stroke-dasharray", "3,3");
+                    .classed("CompareChart-xguideline",true);
                 self._guideLineGroup.append("circle")
                     .attr("cx", self._figureWidth - 4)
                     .attr("cy", yScale(v))
@@ -1688,9 +1691,7 @@ var CompareChart = SmartChartBaseClass.extend({
                     .attr("y1", yScale(v))
                     .attr("x2", 0)
                     .attr("y2", yScale(v))
-                    .attr("stroke", "black")
-                    .attr("stroke-width", 1)
-                    .attr("stroke-dasharray", "3,3");
+                    .classed("CompareChart-xguideline",true);
                 self._guideLineGroup.append("circle")
                     .attr("cx", 4)
                     .attr("cy", yScale(v))
@@ -1711,10 +1712,8 @@ var CompareChart = SmartChartBaseClass.extend({
             .attr("y1", minY)
             .attr("x2", xScale(point._figureObj.getX(point)[0]))
             .attr("y2", self._figureHeight)
-            .attr("stroke", "black")
-            .attr("stroke-width", 1)
-            .attr("stroke-dasharray", "3,3");
-        self.svg.selectAll(".yAxisGuideLine").attr("visibility", "hidden");
+            .classed("CompareChart-yguideline",true)
+       // self.svg.selectAll(".yAxisGuideLine").attr("visibility", "hidden");
     },
     removeGuideLine: function () {
         var self = this;
@@ -2391,26 +2390,26 @@ var BoxPlot = Line.extend({
             var boxplot = boxGroup.append("g").attr("class", "event-comparechart-" + xSetIndex(d.x)).datum(d).classed("boxplot", true);
             boxplot.append("line").attr("x1", xScale(d.x) - linelength / 2).attr("y1", yScale(d.d0))
                 .attr("x2", xScale(d.x) + linelength / 2).attr("y2", yScale(d.d0))
-                .attr("stroke", "black").attr("stroke-width", "2");
+                .attr("stroke-width", "2");
             boxplot.append("line").attr("x1", xScale(d.x)).attr("y1", yScale(d.d0))
                 .attr("x2", xScale(d.x)).attr("y2", yScale(d.d1))
-                .attr("stroke", "black").attr("stroke-width", "1.5px").attr("stroke-dasharray", "2,2");
+                .attr("stroke-width", "1.5px").attr("stroke-dasharray", "2,2");
             boxplot.append("rect").attr("x", xScale(d.x) - rectwidth / 2).attr("y", yScale(d.d1))
                 .attr("width", rectwidth).attr("height", yScale(d.d4) - yScale(d.d1))
                 .attr("fill", self.style_color);
             boxplot.append("line").attr("x1", xScale(d.x) - rectwidth / 2).attr("y1", yScale(d.d2))
                 .attr("x2", xScale(d.x) + rectwidth / 2).attr("y2", yScale(d.d2))
-                .attr("stroke", "black").attr("stroke-width", "2");
+                .attr("stroke-width", "2");
             boxplot.append("line").attr("x1", xScale(d.x) - rectwidth / 2).attr("y1", yScale(d.d3))
                 .attr("x2", xScale(d.x) + rectwidth / 2).attr("y2", yScale(d.d3))
-                .attr("stroke", "black").attr("stroke-width", "2")
+                .attr("stroke-width", "2")
                 .attr("stroke-dasharray", "2,2");
             boxplot.append("line").attr("x1", xScale(d.x)).attr("y1", yScale(d.d4))
                 .attr("x2", xScale(d.x)).attr("y2", yScale(d.d5))
-                .attr("stroke", "black").attr("stroke-width", "1.5px").attr("stroke-dasharray", "2,2");
+                .attr("stroke-width", "1.5px").attr("stroke-dasharray", "2,2");
             boxplot.append("line").attr("x1", xScale(d.x) - linelength / 2).attr("y1", yScale(d.d5))
                 .attr("x2", xScale(d.x) + linelength / 2).attr("y2", yScale(d.d5))
-                .attr("stroke", "black").attr("stroke-width", "2");
+                .attr("stroke-width", "2");
         });
         var tFunction = function (d) {
             var boxs = d.selectAll("g")[0];

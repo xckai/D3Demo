@@ -16,7 +16,7 @@
             "taskName": "compile less",
             "suppressTaskName": true,
             "showOutput": "always",
-            "args": ["lessc","demo.less", "demo.css"]
+            "args": ["lessc","comparechart.less", "comparechart.css"]
 
         }
     ]

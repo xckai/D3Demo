@@ -1,0 +1,105 @@
+@basebackground: #103444;
+@deepbackground: #001533;
+@textcolor: #ffffff;
+@axiscolor: #B6B6B6;
+@datamousehover: #ffffff;
+@mainfontsize: 14px;
+@smallfont: @mainfontsize* 0.8;
+@bigfont: @mainfontsize* 1.8;
+.notextselect {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    cursor: default;
+}
+
+.CompareChart {
+    background-color: @deepbackground;
+    color: @textcolor;
+    font-size: @mainfontsize;
+    ///chart axis color
+    .CompareChart-axis {
+        font-size: @smallfont;
+        color: @textcolor;
+        .tick line,
+        path {
+            fill: none;
+            stroke: @axiscolor;
+        }
+        text {
+            fill: @textcolor;
+        }
+    }
+    .CompareChart-title-Container{
+        text{
+            fill: @textcolor;
+        }
+        font-size: @bigfont;
+    }
+    .CompareChart-ytickline {
+        stroke-width: 1px;
+        stroke-dasharray: 2, 2;
+        stroke: @axiscolor;
+        opacity: 0.5;
+    }
+    .CompareChart-guideline {
+        stroke-width: 1px;
+        stroke-dasharray: 2, 2;
+        stroke: @axiscolor;
+        fill: @axiscolor;
+    }
+    .CompareChart-boxplot{
+        line {stroke:@textcolor}
+    }
+    .datamousehover {
+        stroke: @datamousehover;
+        stroke-width: 1px;
+    }
+    .legendNotSelected {
+        opacity: 0.2 !important;
+    }
+    .legendmouseover {
+        font-size: @mainfontsize*1.2
+        
+    }
+    .compareChartNotSelected {
+        opacity: 0.2
+    }
+    .tool-tip-table {
+        border-collapse: collapse;
+        border-spacing: 0;
+        background-color: @basebackground;
+        empty-cells: show;
+        -webkit-box-shadow: 7px 7px 12px -9px rgb(119, 119, 119);
+        -moz-box-shadow: 7px 7px 12px -9px rgb(119, 119, 119);
+        box-shadow: 7px 7px 12px -9px rgb(119, 119, 119);
+        opacity: 0.9;
+        th {
+            background-color: @deepbackground;
+            ;
+            font-size: 16px;
+            padding: 2px 5px;
+            text-align: center;
+            color: @textcolor;
+        }
+        tr {
+            border: 1px solid #CCC;
+            color: @textcolor;
+        }
+        td {
+            font-size: 13px;
+            padding: 3px 6px;
+            background-color: @basebackground;
+            border-left: 1px dotted #999;
+        }
+        td>span {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            margin-right: 6px;
+        }
+    }
+}

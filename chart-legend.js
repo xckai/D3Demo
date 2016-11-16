@@ -115,11 +115,11 @@ var Legend=SmartChartBaseClass.extend({
             //                         .attr("dominant-baseline", "middle");
             d.legendDom=g;
             g.on("mouseover", function(d) {
-                d3.select(this).select("rect").classed("measuremouseover",true);
+                d3.select(this).classed("legendmouseover",true);
                 self.eventManager.call("legendmouseover", d);
             })
             .on("mouseout", function(d) {
-                d3.select(this).select("rect").classed("measuremouseover",false);
+                d3.select(this).classed("legendmouseover",false);
                 self.eventManager.call( "legendmouseout", d);
                
             });
