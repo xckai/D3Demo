@@ -292,11 +292,9 @@ var Scroll=function(type,svgheight,svgWidth,fullheight,fullwidth,svgContainer,sc
        
         //legendGroup.append("rect").attr("height",svgheight).attr("width",svgWidth).attr("fill-opacity", 0);
         var scrollBackground=scrollContainer.append("path").attr("d",rectGen(-5,0,8,svgheight,3,true,true,true,true))
-                                    .attr("fill","#BBB")                             
-                                    .style("opacity",0.4);
+                                    .classed("scrollBackground",true);
         var scroll=scrollContainer.append("path").attr("d",rectGen(-4,0,6,scrollbarlength,3,true,true,true,true))
-                                    .attr("fill","#AAA")                             
-                                    .style("opacity",0.6);
+                                    .classed("scrollContainer",true);
         svgContainer.on("mousewheel",function(){
             var _offset= d3.event.deltaY;
             scrollOffset = (offset+_offset)*svgheight/fullheight;
@@ -331,11 +329,9 @@ var Scroll=function(type,svgheight,svgWidth,fullheight,fullwidth,svgContainer,sc
     }
     if(type==="horizontal"){
         var scrollBackground=scrollContainer.append("path").attr("d",rectGen(0,-5,svgWidth,8,3,true,true,true,true))
-                                    .attr("fill","#BBB")                             
-                                    .style("opacity",0.4);
+                                    .classed("scrollBackground",true);
         var scroll=scrollContainer.append("path").attr("d",rectGen(0,-4,scrollbarlength,6,3,true,true,true,true))
-                                    .attr("fill","#AAA")                             
-                                    .style("opacity",0.6);
+                                    .classed("scrollContainer",true);
         svgContainer.on("mousewheel",function(){
             var _offset= d3.event.deltaX;
             scrollOffset = (offset+_offset)*svgWidth/fullwidth;

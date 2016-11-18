@@ -1,5 +1,6 @@
 @basebackground: #103444;
 @deepbackground: #001533;
+@lightbackground:#5582A0;
 @textcolor: #ffffff;
 @axiscolor: #B6B6B6;
 @datamousehover: #ffffff;
@@ -17,7 +18,7 @@
 }
 
 .CompareChart {
-    background-color: @deepbackground;
+    background-color: @basebackground;
     color: @textcolor;
     font-size: @mainfontsize;
     ///chart axis color
@@ -39,6 +40,11 @@
         }
         font-size: @bigfont;
     }
+    .CompareChart-TitleBar{
+        text{
+            fill:@textcolor;
+        }
+    }
     .CompareChart-ytickline {
         stroke-width: 1px;
         stroke-dasharray: 2, 2;
@@ -58,16 +64,10 @@
         stroke: @datamousehover;
         stroke-width: 1px;
     }
-    .legendNotSelected {
-        opacity: 0.2 !important;
-    }
-    .legendmouseover {
-        font-size: @mainfontsize*1.2
-        
-    }
     .compareChartNotSelected {
         opacity: 0.2
     }
+
     .tool-tip-table {
         border-collapse: collapse;
         border-spacing: 0;
@@ -102,4 +102,32 @@
             margin-right: 6px;
         }
     }
+}
+.CompareChart-hintdiv{
+    display: flex;
+    background-color: @basebackground;
+    align-items: center;
+    justify-content: center;
+}
+.CompareChart-hint{
+    font-size:@bigfont;
+}
+.legendGroup{
+    .legend-textarea{
+        overflow: hidden;
+    }
+    .legendNotSelected {
+        opacity: 0.2 !important;
+    }
+    .legendmouseover {
+        font-size: @mainfontsize*1.2
+        
+    }
+}
+.scrollContainer{
+    fill: @lightbackground;
+    opacity: 0.6
+}
+.scrollBackground{
+    fill:@deepbackground;
 }

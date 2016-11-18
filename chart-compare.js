@@ -17,22 +17,24 @@ var CompareChart = SmartChartBaseClass.extend({
                 return this.yValueFormat ? this.yValueFormat(v) : v;
             } else {
                 var self = this;
-                return span > 1 ? function (v) {
-                        var _v = Number(v).toFixed();
-                        return self.yValueFormat ? self.yValueFormat(_v) : _v;
-                    }(v) :
-                    function (v) {
-                        var num = 1,
-                            _v;
-                        for (var i = 0; i < span.toString().length; ++i) {
-                            if (span.toString()[i] !== 0 && span.toString()[i] != ".") {
-                                num = i;
-                                break;
-                            }
+                var _v;
+                if(span>9){
+                     _v=Number(v).toFixed();
+                    
+                }else if(1<=span && span <=9){
+                     _v=Number(v).toFixed(1); 
+                }else{
+                    var  num=Math.abs(span) ,i,counter=2;
+                    for(i = 0;i<num.toString().length;++i){
+                        if(num.toString()[0]===0){
+                            ++counter;
+                        }else{
+                            break;
                         }
-                        _v = Number(v).toFixed(i);
-                        return self.yValueFormat ? self.yValueFormat(_v) : _v;
-                    }(v)
+                    }
+                    _v=Number(v).toFixed(counter);
+                }
+                return self.yValueFormat ? self.yValueFormat(_v) : _v;
             }
         }
         this._y2ValueFormat = function (v) {
@@ -43,21 +45,24 @@ var CompareChart = SmartChartBaseClass.extend({
                 return this.y2ValueFormat ? this.y2ValueFormat(v) : v;
             } else {
                 var self = this;
-                return span > 1 ? function (v) {
-                        var _v = Number(v).toFixed();
-                        return self.y2ValueFormat ? self.y2ValueFormat(_v) : _v;
-                    }(v) :
-                    function (v) {
-                        var num = 1,
-                            _v;
-                        for (var i = 0; i < span.toString().length; ++i) {
-                            if (span.toString()[i] !== 0 && span.toString()[i] != ".") {
-                                num = i;
-                            }
+                var _v;
+                if(span>9){
+                     _v=Number(v).toFixed();
+                    
+                }else if(1<=span && span <=9){
+                     _v=Number(v).toFixed(1); 
+                }else{
+                    var  num=Math.abs(span) ,i,counter=2;
+                    for(i = 0;i<num.toString().length;++i){
+                        if(num.toString()[0]===0){
+                            ++counter;
+                        }else{
+                            break;
                         }
-                        _v = Number(v).toFixed(i);
-                        return self.y2ValueFormat ? self.y2ValueFormat(_v) : _v;
-                    }(v)
+                    }
+                    _v=Number(v).toFixed(counter);
+                }
+                return self.y2ValueFormat ? self.y2ValueFormat(_v) : _v;
             }
         }
 
@@ -65,7 +70,7 @@ var CompareChart = SmartChartBaseClass.extend({
         this.colorManager = colorManager.create();
         this.legendOption={eventManager:this.eventManager,
                             textRectHeight:32,
-                            textRectWidth:200};
+                            textRectWidth:250};
         this.legend = Legend.create(this.legendOption);
         this.toolTip = ChartToolTip.create();
         this._measures = new Set(function (v1, v2) {
@@ -134,33 +139,35 @@ var CompareChart = SmartChartBaseClass.extend({
         return this;
     },
     calculateMargin: function () {
-        if(this.width<this.height){
+        var padding=this.padding=5*2 ;
+        if(!this.legendDisplayModel){
             this.legendDisplay="horizontal";
         }else{
-            this.legendDisplay="vertical";
+            this.legendDisplay=this.legendDisplayModel;
         }
         if (this.title) {
             this._titleHeight = 50;
         } else {
-            this._titleHeight = 0;
+            this._titleHeight = 10;
         }
 
-        this._drawAreaWidth = this.width;
+        this._drawAreaWidth = this.width-padding;
         this._drawAreaHeight = this.height;
         if (this.showLegend) {
             //this._drawAreaWidth = Math.floor(this.width * 0.8);
             if(this.legendDisplay==="horizontal"){
                 var column=Math.floor((this.width-10)/this.legendOption.textRectWidth);
                 var rows=Math.ceil(this._measures.vals().length/column);
-                this._legendHeight = Math.min(Math.floor(this.height * 0.1),rows*this.legendOption.textRectHeight+1);
+                this._legendHeight = Math.min(Math.max(Math.floor(this.height * 0.15),this.legendOption.textRectHeight),rows*this.legendOption.textRectHeight+1);
                 this._drawAreaHeight = this.height-this._titleHeight-this._legendHeight;
                 this._legendWidth= this.width
             }else{
-                this._drawAreaWidth = Math.floor(this.width * 0.8);
+                
                 this._legendHeight = this.height-this._titleHeight;
                  this._drawAreaHeight = this.height-this._titleHeight;
-                this._legendWidth= Math.floor(this.width * 0.2);
-            }
+                this._legendWidth= Math.max(Math.floor(this.width * 0.2),this.legendOption.textRectWidth);
+                this._drawAreaWidth = this.width-this._legendWidth-padding;    
+        }
 
         } else {
             this._drawAreaWidth = this.width;
@@ -278,6 +285,7 @@ var CompareChart = SmartChartBaseClass.extend({
     initDraw: function () {
         if (this.isInitDraw) return this;
         if (this.validateConfig()) {
+            var padding= this.padding;
             var self = this;
             this.svgContainer = d3.select("#" + this.appendId).append("div").classed("CompareChart", true)
                 .style("width", this.width+"px")
@@ -295,7 +303,7 @@ var CompareChart = SmartChartBaseClass.extend({
             this.svg.title = this.svg.append('svg:g').classed("CompareChart-title-Container", true)
                 .attr("transform", "translate(" + (this.width / 2) + ",5)");
             this.svg.drawArea = this.svg.append("svg:g").classed("CompareChart-drawArea", true)
-                .attr("transform", "translate(0," + this._titleHeight + ")");
+                .attr("transform", "translate("+padding/2+"," + this._titleHeight + ")");
             var _a = this.svg.drawArea.append("a").attr("xlink:href", "javascript:void(0)").attr("name", "legend");
             this.keyboardHandle(_a);
             this.svg.drawArea.figureArea = _a.append("svg:g").classed("CompareChart-figure", true)
@@ -384,6 +392,7 @@ var CompareChart = SmartChartBaseClass.extend({
     },
     draw: function () {
         this.drawTitle().drawBackground().drawAxis().drawYTicketLine().drawMeasure().drawLegend().drawEventZone();
+        return this;
     },
     drawAxis: function () {
         var self = this;
@@ -576,6 +585,7 @@ var CompareChart = SmartChartBaseClass.extend({
                 case "start":
                     this.svg.drawArea.append("g").attr("transform", "translate(1, 0)")
                         .classed("CompareChart-yTitleBar", true)
+                        .classed("CompareChart-TitleBar", true)
                         .attr("text-anchor", "end")
                         .append("text").text(this.yTitle_value)
                         .attr("transform", "rotate(-90)")
@@ -585,6 +595,7 @@ var CompareChart = SmartChartBaseClass.extend({
                 case "middle":
                     this.svg.drawArea.append("g").attr("transform", "translate(1," + (this._figureHeight / 2) + ")")
                         .classed("CompareChart-yTitleBar", true)
+                        .classed("CompareChart-TitleBar", true)
                         .attr("text-anchor", "middle")
                         .append("text").text(this.yTitle_value)
                         .attr("transform", "rotate(-90)")
@@ -594,6 +605,7 @@ var CompareChart = SmartChartBaseClass.extend({
                 case "end":
                     this.svg.drawArea.append("g").attr("transform", "translate(1," + (this._figureHeight) + ")")
                         .classed("CompareChart-yTitleBar", true)
+                        .classed("CompareChart-TitleBar", true)
                         .attr("text-anchor", "start")
                         .append("text").text(this.yTitle_value)
                         .attr("transform", "rotate(-90)")
@@ -614,6 +626,7 @@ var CompareChart = SmartChartBaseClass.extend({
                 case "start":
                     this.svg.drawArea.append("g").attr("transform", "translate(" + (this._figureWidth + this._yTitleWidth + this._yAxisWidth + this._y2AxisWidth + this._y2TitleWidth) + ",0)")
                         .classed("CompareChart-y2TitleBar", true).attr("text-anchor", "end")
+                        .classed("CompareChart-TitleBar", true)
                         .append("text").text(this.y2Title_value)
                         .attr("transform", "rotate(-90)")
                         .attr("dominant-baseline", "text-after-edge")
@@ -622,6 +635,7 @@ var CompareChart = SmartChartBaseClass.extend({
                 case "middle":
                     this.svg.drawArea.append("g").attr("transform", "translate(" + (this._figureWidth + this._yTitleWidth + this._yAxisWidth + this._y2AxisWidth + this._y2TitleWidth) + "," + (this._figureHeight / 2) + ")")
                         .classed("CompareChart-y2TitleBar", true).attr("text-anchor", "middle")
+                        .classed("CompareChart-TitleBar", true)
                         .append("text").text(this.y2Title_value)
                         .attr("transform", "rotate(-90)")
                         .attr("dominant-baseline", "text-after-edge")
@@ -630,6 +644,7 @@ var CompareChart = SmartChartBaseClass.extend({
                 case "end":
                     this.svg.drawArea.append("g").attr("transform", "translate(" + (this._figureWidth + this._yTitleWidth + this._yAxisWidth + this._y2AxisWidth + this._y2TitleWidth) + "," + (this._figureHeight) + ")")
                         .classed("CompareChart-y2TitleBar", true).attr("text-anchor", "start")
+                        .classed("CompareChart-TitleBar", true)
                         .append("text").text(this.y2Title_value)
                         .attr("transform", "rotate(-90)")
                         .attr("dominant-baseline", "text-after-edge")
@@ -652,6 +667,7 @@ var CompareChart = SmartChartBaseClass.extend({
                 case "start":
                     this.svg.drawArea.append("g").attr("transform", "translate(" + (0) + "," + (this._drawAreaHeight - this._xTitleHeight) + ")")
                         .classed("CompareChart-xTitleBar", true).attr("text-anchor", "start")
+                        .classed("CompareChart-TitleBar", true)
                         .append("text")
                         .text(this.xTitle_value)
                         .attr("dominant-baseline", "text-before-edge")
@@ -660,6 +676,7 @@ var CompareChart = SmartChartBaseClass.extend({
                 case "middle":
                     this.svg.drawArea.append("g").attr("transform", "translate(" + (this._drawAreaWidth / 2) + "," + (this._drawAreaHeight - this._xTitleHeight) + ")")
                         .classed("CompareChart-xTitleBar", true).attr("text-anchor", "middle")
+                         .classed("CompareChart-TitleBar", true)
                         .append("text")
                         .text(this.xTitle_value)
                         .attr("dominant-baseline", "text-before-edge")
@@ -668,6 +685,7 @@ var CompareChart = SmartChartBaseClass.extend({
                 case "end":
                     this.svg.drawArea.append("g").attr("transform", "translate(" + (this._drawAreaWidth - this._y2TitleWidth - this._y2AxisWidth) + "," + (this._drawAreaHeight - this._xTitleHeight) + ")")
                         .classed("CompareChart-xTitleBar", true).attr("text-anchor", "end")
+                         .classed("CompareChart-TitleBar", true)
                         .append("text")
                         .text(this.xTitle_value)
                         .attr("dominant-baseline", "text-before-edge")
@@ -913,20 +931,22 @@ var CompareChart = SmartChartBaseClass.extend({
         }, this);
     },
     rendering: function () {
-        this.isDrawed = true;
-        if (this._measures.vals().length === 0) {
-            this.drawHint(this.emptyHint || "Please Add Item");
+        var self=this;
+        self.isDrawed = true;
+        if (self._measures.vals().length === 0) {
+            self.drawHint(self.emptyHint || "Please Add Item");
             return;
         }
-        if (this.hintDiv) {
-            this.hintDiv.remove();
-            this.hintDiv = null;
-        }
-        if (this.isInitDraw) {
-            this.reDraw();
-        } else {
-            this.calculateMargin().initDraw().draw();
-        }
+                    if (self.hintDiv) {
+                        self.hintDiv.remove();
+                        self.hintDiv = null;
+                    }
+                    if (self.isInitDraw) {
+                        self.reDraw();
+                    } else {
+                        self.calculateMargin().initDraw().draw().setSelectStyle();
+                    }
+      
     },
     drawHint: function (str) {
         if (this.appendId) {
@@ -1044,25 +1064,27 @@ var CompareChart = SmartChartBaseClass.extend({
         var self = this;
         this._zoomScale = d3.event.scale;
         this.toolTip.setVisiable(false);
-        this.svg.drawArea.remove();
-        this.svg.drawArea = this.svg.append("svg:g").classed("CompareChart-drawArea", true)
-            .attr("transform", "translate(0," + this._titleHeight + ")");
-        var _a = this.svg.drawArea.append("a").attr("xlink:href", "javascript:void(0)").attr("name", "legend");
-        this.keyboardHandle(_a);
-        this.svg.drawArea.figureArea = _a.append("svg:g").classed("CompareChart-figure", true)
-            .attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth) + ",0)")
-            .attr("clip-path", "url(#" + this.appendId + "clip)");
-        this.svg.drawArea.figureRect = this.svg.drawArea.figureArea
-            .append("svg:rect")
-            .attr("width", this._figureWidth)
-            .attr("height", this._figureHeight)
-            .attr("fill-opacity", 0);
-        this.svg.drawArea.call(this.zoom).on("dblclick.zoom", null);
-        this.svg.drawArea.figureArea.on("click", self.getLinePosition.bind(this));
+        //this.svg.drawArea.remove();
+        // this.svg.drawArea = this.svg.append("svg:g").classed("CompareChart-drawArea", true)
+        //     .attr("transform", "translate(0," + this._titleHeight + ")");
+        // var _a = this.svg.drawArea.append("a").attr("xlink:href", "javascript:void(0)").attr("name", "legend");
+        // this.keyboardHandle(_a);
+        // this.svg.drawArea.figureArea.remove();
+        // this.svg.drawArea.figureRect.remove();
+        // this.svg.drawArea.figureArea = _a.append("svg:g").classed("CompareChart-figure", true)
+        //     .attr("transform", "translate(" + (this._yTitleWidth + this._yAxisWidth) + ",0)")
+        //     .attr("clip-path", "url(#" + this.appendId + "clip)");
+        // this.svg.drawArea.figureRect = this.svg.drawArea.figureArea
+        //     .append("svg:rect")
+        //     .attr("width", this._figureWidth)
+        //     .attr("height", this._figureHeight)
+        //     .attr("fill-opacity", 0);
+        //this.svg.drawArea.call(this.zoom).on("dblclick.zoom", null);
+        this.svg.drawArea.figureArea.selectAll("g").remove();
         if (!this.p2) {
             this.p1 = null;
         }
-        this.drawBackground().drawAxis().drawYTicketLine().drawTitle().drawMeasure().drawEventZone().setSelectStyle();
+        this.drawBackground().drawAxis().drawYTicketLine().drawMeasure().drawEventZone().setSelectStyle();
         this.drawCustomeLine(this.p1, this.p2);
     },
     drawGuideLine: function (point) {

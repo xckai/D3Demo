@@ -97,9 +97,13 @@ var Legend=SmartChartBaseClass.extend({
             g.append("svg:foreignObject").attr("x",location(i).x+ 20)
                                              .attr("y",location(i).y)
                                              .attr("height", self.textRectHeight)
-                                             .attr("width", self.textRectWidth)
+                                             .attr("width", self.textRectWidth-15)
+                                             .classed("legend-textarea",true)
                                              .append("xhtml:p")
+                                             .attr("title",d.name)
                                              .style("line-height",self.textRectHeight+"px")
+                                             .style("overflow","hidden")
+                                             .style("text-overflow","ellipsis")
                                              .text(d.name);
   
             // g.append("textArea").attr("x", 20)
