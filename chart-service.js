@@ -197,7 +197,7 @@ MeasureSet.prototype.each=function(fn,ctx){
     _(this.values()).each(fn);
     return this;
 }
-MeasureSet.prototypel.filterByKey=function(keypath){
+MeasureSet.prototype.filterByKey=function(keypath){
    var  key=keypath.splice(":")[0],ns=keypath.splice(":")[1];
    if(this._d[key]){
        if(ns){

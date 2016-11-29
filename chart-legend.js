@@ -71,12 +71,13 @@ var Legend=SmartChartBaseClass.extend({
                         .attr("height", legendHeight+4);
         svg.attr("clip-path", "url(#"+guid+"legendclip");
         legends.selectAll(".legend")
-                            .data(_measures.vals()).enter()
+                            .data(_(_measures.vals()).chain().groupBy("id").toArray().value()).enter()
                             .append("g").classed("legend",true);
         var scrollContainer=svg.append("g").attr("transform","translate("+(legendWidth-5)+",0)");
         verticalScrolls(legendHeight,legendWidth,self.getAccHeight(displayModel,legendWidth,self.textRectWidth,_measures.vals().length),0,svg,scrollContainer,legends);
-        legends.selectAll(".legend").each(function(d,i){
+        legends.selectAll(".legend").each(function(_d,i){
             var g=d3.select(this);
+            d=_d[0];
             g.append("svg:rect").attr("height", self.textRectHeight)
                                     .attr("width", self.textRectWidth)
                                     .attr("y", location(i).y )
@@ -128,12 +129,14 @@ var Legend=SmartChartBaseClass.extend({
                
             });
             g.on("click", function() {
-            if (d.isSelected) {
-                d.isSelected = false;
-                self.eventManager.call("measuredeselect", [d]);
+            if (_d[0].isSelected) {
+                //d.isSelected = false;
+                 _(_d).each(function(t){t.isSelected=false});
+                self.eventManager.call("measuredeselect", [_d]);
             } else {
-                d.isSelected = true;
-                self.eventManager.call("measureselect", [d]);
+                //d.isSelected = true;
+                _(_d).each(function(t){t.isSelected=true});
+                self.eventManager.call("measureselect", [_d]);
             }
             event.stopPropagation();
         });

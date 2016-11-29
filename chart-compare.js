@@ -78,7 +78,7 @@ var CompareChart = SmartChartBaseClass.extend({
         this.legend = Legend.create(this.legendOption);
         this.toolTip = ChartToolTip.create();
         this._measures = new Set(function (v1, v2) {
-            return String(v1.id) === String(v2.id)
+            return (String(v1.id) === String(v2.id)) && v1.type===v2.type;
         });
         this.memory = new Memory();
         this.translate = [0, 0];
@@ -264,7 +264,7 @@ var CompareChart = SmartChartBaseClass.extend({
     },
     preHandleMeasure: function (obj) {
         var self = this;
-        obj.style_color = obj.style_color || this.colorManager.getColor();
+        obj.style_color = obj.style_color || _(this._measures.vals()).findWhere({id:obj.id})? _(this._measures.vals()).findWhere({id:obj.id}).style_color:this.colorManager.getColor();
         obj.eventManager = this.eventManager;
         obj.$chart = this;
         obj._d.forEach(function (d) {

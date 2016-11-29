@@ -182,10 +182,64 @@ Memory.prototype.cache=function(_key,f,that,args){
 Memory.prototype.flush=function(){
     this._mem={};
 }
+var MeasureSet=function(keypath){
+    this.keypath=keypath||"id";
+    this._d={};
+}
+MeasureSet.prototype.add=function(v){
+    var keypath = v[this.keypath],key=keypath.splice(":")[0],ns=keypath.splice(":")[1]?keypath.splice(":")[1]:"default";
+    if(this._d[key]){
+        this._d[key][ns]=v;
+    }else{
+        this._d[key]={};
+        this._d[key][ns]=v;
+    }
+    return this;
+}
+MeasureSet.prototype.remove=function(keypath){
+    var key=keypath.splice(":")[0],ns=keypath.splice(":")[1];
+    if(ns){
+        if(this._d[key]){
+            delete this._d[key][ns];
+            if(_(this._d[key]).size ===0){
+                 delete this._d[key];
+            }
+        }
+    }else{
+        delete this._d[key];
+    }
+}
+MeasureSet.prototype.values=function(){
+    var r=[],self=this;
+    _(this._d).each(function(v,k){
+        _(v).each(function(_v){
+            r.push(_v);
+        })
+    })
+    return r;
+}
+MeasureSet.prototype.each=function(fn,ctx){
+    ctx?fn.bind(ctx):null;
+    _(this.values()).each(fn);
+    return this;
+}
+MeasureSet.prototype.filterByKey=function(keypath){
+   var  key=keypath.splice(":")[0],ns=keypath.splice(":")[1];
+   if(this._d[key]){
+       if(ns){
+           return this._d[key][ns]?[this._d[key][ns]]:[];
+       }else{
+           _(this._d[key]).toArray();
+       }
+   }else{
+       return [];
+   }
+}
 var Set=function(f){
     this.compareFunction=f;
     this._vals=[];
 };
+
 Set.prototype.add=function(v){
     var self =this;
     var i = -1;
@@ -201,6 +255,10 @@ Set.prototype.add=function(v){
         this._vals[i]=v;
     }
     return this;
+}
+Set.prototype.keys=function(){
+    var t={};
+    
 }
 Set.prototype.forEach=function(){
     return [].forEach.apply(this._vals,arguments);
@@ -545,12 +603,13 @@ var Legend=SmartChartBaseClass.extend({
                         .attr("height", legendHeight+4);
         svg.attr("clip-path", "url(#"+guid+"legendclip");
         legends.selectAll(".legend")
-                            .data(_measures.vals()).enter()
+                            .data(_(_measures.vals()).chain().groupBy("id").toArray().value()).enter()
                             .append("g").classed("legend",true);
         var scrollContainer=svg.append("g").attr("transform","translate("+(legendWidth-5)+",0)");
         verticalScrolls(legendHeight,legendWidth,self.getAccHeight(displayModel,legendWidth,self.textRectWidth,_measures.vals().length),0,svg,scrollContainer,legends);
-        legends.selectAll(".legend").each(function(d,i){
+        legends.selectAll(".legend").each(function(_d,i){
             var g=d3.select(this);
+            d=_d[0];
             g.append("svg:rect").attr("height", self.textRectHeight)
                                     .attr("width", self.textRectWidth)
                                     .attr("y", location(i).y )
@@ -602,12 +661,14 @@ var Legend=SmartChartBaseClass.extend({
                
             });
             g.on("click", function() {
-            if (d.isSelected) {
-                d.isSelected = false;
-                self.eventManager.call("measuredeselect", [d]);
+            if (_d[0].isSelected) {
+                //d.isSelected = false;
+                 _(_d).each(function(t){t.isSelected=false});
+                self.eventManager.call("measuredeselect", [_d]);
             } else {
-                d.isSelected = true;
-                self.eventManager.call("measureselect", [d]);
+                //d.isSelected = true;
+                _(_d).each(function(t){t.isSelected=true});
+                self.eventManager.call("measureselect", [_d]);
             }
             event.stopPropagation();
         });
@@ -712,7 +773,7 @@ var CompareChart = SmartChartBaseClass.extend({
         this.legend = Legend.create(this.legendOption);
         this.toolTip = ChartToolTip.create();
         this._measures = new Set(function (v1, v2) {
-            return String(v1.id) === String(v2.id)
+            return (String(v1.id) === String(v2.id)) && v1.type===v2.type;
         });
         this.memory = new Memory();
         this.translate = [0, 0];
@@ -898,7 +959,7 @@ var CompareChart = SmartChartBaseClass.extend({
     },
     preHandleMeasure: function (obj) {
         var self = this;
-        obj.style_color = obj.style_color || this.colorManager.getColor();
+        obj.style_color = obj.style_color || _(this._measures.vals()).findWhere({id:obj.id})? _(this._measures.vals()).findWhere({id:obj.id}).style_color:this.colorManager.getColor();
         obj.eventManager = this.eventManager;
         obj.$chart = this;
         obj._d.forEach(function (d) {
@@ -2434,25 +2495,7 @@ var BoxPlot = Line.extend({
         this.rectwidth = this.style_rectwidth || defaultStyle.rectwidth;
         this.linelength = this.rectwidth + 4;
     },
-    dataCheck: function () {
-        var result = true,
-            self = this;
-        this.mapkey.forEach(function (k) {
-            self._d.forEach(function (d) {
-                var _r = !(d[k] === undefined || d[k] === null);
-                !_r ? console.log(d) : null;
-                result = _r && result;
 
-            })
-        })
-        this.getAllY().forEach(function(d){
-            if(isNaN(+d)){
-                result=false;
-            }
-        })
-        return result;
-
-    },
     draw: function (ctx) {
         //this.parseFromMeasure();
         var scales = ctx.get("scales");
@@ -2467,7 +2510,9 @@ var BoxPlot = Line.extend({
             rectwidth = this.rectwidth,
             self = this;
         var boxGroup = svg.append("g").attr("class", "CompareChart-boxplot").attr("pointer-events", "none");
-        this._d.forEach(function (d) {
+        this._d.filter(function(d){
+            return !(isNaN(d.d0) || isNaN(d.d1) || isNaN(d.d2) || isNaN(d.d3) || isNaN(d.d4) ||isNaN(d.d5))
+        }).forEach(function (d) {
             var boxplot = boxGroup.append("g").attr("class", "event-comparechart-" + xSetIndex(d.x)).datum(d).classed("boxplot", true);
             boxplot.append("line").attr("x1", xScale(d.x) - linelength / 2).attr("y1", yScale(d.d0))
                 .attr("x2", xScale(d.x) + linelength / 2).attr("y2", yScale(d.d0))
