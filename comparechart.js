@@ -1,4 +1,30 @@
-(function(){var SmartChartBaseClass = {
+(function(){var root=this;
+var previousChartManager=root.ChartManager;
+var ChartManager={};
+root.ChartManager=ChartManager;
+ChartManager.createCompareChart = function (option) {
+    return CompareChart.create(option)
+};
+ChartManager.createMeasure = function (option) {
+    return new Measure(option);
+}
+ChartManager.createChartFromJSON = function (str) {
+    var _ = JSON.parse(str, function (key, value) {    
+        if (value && (typeof value === 'string') && value.indexOf("function") === 0) {        
+            var jsFunc = new Function('return ' + value)();        
+            return jsFunc;    
+        }        
+        return value;
+    });
+    if (_.type === "comparechart") {
+        return CompareChart.create(_.config).addMeasures(_.measures);
+    }
+}
+ChartManager.noConflict=function(){
+    root.ChartManager=previousChartManager;
+    return this;
+}
+var SmartChartBaseClass = {
     extend: function(prop) {
         var subClass = Object.create(this);
         for (var i in prop) {
@@ -206,6 +232,10 @@ Set.prototype.vals=function(){
 Set.prototype.sort=function(){
     Array().sort.apply(this._vals,arguments);
 }
+Set.prototype.flush=function(){
+     this._vals=[];
+     return this;
+}
 var context=function(k,v){
     if(k) this[k] = v; 
     return this;
@@ -236,10 +266,10 @@ var ChartToolTip=SmartChartBaseClass.extend({
     setContent:function(content){
         if(this.toolTip) this.toolTip.html(content);
     },
-    setPosition:function(x,y){
+    setPosition:function(x,y,screenWidth){
         var width =this.toolTip.node().offsetWidth;
         var height =this.toolTip.node().offsetHeight;
-        var screenWidth=document.body.clientWidth || 800;
+        screenWidth =screenWidth||document.body.clientWidth || 800;
         if(x-width/2 < 0){
               this.toolTip.style("left",  10+ "px");
         }else if(x+width/2 >screenWidth){
@@ -400,6 +430,11 @@ var commentFunction={
     },
     getMeasures:function(){
         return this._measures.map(function(m){return m});
+    },
+    removeAllMeasures:function(){
+        this._measures.flush();
+        if(this.isInitDraw) this.reDraw();
+        return this;
     }
 }
 
@@ -617,21 +652,22 @@ var CompareChart = SmartChartBaseClass.extend({
             } else {
                 var self = this;
                 var _v;
-                if(span>9){
-                     _v=Number(v).toFixed();
-                    
-                }else if(1<=span && span <=9){
-                     _v=Number(v).toFixed(1); 
-                }else{
-                    var  num=Math.abs(span) ,i,counter=2;
-                    for(i = 0;i<num.toString().length;++i){
-                        if(num.toString()[0]===0){
+                if (span > 9) {
+                    _v = Number(v).toFixed();
+
+                } else if (1 <= span && span <= 9) {
+                    _v = Number(v).toFixed(1);
+                } else {
+                    var num = Math.abs(span),
+                        i, counter = 2;
+                    for (i = 0; i < num.toString().length; ++i) {
+                        if (num.toString()[0] === 0) {
                             ++counter;
-                        }else{
+                        } else {
                             break;
                         }
                     }
-                    _v=Number(v).toFixed(counter);
+                    _v = Number(v).toFixed(counter);
                 }
                 return self.yValueFormat ? self.yValueFormat(_v) : _v;
             }
@@ -645,21 +681,22 @@ var CompareChart = SmartChartBaseClass.extend({
             } else {
                 var self = this;
                 var _v;
-                if(span>9){
-                     _v=Number(v).toFixed();
-                    
-                }else if(1<=span && span <=9){
-                     _v=Number(v).toFixed(1); 
-                }else{
-                    var  num=Math.abs(span) ,i,counter=2;
-                    for(i = 0;i<num.toString().length;++i){
-                        if(num.toString()[0]===0){
+                if (span > 9) {
+                    _v = Number(v).toFixed();
+
+                } else if (1 <= span && span <= 9) {
+                    _v = Number(v).toFixed(1);
+                } else {
+                    var num = Math.abs(span),
+                        i, counter = 2;
+                    for (i = 0; i < num.toString().length; ++i) {
+                        if (num.toString()[0] === 0) {
                             ++counter;
-                        }else{
+                        } else {
                             break;
                         }
                     }
-                    _v=Number(v).toFixed(counter);
+                    _v = Number(v).toFixed(counter);
                 }
                 return self.y2ValueFormat ? self.y2ValueFormat(_v) : _v;
             }
@@ -667,9 +704,11 @@ var CompareChart = SmartChartBaseClass.extend({
 
         this.eventManager = eventManager.create();
         this.colorManager = colorManager.create();
-        this.legendOption={eventManager:this.eventManager,
-                            textRectHeight:32,
-                            textRectWidth:250};
+        this.legendOption = {
+            eventManager: this.eventManager,
+            textRectHeight: 32,
+            textRectWidth: 250
+        };
         this.legend = Legend.create(this.legendOption);
         this.toolTip = ChartToolTip.create();
         this._measures = new Set(function (v1, v2) {
@@ -738,11 +777,11 @@ var CompareChart = SmartChartBaseClass.extend({
         return this;
     },
     calculateMargin: function () {
-        var padding=this.padding=5*2 ;
-        if(!this.legendDisplayModel){
-            this.legendDisplay="horizontal";
-        }else{
-            this.legendDisplay=this.legendDisplayModel;
+        var padding = this.padding = 5 * 2;
+        if (!this.legendDisplayModel) {
+            this.legendDisplay = "horizontal";
+        } else {
+            this.legendDisplay = this.legendDisplayModel;
         }
         if (this.title) {
             this._titleHeight = 50;
@@ -750,23 +789,23 @@ var CompareChart = SmartChartBaseClass.extend({
             this._titleHeight = 10;
         }
 
-        this._drawAreaWidth = this.width-padding;
+        this._drawAreaWidth = this.width - padding;
         this._drawAreaHeight = this.height;
         if (this.showLegend) {
             //this._drawAreaWidth = Math.floor(this.width * 0.8);
-            if(this.legendDisplay==="horizontal"){
-                var column=Math.floor((this.width-10)/this.legendOption.textRectWidth);
-                var rows=Math.ceil(this._measures.vals().length/column);
-                this._legendHeight = Math.min(Math.max(Math.floor(this.height * 0.15),this.legendOption.textRectHeight),rows*this.legendOption.textRectHeight+1);
-                this._drawAreaHeight = this.height-this._titleHeight-this._legendHeight;
-                this._legendWidth= this.width
-            }else{
-                
-                this._legendHeight = this.height-this._titleHeight;
-                 this._drawAreaHeight = this.height-this._titleHeight;
-                this._legendWidth= Math.max(Math.floor(this.width * 0.2),this.legendOption.textRectWidth);
-                this._drawAreaWidth = this.width-this._legendWidth-padding;    
-        }
+            if (this.legendDisplay === "horizontal") {
+                var column = Math.floor((this.width - 10) / this.legendOption.textRectWidth);
+                var rows = Math.ceil(this._measures.vals().length / column);
+                this._legendHeight = Math.min(Math.max(Math.floor(this.height * 0.15), this.legendOption.textRectHeight), rows * this.legendOption.textRectHeight + 1);
+                this._drawAreaHeight = this.height - this._titleHeight - this._legendHeight;
+                this._legendWidth = this.width
+            } else {
+
+                this._legendHeight = this.height - this._titleHeight;
+                this._drawAreaHeight = this.height - this._titleHeight;
+                this._legendWidth = Math.max(Math.floor(this.width * 0.2), this.legendOption.textRectWidth);
+                this._drawAreaWidth = this.width - this._legendWidth - padding;
+            }
 
         } else {
             this._drawAreaWidth = this.width;
@@ -884,11 +923,11 @@ var CompareChart = SmartChartBaseClass.extend({
     initDraw: function () {
         if (this.isInitDraw) return this;
         if (this.validateConfig()) {
-            var padding= this.padding;
+            var padding = this.padding;
             var self = this;
             this.svgContainer = d3.select("#" + this.appendId).append("div").classed("CompareChart", true)
-                .style("width", this.width+"px")
-                .style("height", this.height+"px")
+                .style("width", this.width + "px")
+                .style("height", this.height + "px")
                 .style("position", "relative")
                 .classed("notextselect", true);
             this.svg = this.svgContainer.append("svg").classed("CompareChart-svg", true)
@@ -902,7 +941,7 @@ var CompareChart = SmartChartBaseClass.extend({
             this.svg.title = this.svg.append('svg:g').classed("CompareChart-title-Container", true)
                 .attr("transform", "translate(" + (this.width / 2) + ",5)");
             this.svg.drawArea = this.svg.append("svg:g").classed("CompareChart-drawArea", true)
-                .attr("transform", "translate("+padding/2+"," + this._titleHeight + ")");
+                .attr("transform", "translate(" + padding / 2 + "," + this._titleHeight + ")");
             var _a = this.svg.drawArea.append("a").attr("xlink:href", "javascript:void(0)").attr("name", "legend");
             this.keyboardHandle(_a);
             this.svg.drawArea.figureArea = _a.append("svg:g").classed("CompareChart-figure", true)
@@ -914,11 +953,11 @@ var CompareChart = SmartChartBaseClass.extend({
                 .attr("height", this._figureHeight)
                 .attr("fill-opacity", 0);
             if (this.showLegend) {
-                if(this.legendDisplay==="horizontal"){
-                     this.svg.legend = this.svg.append("g").attr("transform", "translate(0," + (this._drawAreaHeight +this._titleHeight) + ")").classed("CompareChart-Legend-Container", true);
-                }else{
+                if (this.legendDisplay === "horizontal") {
+                    this.svg.legend = this.svg.append("g").attr("transform", "translate(0," + (this._drawAreaHeight + this._titleHeight) + ")").classed("CompareChart-Legend-Container", true);
+                } else {
                     this.svg.legend = this.svg.append("g").attr("transform", "translate(" + (this._drawAreaWidth + 10) + "," + this._titleHeight + ")").classed("CompareChart-Legend-Container", true);
-                    
+
                 }
             }
             if (this.showToolTip) {
@@ -1069,11 +1108,11 @@ var CompareChart = SmartChartBaseClass.extend({
 
                 if (this.hasY1()) {
                     this._ticketLine = this._yAxis.selectAll("g")
-                        .append("line").attr("x2", self._figureWidth).attr("x1", 0).attr("y1", 0).attr("y2", 0).classed("CompareChart-ytickline",true)
+                        .append("line").attr("x2", self._figureWidth).attr("x1", 0).attr("y1", 0).attr("y2", 0).classed("CompareChart-ytickline", true)
 
                 } else if (this.hasY2()) {
                     this._ticketLine = this._y2Axis.selectAll("g")
-                        .append("line").attr("x2", -self._figureWidth).attr("x1", 0).attr("y1", 0).attr("y2", 0).classed("CompareChart-ytickline",true);
+                        .append("line").attr("x2", -self._figureWidth).attr("x1", 0).attr("y1", 0).attr("y2", 0).classed("CompareChart-ytickline", true);
                 }
             }
         }
@@ -1275,7 +1314,7 @@ var CompareChart = SmartChartBaseClass.extend({
                 case "middle":
                     this.svg.drawArea.append("g").attr("transform", "translate(" + (this._drawAreaWidth / 2) + "," + (this._drawAreaHeight - this._xTitleHeight) + ")")
                         .classed("CompareChart-xTitleBar", true).attr("text-anchor", "middle")
-                         .classed("CompareChart-TitleBar", true)
+                        .classed("CompareChart-TitleBar", true)
                         .append("text")
                         .text(this.xTitle_value)
                         .attr("dominant-baseline", "text-before-edge")
@@ -1284,7 +1323,7 @@ var CompareChart = SmartChartBaseClass.extend({
                 case "end":
                     this.svg.drawArea.append("g").attr("transform", "translate(" + (this._drawAreaWidth - this._y2TitleWidth - this._y2AxisWidth) + "," + (this._drawAreaHeight - this._xTitleHeight) + ")")
                         .classed("CompareChart-xTitleBar", true).attr("text-anchor", "end")
-                         .classed("CompareChart-TitleBar", true)
+                        .classed("CompareChart-TitleBar", true)
                         .append("text")
                         .text(this.xTitle_value)
                         .attr("dominant-baseline", "text-before-edge")
@@ -1299,8 +1338,8 @@ var CompareChart = SmartChartBaseClass.extend({
             var ctx = new context();
             ctx.add("svg", this.svg.legend).add("legendWidth", this._legendWidth)
                 .add("guid", this.appendId)
-                .add("legendHeight",this._legendHeight)
-                .add("display","horizontal");
+                .add("legendHeight", this._legendHeight)
+                .add("display", "horizontal");
             this.legend.draw(ctx, this._measures);
         }
         return this;
@@ -1427,7 +1466,7 @@ var CompareChart = SmartChartBaseClass.extend({
             });
             if (chartFigrues.length > 0) {
                 var position = d3.mouse(this.svg.node());
-                this.toolTip.setPosition(position[0], position[1]);
+                this.toolTip.setPosition(position[0], position[1], this._drawAreaWidth);
                 //this.toolTip.setPosition(event.pageX , event.pageY);
                 this.toolTip.setContent(this.getToolTipContent(chartFigrues));
                 this.toolTip.setVisiable(true);
@@ -1530,34 +1569,35 @@ var CompareChart = SmartChartBaseClass.extend({
         }, this);
     },
     rendering: function () {
-        var self=this;
+        var self = this;
         self.isDrawed = true;
         if (self._measures.vals().length === 0) {
             self.drawHint(self.emptyHint || "Please Add Item");
+            self.colorManager.reset();
             return;
         }
-                    if (self.hintDiv) {
-                        self.hintDiv.remove();
-                        self.hintDiv = null;
-                    }
-                    if (self.isInitDraw) {
-                        self.reDraw();
-                    } else {
-                        self.calculateMargin().initDraw().draw().setSelectStyle();
-                    }
-      
+        if (self.hintDiv) {
+            self.hintDiv.remove();
+            self.hintDiv = null;
+        }
+        if (self.isInitDraw) {
+            self.reDraw();
+        } else {
+            self.calculateMargin().initDraw().draw().setSelectStyle();
+        }
+
     },
     drawHint: function (str) {
         if (this.appendId) {
             if (!this.hintDiv) {
-                 this.hintDiv = d3.select("#" + this.appendId).append("div");
-                 this.hintDiv.textHint= this.hintDiv.append("text");
+                this.hintDiv = d3.select("#" + this.appendId).append("div");
+                this.hintDiv.textHint = this.hintDiv.append("text");
             };
             this.hintDiv.classed("CompareChart-hintdiv", true)
-                .style("width", this.width+"px")
-                .style("height", this.height+"px")
+                .style("width", this.width + "px")
+                .style("height", this.height + "px")
                 .classed("notextselect", true);
-           this.hintDiv.textHint.classed("CompareChart-hint", true).text(str);
+            this.hintDiv.textHint.classed("CompareChart-hint", true).text(str);
         }
     },
     reDraw: function () {
@@ -1700,7 +1740,7 @@ var CompareChart = SmartChartBaseClass.extend({
                     .attr("y1", yScale(v))
                     .attr("x2", self._figureWidth)
                     .attr("y2", yScale(v))
-                    .classed("CompareChart-xguideline",true);
+                    .classed("CompareChart-xguideline", true);
                 self._guideLineGroup.append("circle")
                     .attr("cx", self._figureWidth - 4)
                     .attr("cy", yScale(v))
@@ -1713,7 +1753,7 @@ var CompareChart = SmartChartBaseClass.extend({
                     .attr("y1", yScale(v))
                     .attr("x2", 0)
                     .attr("y2", yScale(v))
-                    .classed("CompareChart-xguideline",true);
+                    .classed("CompareChart-xguideline", true);
                 self._guideLineGroup.append("circle")
                     .attr("cx", 4)
                     .attr("cy", yScale(v))
@@ -1734,8 +1774,8 @@ var CompareChart = SmartChartBaseClass.extend({
             .attr("y1", minY)
             .attr("x2", xScale(point._figureObj.getX(point)[0]))
             .attr("y2", self._figureHeight)
-            .classed("CompareChart-yguideline",true)
-       // self.svg.selectAll(".yAxisGuideLine").attr("visibility", "hidden");
+            .classed("CompareChart-yguideline", true)
+            // self.svg.selectAll(".yAxisGuideLine").attr("visibility", "hidden");
     },
     removeGuideLine: function () {
         var self = this;
@@ -2453,11 +2493,18 @@ var BoxPlot = Line.extend({
         return [point.d0, point.d1, point.d2, point.d3, point.d4, point.d5];
     },
     getAllY: function () {
-        return this._d.map(function (v) {
-            return [v.d0, v.d1, v.d2, v.d3, v.d4]
-        }).reduce(function (v1, v2) {
-            return v1.concat(v2)
-        });
+        if (this._d.map(function (v) {
+                return [v.d0, v.d1, v.d2, v.d3, v.d4]
+            }).length > 0) {
+            return this._d.map(function (v) {
+                return [v.d0, v.d1, v.d2, v.d3, v.d4]
+            }).reduce(function (v1, v2) {
+                return v1.concat(v2)
+            });
+        } else {
+            return [];
+        }
+
     },
     isInSharp: function (svg, _sharp, ctx) {
         _sharp = d3.select(_sharp);
@@ -2742,25 +2789,4 @@ var RangeChart = Line.extend({
     }
 })
 CompareChart.mergeFunction(commentFunction);
-ChartManager={};
-ChartManager.createCompareChart = function (option) {
-    return CompareChart.create(option)
-};
-ChartManager.createMeasure = function (option) {
-    return new Measure(option);
-}
-ChartManager.createChartFromJSON = function (str) {
-    var _ = JSON.parse(str, function (key, value) {    
-        if (value && (typeof value === 'string') && value.indexOf("function") === 0) {        
-            var jsFunc = new Function('return ' + value)();        
-            return jsFunc;    
-        }        
-        return value;
-    });
-    if (_.type === "comparechart") {
-        return CompareChart.create(_.config).addMeasures(_.measures);
-    }
-}
-window.ChartManager=ChartManager;
-window.SmartCompareChart=CompareChart;
-window.SmartMeasure=Measure;})();
+})();

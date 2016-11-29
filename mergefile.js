@@ -9,7 +9,7 @@ fs.open("comparechart.js","a+",function(err,fd){
         console.log(err);
     }
     fs.writeFile("comparechart.js",
-    "(function(){"+serviceFile+"\n"+measureFile+"\n"+legendFile+"\n"+compareFile+"\n"+managerFile+"\nwindow.ChartManager=ChartManager;\nwindow.SmartCompareChart=CompareChart;\nwindow.SmartMeasure=Measure;})();",function(err){
+    "(function(){"+managerFile+"\n"+serviceFile+"\n"+measureFile+"\n"+legendFile+"\n"+compareFile+"\n})();",function(err){
         if(err){
             console.log(err);
         }

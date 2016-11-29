@@ -206,6 +206,10 @@ Set.prototype.vals=function(){
 Set.prototype.sort=function(){
     Array().sort.apply(this._vals,arguments);
 }
+Set.prototype.flush=function(){
+     this._vals=[];
+     return this;
+}
 var context=function(k,v){
     if(k) this[k] = v; 
     return this;
@@ -236,10 +240,10 @@ var ChartToolTip=SmartChartBaseClass.extend({
     setContent:function(content){
         if(this.toolTip) this.toolTip.html(content);
     },
-    setPosition:function(x,y){
+    setPosition:function(x,y,screenWidth){
         var width =this.toolTip.node().offsetWidth;
         var height =this.toolTip.node().offsetHeight;
-        var screenWidth=document.body.clientWidth || 800;
+        screenWidth =screenWidth||document.body.clientWidth || 800;
         if(x-width/2 < 0){
               this.toolTip.style("left",  10+ "px");
         }else if(x+width/2 >screenWidth){
@@ -400,5 +404,10 @@ var commentFunction={
     },
     getMeasures:function(){
         return this._measures.map(function(m){return m});
+    },
+    removeAllMeasures:function(){
+        this._measures.flush();
+        if(this.isInitDraw) this.reDraw();
+        return this;
     }
 }

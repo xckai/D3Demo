@@ -1,4 +1,7 @@
-ChartManager={};
+var root=this;
+var previousChartManager=root.ChartManager;
+var ChartManager={};
+root.ChartManager=ChartManager;
 ChartManager.createCompareChart = function (option) {
     return CompareChart.create(option)
 };
@@ -16,4 +19,8 @@ ChartManager.createChartFromJSON = function (str) {
     if (_.type === "comparechart") {
         return CompareChart.create(_.config).addMeasures(_.measures);
     }
+}
+ChartManager.noConflict=function(){
+    root.ChartManager=previousChartManager;
+    return this;
 }
