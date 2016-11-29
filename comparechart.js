@@ -2026,7 +2026,7 @@ var Line = SmartChartBaseClass.extend({
         this._d.forEach(function (d) {
             d._figureObj = self;
         })
-        this.dataCheck() ? null : (this._d = [], console.error("data format is error"));
+        this.dataCheck() ? null : (this._d = [], console.error("Invalid measure"+this));
         // var config = originData,
         //     self = this;
         // this.setOption(config);
@@ -2434,6 +2434,25 @@ var BoxPlot = Line.extend({
         this.rectwidth = this.style_rectwidth || defaultStyle.rectwidth;
         this.linelength = this.rectwidth + 4;
     },
+    dataCheck: function () {
+        var result = true,
+            self = this;
+        this.mapkey.forEach(function (k) {
+            self._d.forEach(function (d) {
+                var _r = !(d[k] === undefined || d[k] === null);
+                !_r ? console.log(d) : null;
+                result = _r && result;
+
+            })
+        })
+        this.getAllY().forEach(function(d){
+            if(isNaN(+d)){
+                result=false;
+            }
+        })
+        return result;
+
+    },
     draw: function (ctx) {
         //this.parseFromMeasure();
         var scales = ctx.get("scales");
@@ -2517,7 +2536,9 @@ var BoxPlot = Line.extend({
         rectwidth = this.rectwidth;
         _d = _sharp.datum();
         mouse = d3.mouse(svg.node());
-        return mouse[0] > xScale(_d.x) - rectwidth / 2 && mouse[0] < xScale(_d.x) + rectwidth / 2 && mouse[1] > yScale(_d.d0) && mouse[1] < yScale(_d.d4);
+        var bottom=yScale(_d.d0),top=yScale(_d.d4);
+        top-bottom>5? null:top+=2,bottom-=3;
+        return mouse[0] > xScale(_d.x) - rectwidth / 2 && mouse[0] < xScale(_d.x) + rectwidth / 2 && mouse[1] > bottom && mouse[1] < top;
 
     },
     toHtml: function (ctx) {

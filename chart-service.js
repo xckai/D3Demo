@@ -156,10 +156,64 @@ Memory.prototype.cache=function(_key,f,that,args){
 Memory.prototype.flush=function(){
     this._mem={};
 }
+var MeasureSet=function(keypath){
+    this.keypath=keypath||"id";
+    this._d={};
+}
+MeasureSet.prototype.add=function(v){
+    var keypath = v[this.keypath],key=keypath.splice(":")[0],ns=keypath.splice(":")[1]?keypath.splice(":")[1]:"default";
+    if(this._d[key]){
+        this._d[key][ns]=v;
+    }else{
+        this._d[key]={};
+        this._d[key][ns]=v;
+    }
+    return this;
+}
+MeasureSet.prototype.remove=function(keypath){
+    var key=keypath.splice(":")[0],ns=keypath.splice(":")[1];
+    if(ns){
+        if(this._d[key]){
+            delete this._d[key][ns];
+            if(_(this._d[key]).size ===0){
+                 delete this._d[key];
+            }
+        }
+    }else{
+        delete this._d[key];
+    }
+}
+MeasureSet.prototype.values=function(){
+    var r=[],self=this;
+    _(this._d).each(function(v,k){
+        _(v).each(function(_v){
+            r.push(_v);
+        })
+    })
+    return r;
+}
+MeasureSet.prototype.each=function(fn,ctx){
+    ctx?fn.bind(ctx):null;
+    _(this.values()).each(fn);
+    return this;
+}
+MeasureSet.prototypel.filterByKey=function(keypath){
+   var  key=keypath.splice(":")[0],ns=keypath.splice(":")[1];
+   if(this._d[key]){
+       if(ns){
+           return this._d[key][ns]?[this._d[key][ns]]:[];
+       }else{
+           _(this._d[key]).toArray();
+       }
+   }else{
+       return [];
+   }
+}
 var Set=function(f){
     this.compareFunction=f;
     this._vals=[];
 };
+
 Set.prototype.add=function(v){
     var self =this;
     var i = -1;
@@ -175,6 +229,10 @@ Set.prototype.add=function(v){
         this._vals[i]=v;
     }
     return this;
+}
+Set.prototype.keys=function(){
+    var t={};
+    
 }
 Set.prototype.forEach=function(){
     return [].forEach.apply(this._vals,arguments);

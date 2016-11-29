@@ -1392,7 +1392,7 @@ var Line = SmartChartBaseClass.extend({
         this._d.forEach(function (d) {
             d._figureObj = self;
         })
-        this.dataCheck() ? null : (this._d = [], console.error("data format is error"));
+        this.dataCheck() ? null : (this._d = [], console.error("Invalid measure"+this));
         // var config = originData,
         //     self = this;
         // this.setOption(config);
@@ -1800,6 +1800,7 @@ var BoxPlot = Line.extend({
         this.rectwidth = this.style_rectwidth || defaultStyle.rectwidth;
         this.linelength = this.rectwidth + 4;
     },
+
     draw: function (ctx) {
         //this.parseFromMeasure();
         var scales = ctx.get("scales");
@@ -1814,7 +1815,9 @@ var BoxPlot = Line.extend({
             rectwidth = this.rectwidth,
             self = this;
         var boxGroup = svg.append("g").attr("class", "CompareChart-boxplot").attr("pointer-events", "none");
-        this._d.forEach(function (d) {
+        this._d.filter(function(d){
+            return !(isNaN(d.d0) || isNaN(d.d1) || isNaN(d.d2) || isNaN(d.d3) || isNaN(d.d4) ||isNaN(d.d5))
+        }).forEach(function (d) {
             var boxplot = boxGroup.append("g").attr("class", "event-comparechart-" + xSetIndex(d.x)).datum(d).classed("boxplot", true);
             boxplot.append("line").attr("x1", xScale(d.x) - linelength / 2).attr("y1", yScale(d.d0))
                 .attr("x2", xScale(d.x) + linelength / 2).attr("y2", yScale(d.d0))
@@ -1883,7 +1886,9 @@ var BoxPlot = Line.extend({
         rectwidth = this.rectwidth;
         _d = _sharp.datum();
         mouse = d3.mouse(svg.node());
-        return mouse[0] > xScale(_d.x) - rectwidth / 2 && mouse[0] < xScale(_d.x) + rectwidth / 2 && mouse[1] > yScale(_d.d0) && mouse[1] < yScale(_d.d4);
+        var bottom=yScale(_d.d0),top=yScale(_d.d4);
+        top-bottom>5? null:top+=2,bottom-=3;
+        return mouse[0] > xScale(_d.x) - rectwidth / 2 && mouse[0] < xScale(_d.x) + rectwidth / 2 && mouse[1] > bottom && mouse[1] < top;
 
     },
     toHtml: function (ctx) {
